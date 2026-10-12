@@ -4,6 +4,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { BACKEND_URL, AUTH_CONFIG } from "../config/config";
+import { isPublicDemo, DEMO_GUEST_TOKEN } from "../src/utils/demoMode";
 
 // Create axios instance with base configuration
 const api: AxiosInstance = axios.create({
@@ -18,6 +19,25 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
+
+    // Block mutating requests in read-only public demo mode (Task 62)
+    const isDemo = token === DEMO_GUEST_TOKEN || isPublicDemo();
+    const method = config.method?.toLowerCase() || "get";
+    if (isDemo && ["post", "put", "patch", "delete"].includes(method)) {
+      const isAuthRoute =
+        config.url?.includes("/adminLogin") ||
+        config.url?.includes("/adminVerifyOtp") ||
+        config.url?.includes("/forgotPassword");
+      if (!isAuthRoute) {
+        return Promise.reject(
+          new axios.AxiosError(
+            "Action disabled: The public demo environment is strictly read-only. Connect your own honeypot to manage live infrastructure.",
+            "ERR_DEMO_READ_ONLY",
+            config
+          )
+        );
+      }
+    }
 
     if (token && config.headers) {
       config.headers[AUTH_CONFIG.TOKEN_HEADER] = token;
@@ -65,6 +85,10 @@ api.interceptors.response.use(
 
     // Handle 401 Unauthorized - Clear token and redirect to login
     if (error.response && error.response.status === 401) {
+      if (isPublicDemo()) {
+        console.warn("[API] 401 in public demo mode - suppressed redirect");
+        return Promise.reject(error);
+      }
       console.warn("[API] Unauthorized access - clearing token");
       localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
       localStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);

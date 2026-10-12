@@ -8,17 +8,25 @@ import React, {
 } from "react";
 import { AUTH_CONFIG } from "../config/config";
 import { authService, type AuthGroup } from "../api/services/authService";
+import {
+  isPublicDemo,
+  DEMO_GUEST_TOKEN,
+  DEMO_ADMIN_PROFILE,
+  DEMO_READONLY_PERMISSIONS,
+} from "../src/utils/demoMode";
 
 type AdminIdentity = {
   AdminID: string;
   AdminEmail: string;
   CustomerID?: string | null;
+  isDemo?: boolean;
 };
 
 type AuthContextType = {
   token: string | null;
   initialized: boolean;
   isAuthenticated: boolean;
+  isDemo: boolean;
   permissions: string[];
   groups: AuthGroup[];
   admin: AdminIdentity | null;
@@ -42,6 +50,7 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   initialized: false,
   isAuthenticated: false,
+  isDemo: false,
   permissions: [],
   groups: [],
   admin: null,
@@ -97,6 +106,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     if (isStoredSessionExpired()) {
       removeToken();
+      return;
+    }
+    if (t === DEMO_GUEST_TOKEN || isPublicDemo()) {
+      setAdmin(DEMO_ADMIN_PROFILE);
+      setGroups([{ GroupID: 'demo', GroupName: 'Demo Visitors (Read Only)' }]);
+      setPermissions(DEMO_READONLY_PERMISSIONS);
+      setPermissionsLoaded(true);
       return;
     }
     try {
@@ -203,13 +219,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const can = useCallback(
-    (permissionId: string) => permissions.includes(permissionId),
+    (permissionId: string) => {
+      if (isPublicDemo()) {
+        const isMutation =
+          permissionId.endsWith('.manage') ||
+          permissionId.endsWith('.control') ||
+          permissionId.endsWith('.delete') ||
+          permissionId.endsWith('.create');
+        if (isMutation) return false;
+      }
+      return permissions.includes(permissionId);
+    },
     [permissions]
   );
 
   const canAny = useCallback(
     (permissionIds: string[]) =>
-      permissionIds.some((p) => permissions.includes(p)),
+      permissionIds.some((p) => {
+        if (isPublicDemo()) {
+          const isMutation =
+            p.endsWith('.manage') ||
+            p.endsWith('.control') ||
+            p.endsWith('.delete') ||
+            p.endsWith('.create');
+          if (isMutation) return false;
+        }
+        return permissions.includes(p);
+      }),
     [permissions]
   );
 
@@ -218,6 +254,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       token,
       initialized,
       isAuthenticated: !!token,
+      isDemo: token === DEMO_GUEST_TOKEN || isPublicDemo(),
       permissions,
       groups,
       admin,

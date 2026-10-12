@@ -3,6 +3,7 @@ import ViewRouter from './components/ViewRouter';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DEMO_HOSTS, DEMO_ACTORS, DEMO_CVES, DEMO_CVE_FEEDS, DEMO_NEWS, DEMO_EXPLOITS, DEMO_URLHAUS, DEMO_FEODO, DEMO_THREATFOX, DEMO_MALWAREBAZAAR, DEMO_SSLBL, DEMO_JA3, DEMO_RANSOMWARE_POSTS, DEMO_RANSOMWARE_GROUPS } from './data/demo';
 import { DEMO_MODE } from './services/dataProvider';
+import { isPublicDemo } from './utils/demoMode';
 import { SettingsModal } from '../components/SettingsModal';
 import { PlanNoticeModal } from './components/modals/PlanNoticeModal';
 import {
@@ -2020,15 +2021,15 @@ export const App: React.FC = () => {
                             onNavigate={
                                 navigate
                             }
-                            results={combinedResults.length > 0 ? combinedResults : DEMO_HOSTS}
-                            malpediaActors={malpediaActors.length > 0 ? malpediaActors : DEMO_ACTORS}
-                            cveData={cveData.length > 0 ? cveData : DEMO_CVES}
-                            cveFeedItems={cveFeedItems.length > 0 ? cveFeedItems : DEMO_CVE_FEEDS}
-                            exploitData={exploitData.length > 0 ? exploitData : DEMO_EXPLOITS}
+                            results={combinedResults.length > 0 ? combinedResults : (isPublicDemo() ? DEMO_HOSTS : [])}
+                            malpediaActors={malpediaActors.length > 0 ? malpediaActors : (isPublicDemo() ? DEMO_ACTORS : [])}
+                            cveData={cveData.length > 0 ? cveData : (isPublicDemo() ? DEMO_CVES : [])}
+                            cveFeedItems={cveFeedItems.length > 0 ? cveFeedItems : (isPublicDemo() ? DEMO_CVE_FEEDS : [])}
+                            exploitData={exploitData.length > 0 ? exploitData : (isPublicDemo() ? DEMO_EXPLOITS : [])}
                             isFeedLoading={
                                 isFeedLoading
                             }
-                            newsItems={newsItems.length > 0 ? newsItems : DEMO_NEWS}
+                            newsItems={newsItems.length > 0 ? newsItems : (isPublicDemo() ? DEMO_NEWS : [])}
                             newsLastUpdated={
                                 newsLastUpdated
                             }
@@ -2038,12 +2039,12 @@ export const App: React.FC = () => {
                             onRefreshAll={
                                 handleRefreshAll
                             }
-                            urlHausItems={urlHausItems.length > 0 ? urlHausItems : DEMO_URLHAUS}
-                            malwareBazaarItems={malwareBazaarItems.length > 0 ? malwareBazaarItems : DEMO_MALWAREBAZAAR}
-                            feodoItems={feodoItems.length > 0 ? feodoItems : DEMO_FEODO}
-                            sslBlItems={sslBlItems.length > 0 ? sslBlItems : DEMO_SSLBL}
-                            ja3Items={ja3Items.length > 0 ? ja3Items : DEMO_JA3}
-                            threatFoxItems={threatFoxItems.length > 0 ? threatFoxItems : DEMO_THREATFOX}
+                            urlHausItems={urlHausItems.length > 0 ? urlHausItems : (isPublicDemo() ? DEMO_URLHAUS : [])}
+                            malwareBazaarItems={malwareBazaarItems.length > 0 ? malwareBazaarItems : (isPublicDemo() ? DEMO_MALWAREBAZAAR : [])}
+                            feodoItems={feodoItems.length > 0 ? feodoItems : (isPublicDemo() ? DEMO_FEODO : [])}
+                            sslBlItems={sslBlItems.length > 0 ? sslBlItems : (isPublicDemo() ? DEMO_SSLBL : [])}
+                            ja3Items={ja3Items.length > 0 ? ja3Items : (isPublicDemo() ? DEMO_JA3 : [])}
+                            threatFoxItems={threatFoxItems.length > 0 ? threatFoxItems : (isPublicDemo() ? DEMO_THREATFOX : [])}
                             ipsumItems={
                                 ipsumItems
                             }
@@ -2056,8 +2057,8 @@ export const App: React.FC = () => {
                             maliciousHashItems={
                                 maliciousHashItems
                             }
-                            ransomwarePosts={ransomwarePosts.length > 0 ? ransomwarePosts : DEMO_RANSOMWARE_POSTS}
-                            ransomwareGroups={ransomwareGroups.length > 0 ? ransomwareGroups : DEMO_RANSOMWARE_GROUPS}
+                            ransomwarePosts={ransomwarePosts.length > 0 ? ransomwarePosts : (isPublicDemo() ? DEMO_RANSOMWARE_POSTS : [])}
+                            ransomwareGroups={ransomwareGroups.length > 0 ? ransomwareGroups : (isPublicDemo() ? DEMO_RANSOMWARE_GROUPS : [])}
                             onAddLogs={
                                 handleAddLogs
                             }

@@ -6,6 +6,7 @@ import {
   Command,
   Crown,
   HelpCircle,
+  LogOut,
   Menu,
   Search,
   Settings,
@@ -18,6 +19,8 @@ import {
   billingService,
   type BillingUsageResponse,
 } from '../../../api/services/billingService';
+import { isPublicDemo, exitDemoMode } from '../../utils/demoMode';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface HeaderProps {
   activeView: string;
@@ -36,6 +39,7 @@ export default function Header({
   onNavigate,
   onOpenSettings,
 }: HeaderProps) {
+  const { removeToken } = useAuth();
   const [time, setTime] = useState(new Date());
   const [usage, setUsage] = useState<BillingUsageResponse | null>(null);
   const [showPlanMenu, setShowPlanMenu] = useState(false);
@@ -56,6 +60,23 @@ export default function Header({
     let mounted = true;
     const loadUsage = async () => {
       try {
+        if (isPublicDemo()) {
+          if (mounted) {
+            setUsage({
+              plan: {
+                id: 'demo',
+                label: 'Public Demo',
+                status: 'active',
+                active: true,
+              },
+              usage: {
+                servers: { used: 3, limit: 10 },
+                users: { used: 1, limit: 5 },
+              },
+            });
+          }
+          return;
+        }
         const data = await billingService.getUsage();
         if (mounted) setUsage(data);
       } catch {
@@ -161,6 +182,40 @@ export default function Header({
           >
             <Settings size={15} />
           </button>
+        )}
+
+        {/* Sign Out / Logout */}
+        <button
+          type="button"
+          className="at-header-quick-action hover:text-red-400"
+          onClick={() => {
+            if (isPublicDemo()) {
+              exitDemoMode();
+            } else {
+              removeToken();
+              window.location.href = '/login';
+            }
+          }}
+          aria-label="Sign out"
+          title="Sign out / Logout"
+        >
+          <LogOut size={15} />
+        </button>
+
+        {/* Public Demo Badge (Task 62) */}
+        {isPublicDemo() && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-950/60 text-amber-300 border border-amber-500/40 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <span>Public Demo (Read Only)</span>
+            <button
+              type="button"
+              onClick={() => exitDemoMode()}
+              className="ml-1 text-[9px] text-amber-400 hover:text-white underline cursor-pointer"
+              title="Exit demo and log in with real account"
+            >
+              Exit
+            </button>
+          </div>
         )}
 
         {/* Billing Plan & Quota Badge */}

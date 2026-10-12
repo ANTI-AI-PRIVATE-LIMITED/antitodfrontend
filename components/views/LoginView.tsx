@@ -12,8 +12,10 @@ import {
   EyeOff,
   KeyRound,
   RotateCcw,
+  Sparkles,
   X,
 } from "lucide-react";
+import { isPublicDemo, enterDemoMode } from "../../src/utils/demoMode";
 
 export const LoginView: React.FC = () => {
   const { saveToken, isAuthenticated } = useAuth();
@@ -53,10 +55,12 @@ export const LoginView: React.FC = () => {
     }
   };
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated, or auto-launch demo if requested
   useEffect(() => {
     if (isAuthenticated) {
       window.location.href = "/";
+    } else if (isPublicDemo()) {
+      enterDemoMode();
     }
   }, [isAuthenticated]);
 
@@ -336,6 +340,30 @@ export const LoginView: React.FC = () => {
                   </>
                 )}
               </button>
+
+              {/* Public Demo Entrypoint (Task 62) */}
+              <div className="pt-2">
+                <div className="relative flex py-2 items-center">
+                  <div className="flex-grow border-t border-neutral-800"></div>
+                  <span className="flex-shrink mx-3 text-[10px] font-mono uppercase text-neutral-500 tracking-wider">
+                    Or explore without credentials
+                  </span>
+                  <div className="flex-grow border-t border-neutral-800"></div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => enterDemoMode()}
+                  disabled={isLoading}
+                  className="w-full mt-1 bg-gradient-to-r from-neutral-900 to-neutral-800 hover:from-neutral-800 hover:to-neutral-700 text-neutral-200 border border-neutral-700/80 hover:border-amber-500/50 font-bold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-mono">Launch Public Demo (Read Only)</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-wider font-bold">
+                    No Honeypot Needed
+                  </span>
+                </button>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleOtpSubmit} className="space-y-6">

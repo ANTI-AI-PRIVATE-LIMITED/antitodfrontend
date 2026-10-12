@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 
 import {
   Activity,
@@ -37,6 +37,8 @@ import type {
 
 import { useHoneypotData } from '../../hooks/useHoneypotData';
 import { dataProvider } from '../services/dataProvider';
+import { isPublicDemo } from '../utils/demoMode';
+import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 import PlanUsageBanner from '../components/dashboard/PlanUsageBanner';
 
@@ -171,27 +173,37 @@ export default function DashboardPage({
   const [cveFeedItems, setCveFeedItems] = useState<CveFeedItem[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-      // Fetch dynamic non-prop metrics if any
-      Promise.all([
-      dataProvider.getDashboardMetrics(),
-      (dataProvider as any).getHosts(),
-      dataProvider.getNews(),
-      (dataProvider as any).getCveFeeds(),
-      dataProvider.getAttackEvents()
-    ]).then(([m, h, n, c, e]) => {
+  const fetchDashboardData = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setIsLoading(true);
+    try {
+      const [m, h, n, c, e] = await Promise.all([
+        dataProvider.getDashboardMetrics(),
+        dataProvider.getHosts(),
+        dataProvider.getNews(),
+        dataProvider.getCveFeeds(),
+        dataProvider.getAttackEvents(),
+      ]);
       setMetrics(m);
-      setResults(h);
-      setNewsItems(n);
-      setCveFeedItems(c);
-      setEvents(e);
-    });
+      setResults(h || []);
+      setNewsItems(n || []);
+      setCveFeedItems(c || []);
+      setEvents(e || []);
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    void fetchDashboardData();
+  }, [fetchDashboardData]);
+
   const honeypotStats = { total_events: events.length };
-  const isLoadingEvents = false;
-  const refresh = () => {};
+  const isLoadingEvents = isLoading;
+  const refresh = () => fetchDashboardData(true);
 
   const safeEvents = events ?? [];
 
@@ -488,8 +500,11 @@ export default function DashboardPage({
 
   const deployedHoneypotCount = useMemo(() => {
     const list = new Set(safeEvents.map((e) => e.honeypot).filter(Boolean));
-    return Math.max(list.size, 2);
-  }, [safeEvents]);
+    if (isPublicDemo()) {
+      return Math.max(list.size, 2);
+    }
+    return list.size > 0 ? list.size : results.length;
+  }, [safeEvents, results]);
 
   return (
     <div className="at-dashboard at-dashboard-v2">
@@ -549,6 +564,18 @@ export default function DashboardPage({
             eventCount={totalEvents}
             onNavigateToBilling={() => onNavigate('settings')}
           />
+
+          {/* Real Customer 0-Data Onboarding Prompt */}
+          {!isPublicDemo() && results.length === 0 && events.length === 0 && (
+            <EmptyState
+              title="No Honeypots Connected Yet"
+              description="Deploy your first honeypot shipper or connect a server node to begin intercepting live adversary traffic, scanning attacks, and compiling threat intelligence."
+              actionLabel="Connect Your First Honeypot"
+              onAction={() => onNavigate('infrastructure')}
+              secondaryLabel="Explore SOC Documentation"
+              onSecondaryAction={() => onNavigate('help')}
+            />
+          )}
 
           {/* ---------------------------------------------------------------- */}
           {/* Executive overview                                                */}

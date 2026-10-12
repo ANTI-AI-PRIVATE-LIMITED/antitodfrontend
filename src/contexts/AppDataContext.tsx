@@ -22,7 +22,7 @@ import type {
 
 import { PLAYBOOKS } from '../../services/playbooks';
 import { DEMO_IOCS } from '../data/demo/iocs';
-import { DEMO_MODE } from '../services/dataProvider';
+import { isPublicDemo } from '../utils/demoMode';
 
 export interface AppDataContextType {
   results: AnalyzedHost[];
@@ -155,8 +155,8 @@ export function AppDataProvider({
         tags: normalizeTags(item.tags),
       });
     }
-    if (DEMO_MODE) {
-      // Add demo IOCs, mapping them to the expected CombinedIoc format
+    if (isPublicDemo()) {
+      // Add demo IOCs only in public demo mode, mapping them to the expected CombinedIoc format
       for (const item of DEMO_IOCS) {
         iocs.push({
           id: `demo-ioc-${item.value}`,

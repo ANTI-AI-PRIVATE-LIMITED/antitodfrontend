@@ -22,6 +22,8 @@ import type { LogEventV2 } from '../../api/services';
 
 import { dataProvider } from '../services/dataProvider';
 import { useAppData } from '../contexts/AppDataContext';
+import { isPublicDemo } from '../utils/demoMode';
+import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 
 interface AttackMapPageProps {
@@ -136,9 +138,24 @@ export default function AttackMapPage({
     onNavigate,
 }: AttackMapPageProps) {
     const [MOCK_EVENTS, set_MOCK_EVENTS] = React.useState<any[]>([]);
-    React.useEffect(() => {
-        dataProvider.getAttackEvents().then(set_MOCK_EVENTS);
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
+    const fetchEvents = React.useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const evts = await dataProvider.getAttackEvents();
+            set_MOCK_EVENTS(evts || []);
+        } catch (err) {
+            console.error('Failed to load attack map events:', err);
+            set_MOCK_EVENTS([]);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
+
+    React.useEffect(() => {
+        void fetchEvents();
+    }, [fetchEvents]);
 
     const events = useMemo(() => {
         return [...MOCK_EVENTS].sort(
@@ -337,6 +354,42 @@ export default function AttackMapPage({
 
     const latestEvent =
         events[0] ?? null;
+
+    if (!isLoading && MOCK_EVENTS.length === 0 && !isPublicDemo()) {
+        return (
+            <div className="at-attack-map-page-v2">
+                <PageHeader
+                    breadcrumbs={[
+                        { label: 'Operations' },
+                        { label: 'Attack Map' },
+                    ]}
+                    title="Live Threat Map"
+                    description="Geospatial distribution of honeypot sensor alerts and active attack vectors."
+                    actions={
+                        <button
+                            type="button"
+                            className="at-btn at-btn-secondary at-btn-sm"
+                            onClick={() => void fetchEvents()}
+                            disabled={isLoading}
+                        >
+                            <RefreshCw size={13} className={isLoading ? 'at-spin' : ''} />
+                            Refresh
+                        </button>
+                    }
+                />
+                <div style={{ padding: '24px' }}>
+                    <EmptyState
+                        title="No Inbound Attacks Detected"
+                        description="Global attack paths and originating ASNs will plot dynamically once malicious connections hit your honeypot nodes."
+                        actionLabel="Connect Your First Honeypot"
+                        onAction={() => onNavigate('infrastructure')}
+                        secondaryLabel="Explore SOC Documentation"
+                        onSecondaryAction={() => onNavigate('help')}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="at-attack-map-page-v2">

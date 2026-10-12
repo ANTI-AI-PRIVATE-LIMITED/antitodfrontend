@@ -39,11 +39,30 @@ export default function Header({
   onNavigate,
   onOpenSettings,
 }: HeaderProps) {
-  const { removeToken } = useAuth();
+  const { removeToken, admin } = useAuth();
   const [time, setTime] = useState(new Date());
   const [usage, setUsage] = useState<BillingUsageResponse | null>(null);
   const [showPlanMenu, setShowPlanMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const planMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
+
+  const handleSignOut = () => {
+    removeToken();
+    window.location.href = '/login';
+  };
   const item = findNavItem(activeView);
   const group = findNavGroup(activeView);
   const path = routeForView(activeView);
@@ -380,14 +399,81 @@ export default function Header({
           </span>
         </div>
 
-        <button
-          type="button"
-          className="at-header-user"
-          aria-label="Account menu"
-          title="Account"
-        >
-          <span className="at-header-user-avatar">A</span>
-        </button>
+        <div className="relative" ref={userMenuRef}>
+          <button
+            type="button"
+            className="at-header-user hover:ring-2 hover:ring-red-500/50 transition-all cursor-pointer"
+            aria-label="Account menu"
+            title="Account profile & sign out"
+            onClick={() => setShowUserMenu((prev) => !prev)}
+          >
+            <span className="at-header-user-avatar">
+              {admin?.AdminEmail ? admin.AdminEmail.charAt(0).toUpperCase() : 'A'}
+            </span>
+          </button>
+
+          {showUserMenu && (
+            <div className="absolute right-0 top-full mt-2 w-64 bg-[#0e1117] border border-neutral-800 rounded-xl shadow-2xl p-3 z-50 animate-slide-in-up font-mono text-xs space-y-3">
+              <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
+                <div className="w-9 h-9 rounded-full bg-red-950/80 border border-red-500/40 flex items-center justify-center text-red-400 font-bold text-sm">
+                  {admin?.AdminEmail ? admin.AdminEmail.charAt(0).toUpperCase() : 'A'}
+                </div>
+                <div className="overflow-hidden">
+                  <div className="text-white font-bold truncate text-xs">
+                    {admin?.AdminEmail || 'Security Admin'}
+                  </div>
+                  <div className="text-[10px] text-neutral-400 flex items-center gap-1.5 pt-0.5">
+                    <span className="truncate">ID: {admin?.AdminID || 'ADM-01'}</span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] bg-neutral-800 text-neutral-300">
+                      {isPublicDemo() ? 'DEMO' : 'PRO'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                {onOpenSettings && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      onOpenSettings();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-neutral-300 hover:text-white hover:bg-neutral-800/80 transition-colors text-left text-xs cursor-pointer"
+                  >
+                    <Settings size={14} className="text-neutral-400" />
+                    <span>Settings & API Keys</span>
+                  </button>
+                )}
+
+                {onNavigate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      onNavigate('help');
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-neutral-300 hover:text-white hover:bg-neutral-800/80 transition-colors text-left text-xs cursor-pointer"
+                  >
+                    <HelpCircle size={14} className="text-neutral-400" />
+                    <span>System Guide & Help</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-neutral-800">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-950/40 transition-colors text-left text-xs font-bold cursor-pointer"
+                >
+                  <LogOut size={14} />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

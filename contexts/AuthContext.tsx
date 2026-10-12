@@ -10,10 +10,12 @@ import { AUTH_CONFIG } from "../config/config";
 import { authService, type AuthGroup } from "../api/services/authService";
 import {
   isPublicDemo,
+  exitDemoMode,
   DEMO_GUEST_TOKEN,
   DEMO_ADMIN_PROFILE,
   DEMO_READONLY_PERMISSIONS,
 } from "../src/utils/demoMode";
+import { clearAllUserBrowserData } from "../src/utils/userStorage";
 
 type AdminIdentity = {
   AdminID: string;
@@ -91,8 +93,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const removeToken = useCallback(() => {
-    localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-    localStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);
+    clearAllUserBrowserData();
+    exitDemoMode();
     setToken(null);
     clearMeta();
     window.dispatchEvent(new Event("auth-changed"));
@@ -110,6 +112,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     if (t === DEMO_GUEST_TOKEN || isPublicDemo()) {
       setAdmin(DEMO_ADMIN_PROFILE);
+      localStorage.setItem('xyberah_active_admin_id', DEMO_ADMIN_PROFILE.AdminID);
+      localStorage.setItem('xyberah_current_admin', JSON.stringify(DEMO_ADMIN_PROFILE));
       setGroups([{ GroupID: 'demo', GroupName: 'Demo Visitors (Read Only)' }]);
       setPermissions(DEMO_READONLY_PERMISSIONS);
       setPermissionsLoaded(true);
@@ -118,6 +122,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const me = await authService.me();
       setAdmin(me.admin);
+      if (me.admin?.AdminID) {
+        localStorage.setItem('xyberah_active_admin_id', me.admin.AdminID);
+        localStorage.setItem('xyberah_current_admin', JSON.stringify(me.admin));
+      }
       setGroups(me.groups || []);
       setPermissions(me.permissions || []);
       setPermissionsLoaded(true);
@@ -211,7 +219,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setInitialized(true);
       if (meta?.permissions) setPermissions(meta.permissions);
       if (meta?.groups) setGroups(meta.groups);
-      if (meta?.admin) setAdmin(meta.admin);
+      if (meta?.admin) {
+        setAdmin(meta.admin);
+        if (meta.admin.AdminID) {
+          localStorage.setItem('xyberah_active_admin_id', meta.admin.AdminID);
+          localStorage.setItem('xyberah_current_admin', JSON.stringify(meta.admin));
+        }
+      }
       if (meta?.permissions) setPermissionsLoaded(true);
       window.dispatchEvent(new Event("auth-changed"));
     },

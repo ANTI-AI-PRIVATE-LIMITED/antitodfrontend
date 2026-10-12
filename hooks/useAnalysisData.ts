@@ -1,6 +1,7 @@
 
 
 import { useMemo, useState, useEffect } from 'react';
+import { userStorage } from '../src/utils/userStorage';
 import { AnalyzedHost, ClusterGroup, MalpediaActor, CveEntry, ExploitEntry, UrlHausEntry } from '../types';
 import { parseQueryString, filterHost } from '../services/search';
 
@@ -21,26 +22,26 @@ export const useAnalysisData = (
     // Initialize state from LocalStorage for persistence
     const [activeFilter, setActiveFilter] = useState<ActiveFilter | null>(() => {
         try {
-            const saved = localStorage.getItem('xyberah_analysis_filter');
+            const saved = userStorage.getItem('xyberah_analysis_filter');
             return saved ? JSON.parse(saved) : null;
         } catch { return null; }
     });
     
     const [searchQuery, setSearchQuery] = useState(() => {
-        return localStorage.getItem('xyberah_analysis_query') || '';
+        return userStorage.getItem('xyberah_analysis_query') || '';
     });
 
     // Auto-save effects
     useEffect(() => {
         if (activeFilter) {
-            localStorage.setItem('xyberah_analysis_filter', JSON.stringify(activeFilter));
+            userStorage.setItem('xyberah_analysis_filter', JSON.stringify(activeFilter));
         } else {
-            localStorage.removeItem('xyberah_analysis_filter');
+            userStorage.removeItem('xyberah_analysis_filter');
         }
     }, [activeFilter]);
 
     useEffect(() => {
-        localStorage.setItem('xyberah_analysis_query', searchQuery);
+        userStorage.setItem('xyberah_analysis_query', searchQuery);
     }, [searchQuery]);
 
     // Pre-process results to enrich with URLhaus data

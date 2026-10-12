@@ -5,6 +5,7 @@ import axios, {
 } from "axios";
 import { BACKEND_URL, AUTH_CONFIG } from "../config/config";
 import { isPublicDemo, DEMO_GUEST_TOKEN } from "../src/utils/demoMode";
+import { clearAllUserBrowserData } from "../src/utils/userStorage";
 
 // Create axios instance with base configuration
 const api: AxiosInstance = axios.create({
@@ -89,9 +90,8 @@ api.interceptors.response.use(
         console.warn("[API] 401 in public demo mode - suppressed redirect");
         return Promise.reject(error);
       }
-      console.warn("[API] Unauthorized access - clearing token");
-      localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-      localStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);
+      console.warn("[API] Unauthorized access - clearing all user browser data");
+      clearAllUserBrowserData();
       window.dispatchEvent(new Event("auth-changed"));
 
       // Only redirect if not already on login page

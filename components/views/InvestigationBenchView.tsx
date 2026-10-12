@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { userStorage } from '../../src/utils/userStorage';
 import { 
     Search, Plus, Trash2, Globe, Box, Loader2, RefreshCw, Radar, 
     FileText, Hash, Server, Link, Mail, Briefcase, Clock, 
@@ -70,21 +71,21 @@ export const InvestigationBenchView: React.FC<InvestigationBenchViewProps> = ({
     maliciousHashItems
 }) => {
     const [viewMode, setViewMode] = useState<'CASE_LIST' | 'WORKBENCH'>(() => {
-        return (localStorage.getItem('xyberah_bench_view_mode') as any) || 'CASE_LIST';
+        return (userStorage.getItem('xyberah_bench_view_mode') as any) || 'CASE_LIST';
     });
     const [activeTab, setActiveTab] = useState<'ARTIFACTS' | 'TIMELINE' | 'COLLAB'>(() => {
-        return (localStorage.getItem('xyberah_bench_active_tab') as any) || 'ARTIFACTS';
+        return (userStorage.getItem('xyberah_bench_active_tab') as any) || 'ARTIFACTS';
     });
     
     const [cases, setCases] = useState<InvestigationCase[]>(() => {
         try {
-            const saved = localStorage.getItem('xyberah_cases');
+            const saved = userStorage.getItem('xyberah_cases');
             return saved ? JSON.parse(saved) : [];
         } catch { return []; }
     });
     
     const [activeCaseId, setActiveCaseId] = useState<string | null>(() => {
-        return localStorage.getItem('xyberah_bench_active_case_id') || null;
+        return userStorage.getItem('xyberah_bench_active_case_id') || null;
     });
     const [enrichingArtifacts, setEnrichingArtifacts] = useState<Set<string>>(new Set());
     
@@ -115,16 +116,16 @@ export const InvestigationBenchView: React.FC<InvestigationBenchViewProps> = ({
     const [showNewCaseModal, setShowNewCaseModal] = useState(false);
 
     useEffect(() => {
-        localStorage.setItem('xyberah_cases', JSON.stringify(cases));
+        userStorage.setItem('xyberah_cases', JSON.stringify(cases));
     }, [cases]);
 
     useEffect(() => {
-        localStorage.setItem('xyberah_bench_view_mode', viewMode);
-        localStorage.setItem('xyberah_bench_active_tab', activeTab);
+        userStorage.setItem('xyberah_bench_view_mode', viewMode);
+        userStorage.setItem('xyberah_bench_active_tab', activeTab);
         if (activeCaseId) {
-            localStorage.setItem('xyberah_bench_active_case_id', activeCaseId);
+            userStorage.setItem('xyberah_bench_active_case_id', activeCaseId);
         } else {
-            localStorage.removeItem('xyberah_bench_active_case_id');
+            userStorage.removeItem('xyberah_bench_active_case_id');
         }
         setSelectedArtifactIds(new Set());
     }, [viewMode, activeTab, activeCaseId]);

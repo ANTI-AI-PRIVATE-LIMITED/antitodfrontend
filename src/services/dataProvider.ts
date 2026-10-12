@@ -430,7 +430,8 @@ export const dataProvider = {
    * ======================================================================== */
 
   getCveFeeds: async () => {
-    return DEMO_CVE_FEEDS;
+    if (isPublicDemo()) return DEMO_CVE_FEEDS;
+    return [];
   },
 
   getNews: async () => {
@@ -439,9 +440,9 @@ export const dataProvider = {
       const data = await fetchThreatNews();
       if (data && data.length > 0) return data;
     } catch (e) {
-      console.warn('Failed to fetch live news, falling back to demo data.', e);
+      console.warn('Failed to fetch live news:', e);
     }
-    return DEMO_NEWS;
+    return [];
   },
 
   getCves: async () => {
@@ -450,9 +451,9 @@ export const dataProvider = {
       const data = await fetchCveUpdates();
       if (data && data.length > 0) return data;
     } catch (e) {
-      console.warn('Failed to fetch live CVEs, falling back to demo data.', e);
+      console.warn('Failed to fetch live CVEs:', e);
     }
-    return DEMO_CVES;
+    return [];
   },
 
   getActors: async () => {
@@ -461,8 +462,8 @@ export const dataProvider = {
       const data = await fetchRemoteMalpedia();
       if (data && data.length > 0) return data;
     } catch (e) {
-      console.warn('Failed to fetch live actors, falling back to demo data.', e);
+      console.warn('Failed to fetch live actors:', e);
     }
-    return DEMO_ACTORS;
+    return [];
   },
 };

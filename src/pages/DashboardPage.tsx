@@ -35,7 +35,6 @@ import type {
   ThreatNewsItem,
 } from '../../types';
 
-import { useHoneypotData } from '../../hooks/useHoneypotData';
 import { dataProvider } from '../services/dataProvider';
 import { isPublicDemo } from '../utils/demoMode';
 import EmptyState from '../components/common/EmptyState';

@@ -76,9 +76,102 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle 403 Forbidden
+    // Handle 402 Payment Required / Plan Inactive
+    if (error.response && error.response.status === 402) {
+      const data = error.response.data as any;
+      console.warn("[API] 402 Plan inactive:", data);
+      window.dispatchEvent(
+        new CustomEvent("plan-inactive", {
+          detail: {
+            status: 402,
+            code: data?.code || "PLAN_INACTIVE",
+            message:
+              data?.message ||
+              "Your subscription is inactive. Please renew or upgrade your plan to access live security features.",
+            upgradeUrl: data?.upgrade_url || "/settings/billing",
+          },
+        })
+      );
+    }
+
+    // Handle 403 Forbidden / Plan Limit / Feature Unavailable
     if (error.response && error.response.status === 403) {
-      console.warn("[API] Forbidden access");
+      const data = error.response.data as any;
+      console.warn("[API] 403 Forbidden / Limit reached:", data);
+
+      if (data?.code === "PLAN_LIMIT_REACHED") {
+        window.dispatchEvent(
+          new CustomEvent("plan-limit-reached", {
+            detail: {
+              status: 403,
+              code: "PLAN_LIMIT_REACHED",
+              limit: data.limit,
+              used: data.used,
+              message:
+                data.message ||
+                `Plan limit reached (${data.used ?? "max"}/${data.limit ?? "max"}). Upgrade to Pro to increase capacity.`,
+              upgradeUrl: data.upgrade_url || "/settings/billing",
+            },
+          })
+        );
+      } else if (data?.code === "PLAN_FEATURE_UNAVAILABLE") {
+        window.dispatchEvent(
+          new CustomEvent("plan-feature-unavailable", {
+            detail: {
+              status: 403,
+              code: "PLAN_FEATURE_UNAVAILABLE",
+              feature: data.feature,
+              message:
+                data.message ||
+                "This feature is reserved for Pro and Enterprise subscribers. Upgrade your plan to access it.",
+              upgradeUrl: data.upgrade_url || "/settings/billing",
+            },
+          })
+        );
+      } else {
+        window.dispatchEvent(
+          new CustomEvent("permission-denied", {
+            detail: {
+              status: 403,
+              code: data?.code,
+              message: data?.message || "Access denied. Missing required permission.",
+            },
+          })
+        );
+      }
+    }
+
+    // Handle 409 Conflict (e.g. duplicate ServerId or taken resource)
+    if (error.response && error.response.status === 409) {
+      const data = error.response.data as any;
+      console.warn("[API] 409 Conflict:", data);
+      window.dispatchEvent(
+        new CustomEvent("api-conflict", {
+          detail: {
+            status: 409,
+            code: data?.code || "CONFLICT",
+            message: data?.message || "Resource already exists. Please choose a different identifier.",
+          },
+        })
+      );
+    }
+
+    // Handle 429 Too Many Requests / Account Lockout
+    if (error.response && error.response.status === 429) {
+      const data = error.response.data as any;
+      console.warn("[API] 429 Rate limited / Account locked:", data);
+      window.dispatchEvent(
+        new CustomEvent("rate-limited", {
+          detail: {
+            status: 429,
+            code: data?.code || "TOO_MANY_REQUESTS",
+            message:
+              data?.code === "ACCOUNT_LOCKED"
+                ? data?.message || "Account temporarily locked. Reset your password to unlock or try again later."
+                : data?.message || "Too many requests. Please wait a moment before trying again.",
+          },
+        })
+      );
     }
 
     // Handle network errors
@@ -92,17 +185,73 @@ api.interceptors.response.use(
 
 export default api;
 
-// Helper function to handle API errors
+export interface ApiErrorDetail {
+  status?: number;
+  code?: string;
+  message: string;
+  limit?: number;
+  used?: number;
+  upgradeUrl?: string;
+}
+
+// Helper function to handle API errors and extract rich descriptions
 export const handleApiError = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<{
       message?: string;
-      error?: { message?: string };
+      error?: string | { message?: string };
+      code?: string;
+      limit?: number;
+      used?: number;
+      upgrade_url?: string;
     }>;
 
-    if (axiosError.response?.data) {
+    if (axiosError.response) {
+      const status = axiosError.response.status;
       const data = axiosError.response.data;
-      return data.message || data.error?.message || "An error occurred";
+
+      // 402 Plan Inactive
+      if (status === 402 || data?.code === "PLAN_INACTIVE") {
+        return (
+          data?.message ||
+          "Your subscription is inactive. Please renew or upgrade your plan to continue accessing threat data."
+        );
+      }
+
+      // 403 Plan Limit Reached
+      if (data?.code === "PLAN_LIMIT_REACHED") {
+        if (typeof data.used === "number" && typeof data.limit === "number") {
+          return `Plan limit reached: ${data.used} of ${data.limit} used. Please upgrade to Pro to increase capacity.`;
+        }
+        return data?.message || "Plan quota reached. Upgrade your plan to add more resources.";
+      }
+
+      // 403 Plan Feature Unavailable
+      if (data?.code === "PLAN_FEATURE_UNAVAILABLE") {
+        return (
+          data?.message ||
+          "This feature is not available on your current plan. Please upgrade to Pro to unlock it."
+        );
+      }
+
+      // 409 Conflict (Duplicate resource)
+      if (status === 409) {
+        return data?.message || "A resource with this identifier already exists. Please choose another ID.";
+      }
+
+      // 429 Account Locked
+      if (status === 429 && data?.code === "ACCOUNT_LOCKED") {
+        return (
+          data?.message ||
+          "Account temporarily locked due to too many failed attempts. Please reset your password to unlock."
+        );
+      }
+
+      if (data) {
+        if (typeof data.error === "string") return data.error;
+        if (typeof data.error === "object" && data.error?.message) return data.error.message;
+        if (data.message) return data.message;
+      }
     }
 
     if (axiosError.message) {

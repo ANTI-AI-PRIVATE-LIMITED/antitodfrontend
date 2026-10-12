@@ -226,7 +226,7 @@ export interface HostV3 {
     active_days: number;
     activity_dates: string[];
     total_events: number;
-    total_commands: number;
+    total_commands: number | null;
     unique_sessions: number;
     threat_score: number;
     risk_level: 'low' | 'medium' | 'high' | 'critical';

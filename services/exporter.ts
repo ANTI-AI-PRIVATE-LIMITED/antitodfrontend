@@ -143,7 +143,7 @@ export const generateLogAnalysisCsvV3 = (hosts: HostV3[]): string => {
       csvEscape(h.risk_level),
       h.threat_score,
       h.total_events,
-      h.total_commands,
+      h.total_commands != null ? h.total_commands : '—',
       h.unique_sessions,
       h.active_days,
       csvEscape(h.geo_country),

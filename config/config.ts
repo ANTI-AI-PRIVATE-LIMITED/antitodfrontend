@@ -24,6 +24,8 @@ export const API_ENDPOINTS = {
     REACTIVATE_SHIPPER: '/AdminRoutes/reactivateShipper',
     DELETE_SERVER: '/AdminRoutes/servers/:serverId',
     DELETE_SHIPPER: '/AdminRoutes/shippers/:shipperId',
+    ADMIN_FORGOT_PASSWORD: '/AdminRoutes/forgotPassword',
+    ADMIN_RESET_PASSWORD: '/AdminRoutes/resetPassword',
 
     // RBAC
     RBAC_PERMISSIONS: '/AdminRoutes/rbac/permissions',
@@ -35,6 +37,8 @@ export const API_ENDPOINTS = {
 
     // Billing & Plan
     BILLING_USAGE: '/AdminRoutes/billing/usage',
+    BILLING_PLANS: '/AdminRoutes/billing/plans',
+    BILLING_HISTORY: '/AdminRoutes/billing/history',
 
     // V1 HoneyPot endpoints (legacy)
     INGEST_LOGS_V1: '/HoneyPotRoutes/ingestHoneyPotLogs',

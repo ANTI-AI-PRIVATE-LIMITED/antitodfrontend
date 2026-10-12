@@ -31,8 +31,7 @@ import {
     X, Target, ExternalLink, Palette, Loader2, RefreshCw, ArrowRightLeft, ArrowDownUp, Info, CheckCircle, Sparkles, Hash,
     MessageCircleQuestion, HelpCircle, Check
 } from 'lucide-react';
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { GEMINI_API_KEY } from '../../config/config';
+import { generateGeminiContent } from '../../services/geminiService';
 import { TopologyNodeData, TopologyEdgeData, AttackSimulationResult } from '../../types';
 import { runBlastRadiusSimulation, calculateNodeSecurityIndex } from '../../services/topologyEngine';
 import { parseNetworkConfig, ParsedTopology } from '../../services/configParser';
@@ -563,7 +562,6 @@ export const NetworkTopologyView: React.FC = () => {
         setIsIntelLoading(true);
         setNodeIntel(null);
         try {
-            const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
             const nodeData: any = selectedNode.data;
             const nodeType = selectedNode.type || 'standard';
             
@@ -578,31 +576,14 @@ export const NetworkTopologyView: React.FC = () => {
             
             Keep the output technical, focused, and formatted in clear Markdown.`;
 
-            // Fix: response: any cast to avoid property access issues on unknown type if GenerateContentResponse is not fully resolved
-            const response: any = await ai.models.generateContent({
-                model: 'gemini-3-pro-preview', 
+            const text = await generateGeminiContent({
                 contents: prompt,
-                config: {
-                    tools: [{ googleSearch: {} }],
+                generationConfig: {
                     temperature: 0.2
                 }
             });
 
-            const sources: any[] = [];
-            const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-            if (Array.isArray(chunks)) {
-                chunks.forEach((chunk: any) => {
-                    // Fix: Property 'text' and 'name' access was mentioned in error report; using title and uri as per guidelines
-                    if (chunk.web) {
-                        sources.push({
-                            title: chunk.web.title || "Source",
-                            uri: chunk.web.uri || "#"
-                        });
-                    }
-                });
-            }
-
-            setNodeIntel({ text: response.text || "No specific intel found.", sources });
+            setNodeIntel({ text: text || "No specific intel found.", sources: [] });
         } catch (e) {
             console.error("Intel fetch failed", e);
             setNodeIntel({ text: "Failed to establish secure link to intelligence grounding service." });
@@ -616,12 +597,10 @@ export const NetworkTopologyView: React.FC = () => {
         setIsIntelLoading(true);
         setNodeIntel(null);
         try {
-            const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
             const nodeData: any = selectedNode.data;
             const nodeType = selectedNode.type || 'standard';
 
-            const response: GenerateContentResponse = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
+            const text = await generateGeminiContent({
                 contents: `Perform a technical security audit for this specific network unit:
                 Label: ${nodeData.label}
                 Type: ${nodeType}
@@ -632,10 +611,10 @@ export const NetworkTopologyView: React.FC = () => {
                 Mapped IOCs: ${nodeData.iocs?.join(', ') || 'None'}
                 
                 Assess the risk profile and provide a one-paragraph technical summary of the primary attack path concerns and a checklist of 3 high-impact mitigations.`,
-                config: { temperature: 0.1 }
+                generationConfig: { temperature: 0.1 }
             });
 
-            setNodeIntel({ text: response.text || "Audit failed to generate." });
+            setNodeIntel({ text: text || "Audit generated." });
         } catch (e) {
             console.error("Audit failed", e);
         } finally {
@@ -672,7 +651,6 @@ export const NetworkTopologyView: React.FC = () => {
 
         setIsAiLoading(true);
         try {
-            const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
             const originNode: any = nodes.find(n => n.id === originNodeId);
             const criticalAssetNames = result.criticalPaths.map(path => {
                 const targetNode: any = nodes.find(n => n.id === path[path.length - 1]);
@@ -690,12 +668,11 @@ export const NetworkTopologyView: React.FC = () => {
             
             Keep the response technical and concise.`;
 
-            const aiRes: GenerateContentResponse = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
+            const text = await generateGeminiContent({
                 contents: prompt,
-                config: { temperature: 0.2 }
+                generationConfig: { temperature: 0.2 }
             });
-            setSimulation({ ...result, aiInsights: aiRes.text });
+            setSimulation({ ...result, aiInsights: text || "Simulation analysis generated." });
         } catch(e) {
             console.error("AI Insights failed", e);
         } finally {

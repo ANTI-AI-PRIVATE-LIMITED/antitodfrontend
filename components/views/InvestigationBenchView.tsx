@@ -21,7 +21,7 @@ import { mmdbService } from '../../services/mmdb';
 import { calculateFileHash, submitFileToSandbox } from '../../services/otxSandbox';
 // Fixed Error: performRdapLookup was used but not imported
 import { performRdapLookup } from '../../services/netTools';
-import { IPDATA_API_KEY } from '../../config/config';
+import { BACKEND_URL, API_ENDPOINTS } from '../../config/config';
 import PageHeader from '../../src/components/layout/PageHeader';
 
 interface CaseNote {
@@ -216,11 +216,15 @@ export const InvestigationBenchView: React.FC<InvestigationBenchViewProps> = ({
     };
 
     const fetchSpecificIpData = async (ip: string) => {
-        if (!IPDATA_API_KEY) return null;
         try {
-            const res = await fetch(`https://api.ipdata.co/${ip}?api-key=${IPDATA_API_KEY}`);
+            const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin-auth-token') : null;
+            const res = await fetch(`${BACKEND_URL}${API_ENDPOINTS.PROXY_IPDATA}/${encodeURIComponent(ip)}`, {
+                headers: token ? { authtoken: token } : {},
+            });
             if (res.ok) return await res.json();
-        } catch (e) { console.error("IPData fetch error", e); }
+        } catch (e) {
+            console.warn("IPData proxy fetch error", e);
+        }
         return null;
     };
 

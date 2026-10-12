@@ -1,16 +1,12 @@
 /** Set via `.env` — see `.env.example`. No production default (required for API calls). */
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
-/** ipdata.co — optional; geo enrichment is skipped when unset. */
-export const IPDATA_API_KEY = import.meta.env.VITE_IPDATA_API_KEY ?? '';
-
-/** ransomware.live — optional; live victim feed is skipped when unset. */
-export const RANSOMWARE_LIVE_API_KEY = import.meta.env.VITE_RANSOMWARE_LIVE_API_KEY ?? '';
-
-/** Google Gemini — optional; AI features are disabled when unset. */
-export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? '';
-
 export const API_ENDPOINTS = {
+    // Third-party provider proxies (server-side key injection; keys are not bundled in browser)
+    PROXY_IPDATA: '/AdminRoutes/proxy/ipdata',
+    PROXY_RANSOMWARE_LIVE: '/AdminRoutes/proxy/ransomware-live',
+    PROXY_GEMINI: '/AdminRoutes/proxy/gemini',
+
     // Admin endpoints
     ADMIN_LOGIN: '/AdminRoutes/adminLogin',
     ADMIN_VERIFY_OTP: '/AdminRoutes/adminVerifyOtp',

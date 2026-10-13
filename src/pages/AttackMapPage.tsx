@@ -687,7 +687,7 @@ export default function AttackMapPage({
                                 </div>
                             </div>
 
-                            <div className="at-map-canvas-v2" style={{ position: 'relative' }}>
+                            <div className="at-map-canvas-v2" style={{ position: 'relative', flex: 1, minHeight: '660px' }}>
                                 {mapMode === '3d' ? (
                                     <div style={{ position: 'absolute', inset: 0, zIndex: 5 }}>
                                         <Suspense fallback={

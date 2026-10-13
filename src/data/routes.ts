@@ -35,6 +35,7 @@ const ROUTE_SLUGS: Record<string, string> = {
   rules: 'soc-rules',
   infrastructure: 'infrastructure',
   recon: 'recon',
+  integrations: 'integrations',
   chat: 'ai-assistant',
   help: 'system-guide',
   access_control: 'access-control',

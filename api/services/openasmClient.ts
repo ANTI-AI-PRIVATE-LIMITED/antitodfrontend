@@ -2,6 +2,36 @@ import api from '../client';
 
 export type TargetType = 'DOMAIN' | 'CIDR' | 'IP';
 
+export type AsmRiskLevel = 'critical' | 'high' | 'medium' | 'low';
+
+export interface AsmRiskFactor {
+  code: string;
+  label: string;
+  weight: number;
+  detail?: string;
+}
+
+export interface AsmRiskAssessment {
+  entityType?: 'ip' | 'domain' | 'cidr';
+  entityValue?: string;
+  threatScore: number;
+  riskLevel: AsmRiskLevel;
+  reputation?: 'safe' | 'suspicious' | 'malicious';
+  factors: AsmRiskFactor[];
+  openPorts?: number[];
+  cves?: string[];
+  attackSurface?: {
+    exposedServices?: number;
+    vulnCount?: number;
+    criticalVulns?: number;
+    highVulns?: number;
+    tlsIssues?: number;
+    dnsHygieneNotes?: string[];
+  };
+  enrichment?: Record<string, unknown>;
+  assessedAt?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -19,10 +49,22 @@ export interface Target {
   value: string;
   type: TargetType;
   workspaceId?: string;
+  status?: 'pending' | 'scanning' | 'completed' | 'failed' | string;
+  scanSchedule?: string | null;
+  lastDiscoveredAt?: string;
+  lastScanAt?: string | null;
+  riskScore?: number | null;
+  riskLevel?: AsmRiskLevel | null;
+  lastError?: string | null;
   createdAt?: string;
   updatedAt?: string;
-  lastDiscoveredAt?: string;
+  assessment?: AsmRiskAssessment | null;
   [key: string]: unknown;
+}
+
+export interface TargetRiskResponse {
+  target: Target;
+  assessment: AsmRiskAssessment | null;
 }
 
 export interface Asset {
@@ -30,6 +72,23 @@ export interface Asset {
   type: string;
   value: string;
   workspaceId?: string;
+  targetId?: string;
+  ipAddress?: string;
+  hostname?: string;
+  ports?: number[];
+  services?: unknown[];
+  techs?: unknown[];
+  technologies?: unknown[];
+  tags?: string[];
+  tls?: unknown[];
+  geo?: Record<string, unknown>;
+  sources?: string[];
+  enabled?: boolean;
+  riskScore?: number | null;
+  riskLevel?: AsmRiskLevel | null;
+  lastSeenAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
   [key: string]: unknown;
 }
 
@@ -37,6 +96,19 @@ export interface Vulnerability {
   id: string;
   title: string;
   severity: string;
+  cve?: string;
+  cvss?: number;
+  status?: string;
+  source?: string;
+  description?: string;
+  remediation?: string;
+  workspaceId?: string;
+  targetId?: string;
+  assetId?: string;
+  dismissReason?: string;
+  dismissComment?: string;
+  createdAt?: string;
+  updatedAt?: string;
   [key: string]: unknown;
 }
 
@@ -102,31 +174,20 @@ export type AsmFacetParam = string | string[];
 export interface AssetQueryParams {
   page?: number;
   limit?: number;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC' | 'asc' | 'desc';
-  type?: string;
   search?: string;
   value?: string;
-  targetIds?: string;
-  ipAddresses?: AsmFacetParam;
-  ports?: AsmFacetParam;
-  hosts?: AsmFacetParam;
-  techs?: AsmFacetParam;
-  statusCodes?: AsmFacetParam;
-  tlsHosts?: AsmFacetParam;
-}
-
-export interface VulnerabilityQueryParams {
-  page?: number;
-  limit?: number;
-  severity?: string;
+  type?: string;
   status?: string;
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC' | 'asc' | 'desc';
-  search?: string;
-  createdFrom?: string;
-  createdTo?: string;
   targetIds?: string;
+  ipAddresses?: AsmFacetParam;
+  ports?: AsmFacetParam;
+  techs?: AsmFacetParam;
+  statusCodes?: AsmFacetParam;
+  hosts?: AsmFacetParam;
+  tlsHosts?: AsmFacetParam;
+  [key: string]: unknown;
 }
 
 export type AssetGroupTab = 'all' | 'ip' | 'port' | 'tech' | 'status-code' | 'host' | 'tls';
@@ -138,11 +199,24 @@ export interface BulkCreateTargetItem {
 
 export interface BulkCreateTargetsResponse {
   created?: Target[];
-  skipped?: Array<Record<string, unknown>>;
+  skipped?: Array<{ value: string; reason?: string; limit?: number; id?: string }>;
   requestedCount?: number;
   createdCount?: number;
   skippedCount?: number;
   [key: string]: unknown;
+}
+
+export interface VulnerabilityQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  severity?: string;
+  status?: string;
+  targetIds?: string;
+  assetId?: string;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC' | 'asc' | 'desc';
+  workspaceId?: string;
 }
 
 export interface AssetGroupCreateResponse {
@@ -198,6 +272,9 @@ export interface OpenAsmApiError extends Error {
     status?: number;
     data?: {
       error?: string;
+      code?: string;
+      reason?: string;
+      limit?: number;
       detail?: string;
       issues?: { field?: string; message?: string }[];
       message?: string | string[];
@@ -264,7 +341,15 @@ export interface AssetLocation {
 }
 
 class OpenAsmClient {
-  private withWorkspaceHeader(workspaceId: string) {
+  /**
+   * Primary route prefix for native customer-scoped ASM scanning (Task 99).
+   * Uses /AsmScanRoutes so requests are scoped to the authenticated customer account
+   * and support native risk scoring, Shodan/Censys/OSINT scanning, and re-scans.
+   */
+  private readonly base = '/AsmScanRoutes';
+
+  private withWorkspaceHeader(workspaceId?: string) {
+    if (!workspaceId) return {};
     return { headers: { 'X-Workspace-Id': workspaceId } };
   }
 
@@ -325,28 +410,27 @@ class OpenAsmClient {
   }
 
   async getActiveWorkspace() {
-    const response = await api.get<{ workspaceId: string }>('/asm/active-workspace');
+    const response = await api.get<{ workspaceId: string }>(`${this.base}/active-workspace`);
     return response.data;
   }
 
-  /** Optional BFF route; fails silently in UI if not implemented. */
   async getMetadata() {
-    const response = await api.get<Record<string, unknown>>('/asm/metadata');
+    const response = await api.get<Record<string, unknown>>(`${this.base}/metadata`);
     return response.data;
   }
 
   async listWorkspaces(params?: WorkspaceQueryParams) {
-    const response = await api.get<PaginatedResponse<Workspace>>('/asm/workspaces', { params });
+    const response = await api.get<PaginatedResponse<Workspace>>(`${this.base}/workspaces`, { params });
     return normalizePaginatedResponse(response.data);
   }
 
   async createWorkspace(body: { name: string; description?: string }) {
-    const response = await api.post<Workspace>('/asm/workspaces', body);
+    const response = await api.post<Workspace>(`${this.base}/workspaces`, body);
     return response.data;
   }
 
   async getWorkspaceById(id: string) {
-    const response = await api.get<Workspace>(`/asm/workspaces/${encodeURIComponent(id)}`);
+    const response = await api.get<Workspace>(`${this.base}/workspaces/${encodeURIComponent(id)}`);
     return response.data;
   }
 
@@ -355,60 +439,94 @@ class OpenAsmClient {
     workspaceId?: string,
   ) {
     const normalized = this.cleanParams(this.normalizeSortOrder(params));
-    const response = await api.get<PaginatedResponse<Target>>('/asm/targets', {
+    const response = await api.get<PaginatedResponse<Target>>(`${this.base}/targets`, {
       params: normalized,
       ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
     });
     return normalizePaginatedResponse(response.data);
   }
 
-  async createTarget(body: { value: string; type?: TargetType }, workspaceId: string) {
-    const response = await api.post<Target>('/asm/targets', body, this.withWorkspaceHeader(workspaceId));
+  async createTarget(body: { value: string; type?: TargetType }, workspaceId?: string) {
+    const response = await api.post<Target>(
+      `${this.base}/targets`,
+      body,
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
+    );
     return response.data;
   }
 
-  async createTargetsBulk(body: { targets: BulkCreateTargetItem[] }, workspaceId: string) {
-    const response = await api.post<BulkCreateTargetsResponse>('/asm/targets/bulk', body, this.withWorkspaceHeader(workspaceId));
+  async createTargetsBulk(body: { targets: BulkCreateTargetItem[] }, workspaceId?: string) {
+    const response = await api.post<BulkCreateTargetsResponse>(
+      `${this.base}/targets/bulk`,
+      body,
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
+    );
+    return response.data;
+  }
+
+  /**
+   * Submit a target and run scan + assessment synchronously (Task 42 & 99).
+   */
+  async submitAndAssess(body: { value: string; type?: TargetType }, workspaceId?: string) {
+    const response = await api.post<TargetRiskResponse>(
+      `${this.base}/targets/submit-and-assess`,
+      body,
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
+    );
     return response.data;
   }
 
   async getTargetById(id: string, workspaceId?: string) {
-    const response = await api.get<Target>(`/asm/targets/${encodeURIComponent(id)}`, {
+    const response = await api.get<Target>(`${this.base}/targets/${encodeURIComponent(id)}`, {
       ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
     });
     return response.data;
   }
 
-  async triggerVulnerabilityScan(targetId: string, workspaceId: string) {
+  /**
+   * Get the risk assessment breakdown for a target (threat score, risk level, factors, attack surface).
+   */
+  async getTargetRisk(id: string, workspaceId?: string) {
+    const response = await api.get<TargetRiskResponse>(
+      `${this.base}/targets/${encodeURIComponent(id)}/risk`,
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
+    );
+    return response.data;
+  }
+
+  async triggerVulnerabilityScan(targetId: string, workspaceId?: string) {
     const response = await api.post<{ message?: string }>(
-      '/asm/vulnerabilities/scan',
+      `${this.base}/vulnerabilities/scan`,
       { targetId },
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
-  async updateTarget(id: string, body: { scanSchedule?: string }, workspaceId: string) {
+  async updateTarget(id: string, body: { scanSchedule?: string }, workspaceId?: string) {
     const response = await api.patch<Target>(
-      `/asm/targets/${encodeURIComponent(id)}`,
+      `${this.base}/targets/${encodeURIComponent(id)}`,
       body,
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
-  async rescanTarget(id: string, workspaceId: string) {
-    const response = await api.post<{ message?: string }>(
-      `/asm/targets/${encodeURIComponent(id)}/re-scan`,
+  /**
+   * Queue a rescan for a target. May return 429 RESCAN_TOO_SOON if scanned within the 10-minute cooldown window.
+   */
+  async rescanTarget(id: string, workspaceId?: string) {
+    const response = await api.post<{ message?: string; targetId?: string; code?: string }>(
+      `${this.base}/targets/${encodeURIComponent(id)}/re-scan`,
       {},
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
   async deleteTargetFromWorkspace(id: string, workspaceId: string) {
     const response = await api.delete<{ message?: string }>(
-      `/asm/targets/${encodeURIComponent(id)}/workspace/${encodeURIComponent(workspaceId)}`,
+      `${this.base}/targets/${encodeURIComponent(id)}/workspace/${encodeURIComponent(workspaceId)}`,
       this.withWorkspaceHeader(workspaceId),
     );
     return response.data;
@@ -419,7 +537,7 @@ class OpenAsmClient {
     workspaceId?: string,
   ) {
     const { params: p, paramsSerializer } = this.assetGetConfig(params);
-    const response = await api.get<PaginatedResponse<Asset>>('/asm/assets', {
+    const response = await api.get<PaginatedResponse<Asset>>(`${this.base}/assets`, {
       params: p,
       paramsSerializer,
       ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
@@ -432,7 +550,7 @@ class OpenAsmClient {
     params?: AssetQueryParams,
     workspaceId?: string,
   ) {
-    const path = group === 'all' ? '/asm/assets' : `/asm/assets/${group}`;
+    const path = group === 'all' ? `${this.base}/assets` : `${this.base}/assets/${group}`;
     const { params: p, paramsSerializer } = this.assetGetConfig(params);
     const response = await api.get<PaginatedResponse<Asset>>(path, {
       params: p,
@@ -453,7 +571,7 @@ class OpenAsmClient {
       Object.assign(headers, this.withWorkspaceHeader(workspaceId).headers as Record<string, string>);
     }
     const { params: p, paramsSerializer } = this.assetGetConfig(params);
-    const response = await api.get<Blob>('/asm/assets/services/export', {
+    const response = await api.get<Blob>(`${this.base}/assets/services/export`, {
       params: p,
       paramsSerializer,
       responseType: 'blob',
@@ -462,52 +580,52 @@ class OpenAsmClient {
     return response;
   }
 
-  async getAssetById(id: string, workspaceId: string) {
+  async getAssetById(id: string, workspaceId?: string) {
     const response = await api.get<Asset>(
-      `/asm/assets/${encodeURIComponent(id)}`,
-      this.withWorkspaceHeader(workspaceId),
+      `${this.base}/assets/${encodeURIComponent(id)}`,
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
-  async updateAsset(id: string, body: { tags?: string[] }, workspaceId: string) {
+  async updateAsset(id: string, body: { tags?: string[] }, workspaceId?: string) {
     const response = await api.patch<Asset>(
-      `/asm/assets/${encodeURIComponent(id)}`,
+      `${this.base}/assets/${encodeURIComponent(id)}`,
       body,
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
-  async switchAsset(body: { assetId: string; enabled: boolean }, workspaceId: string) {
+  async switchAsset(body: { assetId: string; enabled: boolean }, workspaceId?: string) {
     const response = await api.post<{ message?: string }>(
-      '/asm/assets/switch',
+      `${this.base}/assets/switch`,
       body,
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
-  async generateAssetTags(body: { domain: string }, workspaceId: string) {
+  async generateAssetTags(body: { domain: string }, workspaceId?: string) {
     const response = await api.post<{ tags?: string[] }>(
-      '/asm/ai-assistant/generate-tags',
+      `${this.base}/ai-assistant/generate-tags`,
       body,
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
-  async createAssetGroup(body: { name: string }, workspaceId: string) {
+  async createAssetGroup(body: { name: string }, workspaceId?: string) {
     const response = await api.post<AssetGroupCreateResponse>(
-      '/asm/asset-group',
+      `${this.base}/asset-group`,
       body,
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
   async listWorkers(params?: WorkerQueryParams, workspaceId?: string) {
-    const response = await api.get<PaginatedResponse<AsmWorker>>('/asm/workers', {
+    const response = await api.get<PaginatedResponse<AsmWorker>>(`${this.base}/workers`, {
       params: this.cleanParams(this.normalizeSortOrder(params)),
       ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
     });
@@ -518,89 +636,89 @@ class OpenAsmClient {
     params?: VulnerabilityQueryParams,
     workspaceId?: string,
   ) {
-    const response = await api.get<PaginatedResponse<Vulnerability>>('/asm/vulnerabilities', {
+    const response = await api.get<PaginatedResponse<Vulnerability>>(`${this.base}/vulnerabilities`, {
       params: this.cleanParams(this.normalizeSortOrder(params)),
       ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
     });
     return normalizePaginatedResponse(response.data);
   }
 
-  async getVulnerabilityStatistics(workspaceId: string, params?: { targetIds?: string }) {
+  async getVulnerabilityStatistics(workspaceId?: string, params?: { targetIds?: string }) {
     const response = await api.get<{ data: SeverityStat[] }>(
-      '/asm/vulnerabilities/statistics',
+      `${this.base}/vulnerabilities/statistics`,
       {
         params: this.cleanParams({ workspaceId, ...params }),
-        ...this.withWorkspaceHeader(workspaceId),
+        ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
       },
     );
     return response.data;
   }
 
-  async getVulnerabilityById(id: string, workspaceId: string) {
+  async getVulnerabilityById(id: string, workspaceId?: string) {
     const response = await api.get<Vulnerability>(
-      `/asm/vulnerabilities/${encodeURIComponent(id)}`,
-      this.withWorkspaceHeader(workspaceId),
+      `${this.base}/vulnerabilities/${encodeURIComponent(id)}`,
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
   async dismissVulnerabilities(
     body: { ids: string[]; reason: string; comment?: string },
-    workspaceId: string,
+    workspaceId?: string,
   ) {
     const response = await api.post<Record<string, unknown>>(
-      '/asm/vulnerabilities/dismiss',
+      `${this.base}/vulnerabilities/dismiss`,
       body,
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
-  async reopenVulnerabilities(body: { ids: string[] }, workspaceId: string) {
+  async reopenVulnerabilities(body: { ids: string[] }, workspaceId?: string) {
     const response = await api.post<Record<string, unknown>>(
-      '/asm/vulnerabilities/reopen',
+      `${this.base}/vulnerabilities/reopen`,
       body,
-      this.withWorkspaceHeader(workspaceId),
+      workspaceId ? this.withWorkspaceHeader(workspaceId) : undefined,
     );
     return response.data;
   }
 
-  async getStatistics(workspaceId: string) {
-    const response = await api.get<Record<string, unknown>>('/asm/statistics', {
-      params: { workspaceId },
-      ...this.withWorkspaceHeader(workspaceId),
+  async getStatistics(workspaceId?: string) {
+    const response = await api.get<Record<string, unknown>>(`${this.base}/statistics`, {
+      params: workspaceId ? { workspaceId } : undefined,
+      ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
     });
     return response.data;
   }
 
-  async getStatisticsTimeline(workspaceId: string) {
+  async getStatisticsTimeline(workspaceId?: string) {
     const response = await api.get<{ data: StatisticsTimelinePoint[]; total?: number }>(
-      '/asm/statistics/timeline',
+      `${this.base}/statistics/timeline`,
       {
-        params: { workspaceId },
-        ...this.withWorkspaceHeader(workspaceId),
+        params: workspaceId ? { workspaceId } : undefined,
+        ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
       },
     );
     return response.data;
   }
 
-  async getIssuesTimeline(workspaceId: string) {
+  async getIssuesTimeline(workspaceId?: string) {
     const response = await api.get<{ data: IssuesTimelinePoint[]; total?: number }>(
-      '/asm/statistics/issues-timeline',
+      `${this.base}/statistics/issues-timeline`,
       {
-        params: { workspaceId },
-        ...this.withWorkspaceHeader(workspaceId),
+        params: workspaceId ? { workspaceId } : undefined,
+        ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
       },
     );
     return response.data;
   }
 
-  async getAssetLocations(workspaceId: string) {
+  async getAssetLocations(workspaceId?: string) {
     const response = await api.get<AssetLocation[]>(
-      '/asm/statistics/asset-locations',
+      `${this.base}/statistics/asset-locations`,
       {
-        params: { workspaceId },
-        ...this.withWorkspaceHeader(workspaceId),
+        params: workspaceId ? { workspaceId } : undefined,
+        ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
       },
     );
     return response.data;
@@ -608,58 +726,58 @@ class OpenAsmClient {
 
   async getTlsAssets(
     params: AssetQueryParams,
-    workspaceId: string,
+    workspaceId?: string,
   ) {
     const { params: p, paramsSerializer } = this.assetGetConfig(params);
-    const response = await api.get<PaginatedResponse<TlsAsset>>('/asm/assets/tls', {
+    const response = await api.get<PaginatedResponse<TlsAsset>>(`${this.base}/assets/tls`, {
       params: p,
       paramsSerializer,
-      ...this.withWorkspaceHeader(workspaceId),
+      ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
     });
     return normalizePaginatedResponse(response.data);
   }
 
-  async getTopAssetsVulnerabilities(workspaceId: string) {
+  async getTopAssetsVulnerabilities(workspaceId?: string) {
     const response = await api.get<Record<string, unknown>[]>(
-      '/asm/statistics/top-assets-vulnerabilities',
+      `${this.base}/statistics/top-assets-vulnerabilities`,
       {
-        params: { workspaceId },
-        ...this.withWorkspaceHeader(workspaceId),
+        params: workspaceId ? { workspaceId } : undefined,
+        ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
       },
     );
     return response.data;
   }
 
-  async getTopTagsAssets(workspaceId: string) {
+  async getTopTagsAssets(workspaceId?: string) {
     const response = await api.get<Record<string, unknown>[]>(
-      '/asm/statistics/top-tags-assets',
+      `${this.base}/statistics/top-tags-assets`,
       {
-        params: { workspaceId },
-        ...this.withWorkspaceHeader(workspaceId),
+        params: workspaceId ? { workspaceId } : undefined,
+        ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
       },
     );
     return response.data;
   }
 
-  async getVulnerabilitiesStatistics(workspaceId: string) {
+  async getVulnerabilitiesStatistics(workspaceId?: string) {
     const response = await api.get<{ data: { severity: string; count: number }[] }>(
-      '/asm/vulnerabilities/statistics',
+      `${this.base}/vulnerabilities/statistics`,
       {
-        params: { workspaceId },
-        ...this.withWorkspaceHeader(workspaceId),
+        params: workspaceId ? { workspaceId } : undefined,
+        ...(workspaceId ? this.withWorkspaceHeader(workspaceId) : {}),
       },
     );
     return response.data;
   }
 
   async getHealth() {
-    const response = await api.get<OpenAsmHealthResponse>('/internal/openasm/health');
+    const response = await api.get<OpenAsmHealthResponse>(`${this.base}/health`);
     return response.data;
   }
 
   async bootstrap() {
     const response = await api.post<{ success: boolean; activeWorkspaceId: string; bootstrappedAt: string }>(
-      '/internal/openasm/bootstrap',
+      `${this.base}/bootstrap`,
       {},
     );
     return response.data;
@@ -667,3 +785,4 @@ class OpenAsmClient {
 }
 
 export const openasm = new OpenAsmClient();
+export const asmScanClient = openasm;

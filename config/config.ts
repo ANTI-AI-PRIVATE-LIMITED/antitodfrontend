@@ -117,6 +117,28 @@ export const API_ENDPOINTS = {
     AGENT_METRICS: '/AdminRoutes/agents/:agentId/metrics',
     AGENT_DOCKER_INFO: '/AdminRoutes/agents/:agentId/docker-info',
     PORTAINER_HEALTH: '/AdminRoutes/portainer/health',
+
+    // ── Native ASM Scan Routes (/AsmScanRoutes/*) ──────────────────────────
+    ASM_BOOTSTRAP: '/AsmScanRoutes/bootstrap',
+    ASM_ACTIVE_WORKSPACE: '/AsmScanRoutes/active-workspace',
+    ASM_WORKSPACES: '/AsmScanRoutes/workspaces',
+    ASM_TARGETS: '/AsmScanRoutes/targets',
+    ASM_TARGETS_BULK: '/AsmScanRoutes/targets/bulk',
+    ASM_TARGET_SUBMIT_ASSESS: '/AsmScanRoutes/targets/submit-and-assess',
+    ASM_TARGET_RISK: '/AsmScanRoutes/targets/:id/risk',
+    ASM_TARGET_RESCAN: '/AsmScanRoutes/targets/:id/re-scan',
+    ASM_ASSETS: '/AsmScanRoutes/assets',
+    ASM_VULNERABILITIES: '/AsmScanRoutes/vulnerabilities',
+    ASM_STATISTICS: '/AsmScanRoutes/statistics',
+    ASM_WORKERS: '/AsmScanRoutes/workers',
+
+    // ── SIEM & SOAR Integrations Routes (/IntegrationsRoutes/*) ────────────
+    INTEGRATIONS_CONNECTORS: '/IntegrationsRoutes/connectors',
+    INTEGRATIONS_CONNECTOR: '/IntegrationsRoutes/connectors/:id',
+    INTEGRATIONS_PUSH: '/IntegrationsRoutes/connectors/:id/push',
+    INTEGRATIONS_FEED: '/IntegrationsRoutes/feed',
+    INTEGRATIONS_SOAR_ALERTS: '/IntegrationsRoutes/soar/alerts',
+    INTEGRATIONS_HEALTH: '/IntegrationsRoutes/health',
 } as const;
 
 export const AUTH_CONFIG = {

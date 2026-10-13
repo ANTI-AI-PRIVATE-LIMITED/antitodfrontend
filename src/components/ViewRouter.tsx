@@ -73,9 +73,7 @@ import PlaceholderPage from '../pages/PlaceholderPage';
 /*                          Legacy Compatibility Layer                        */
 /* -------------------------------------------------------------------------- */
 
-const BigScreenView = React.lazy(() =>
-  import('../../components/views/BigScreenView').then(m => ({ default: m.BigScreenView }))
-);
+import { BigScreenView } from '../../components/views/BigScreenView';
 import { NetworkView } from '../../components/views/NetworkView';
 import { EmailForensicView } from '../../components/views/EmailForensicView';
 import { WebCheckView } from '../../components/views/WebCheckView';
@@ -392,15 +390,7 @@ export default function ViewRouter({
   if (activeView === 'soc_wall') {
     return (
       <div className="at-fullscreen-view">
-        <React.Suspense
-          fallback={
-            <div className="w-full h-full bg-[#06080b] flex flex-col items-center justify-center text-cyan-400 gap-3">
-              <div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full" />
-              <span className="font-mono text-xs tracking-widest uppercase">INITIALIZING SOC WALL...</span>
-            </div>
-          }
-        >
-          <BigScreenView
+        <BigScreenView
           results={results}
           newsItems={newsItems}
           cveItems={cveFeedItems}
@@ -419,7 +409,6 @@ export default function ViewRouter({
           productName={productName}
           logoUrl={logoUrl}
         />
-        </React.Suspense>
       </div>
     );
   }

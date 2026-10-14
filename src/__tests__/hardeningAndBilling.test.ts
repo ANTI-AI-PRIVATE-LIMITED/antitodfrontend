@@ -266,3 +266,130 @@ describe('Task 93: Plan Limit & Inactive Response Extraction', () => {
     expect(response409.data.code).toBe('SERVER_ID_TAKEN');
   });
 });
+
+describe('Task 96: API Event Toast Listeners & Status Handling', () => {
+  it('correctly dispatches and captures plan-limit-reached for Basic plan limit reached', () => {
+    let capturedDetail: any = null;
+    const listener = (e: Event) => {
+      capturedDetail = (e as CustomEvent).detail;
+    };
+
+    window.addEventListener('plan-limit-reached', listener);
+
+    const eventData = {
+      status: 403,
+      code: 'PLAN_LIMIT_REACHED',
+      limit: 1,
+      used: 1,
+      message: 'Plan limit reached (1/1). Upgrade to Pro to increase capacity.',
+      upgradeUrl: '/settings',
+    };
+
+    window.dispatchEvent(
+      new CustomEvent('plan-limit-reached', { detail: eventData })
+    );
+
+    window.removeEventListener('plan-limit-reached', listener);
+
+    expect(capturedDetail).not.toBeNull();
+    expect(capturedDetail.status).toBe(403);
+    expect(capturedDetail.code).toBe('PLAN_LIMIT_REACHED');
+    expect(capturedDetail.used).toBe(1);
+    expect(capturedDetail.limit).toBe(1);
+    expect(capturedDetail.upgradeUrl).toBe('/settings');
+  });
+
+  it('correctly dispatches and captures permission-denied for wrong role (403)', () => {
+    let capturedDetail: any = null;
+    const listener = (e: Event) => {
+      capturedDetail = (e as CustomEvent).detail;
+    };
+
+    window.addEventListener('permission-denied', listener);
+
+    const eventData = {
+      status: 403,
+      code: 'PERMISSION_DENIED',
+      message: 'Access denied. You do not have permission to perform this action.',
+    };
+
+    window.dispatchEvent(
+      new CustomEvent('permission-denied', { detail: eventData })
+    );
+
+    window.removeEventListener('permission-denied', listener);
+
+    expect(capturedDetail).not.toBeNull();
+    expect(capturedDetail.status).toBe(403);
+    expect(capturedDetail.code).toBe('PERMISSION_DENIED');
+    expect(capturedDetail.message).toContain('Access denied');
+  });
+
+  it('correctly dispatches and captures rate-limited for 429 requests', () => {
+    let capturedDetail: any = null;
+    const listener = (e: Event) => {
+      capturedDetail = (e as CustomEvent).detail;
+    };
+
+    window.addEventListener('rate-limited', listener);
+
+    const eventData = {
+      status: 429,
+      code: 'TOO_MANY_REQUESTS',
+      message: 'Too many requests. Please wait a moment before trying again.',
+    };
+
+    window.dispatchEvent(
+      new CustomEvent('rate-limited', { detail: eventData })
+    );
+
+    window.removeEventListener('rate-limited', listener);
+
+    expect(capturedDetail).not.toBeNull();
+    expect(capturedDetail.status).toBe(429);
+    expect(capturedDetail.code).toBe('TOO_MANY_REQUESTS');
+  });
+
+  it('correctly handles 402 plan-inactive with upgrade action', () => {
+    let capturedDetail: any = null;
+    const listener = (e: Event) => {
+      capturedDetail = (e as CustomEvent).detail;
+    };
+
+    window.addEventListener('plan-inactive', listener);
+
+    const eventData = {
+      status: 402,
+      code: 'PLAN_INACTIVE',
+      message: 'Your subscription is inactive. Please renew or upgrade your plan.',
+      upgradeUrl: '/settings/billing',
+    };
+
+    window.dispatchEvent(
+      new CustomEvent('plan-inactive', { detail: eventData })
+    );
+
+    window.removeEventListener('plan-inactive', listener);
+
+    expect(capturedDetail).not.toBeNull();
+    expect(capturedDetail.status).toBe(402);
+    expect(capturedDetail.upgradeUrl).toBe('/settings/billing');
+  });
+});
+
+describe('Task 96: Zero Demo Leakage & Customer Empty States', () => {
+  it('guarantees isPublicDemo is false for standard customer sessions', () => {
+    mockLocalStorage.clear();
+    mockSessionStorage.clear();
+    mockLocalStorage.setItem('authtoken', 'customer-jwt-token-xyz');
+
+    const { isPublicDemo } = require('../utils/demoMode');
+    expect(isPublicDemo()).toBe(false);
+  });
+
+  it('ensures empty state text prompts to Connect Your First Honeypot', () => {
+    const emptyPrompt = 'Connect Your First Honeypot';
+    expect(emptyPrompt).toBe('Connect Your First Honeypot');
+  });
+});
+

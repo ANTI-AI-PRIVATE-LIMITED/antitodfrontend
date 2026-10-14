@@ -21,7 +21,7 @@ import {
     Loader2,
 } from 'lucide-react';
 
-import type { LogEventV2 } from '../../api/services';
+import type { LogEventV2, ThreatMapV3Response } from '../../api/services';
 
 import { dataProvider } from '../services/dataProvider';
 import { useAppData } from '../contexts/AppDataContext';
@@ -145,16 +145,22 @@ export default function AttackMapPage({
     onNavigate,
 }: AttackMapPageProps) {
     const [MOCK_EVENTS, set_MOCK_EVENTS] = React.useState<any[]>([]);
+    const [threatMapData, setThreatMapData] = React.useState<ThreatMapV3Response | null>(null);
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
     const fetchEvents = React.useCallback(async () => {
         setIsLoading(true);
         try {
-            const evts = await dataProvider.getAttackEvents();
+            const [evts, tMap] = await Promise.all([
+                dataProvider.getAttackEvents(),
+                dataProvider.getThreatMap(),
+            ]);
             set_MOCK_EVENTS(evts || []);
+            setThreatMapData(tMap || null);
         } catch (err) {
             console.error('Failed to load attack map events:', err);
             set_MOCK_EVENTS([]);
+            setThreatMapData(null);
         } finally {
             setIsLoading(false);
         }
@@ -389,6 +395,51 @@ export default function AttackMapPage({
             }
         });
 
+        // Add live threat map points from V3 threat-map endpoint
+        if (threatMapData?.points && threatMapData.points.length > 0) {
+            const targetLat = threatMapData.targets?.[0]?.geo_lat ?? DEFAULT_HQ[1];
+            const targetLng = threatMapData.targets?.[0]?.geo_lon ?? DEFAULT_HQ[0];
+
+            threatMapData.points.forEach((p, idx) => {
+                if (typeof p.geo_lat === 'number' && typeof p.geo_lon === 'number' && (p.geo_lat !== 0 || p.geo_lon !== 0)) {
+                    const color = severityColor((p.risk_level?.toLowerCase() || 'medium') as any);
+                    const riskUpper = (p.risk_level?.toUpperCase() || 'MEDIUM') as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+                    arcs.push({
+                        id: `arc-threat-${p.src_ip}-${idx}`,
+                        startLat: p.geo_lat,
+                        startLng: p.geo_lon,
+                        endLat: targetLat,
+                        endLng: targetLng,
+                        color,
+                        risk: riskUpper,
+                        country: p.geo_country || 'Unknown',
+                        order: idx + 100,
+                    });
+
+                    points.push({
+                        id: `pt-threat-${p.src_ip}`,
+                        lat: p.geo_lat,
+                        lng: p.geo_lon,
+                        color,
+                        radius: p.risk_level === 'critical' ? 0.65 : 0.45,
+                        altitude: 0.015,
+                        label: `${p.src_ip} (${p.geo_country || 'Host'}) - ${p.total_events} events`,
+                    });
+
+                    rings.push({
+                        id: `ring-threat-${p.src_ip}`,
+                        lat: p.geo_lat,
+                        lng: p.geo_lon,
+                        color,
+                        maxR: 3.5,
+                        speed: 1.8,
+                        repeat: 1600,
+                    });
+                }
+            });
+        }
+
         const labels: ThreeGlobeLabel[] = [
             {
                 id: 'hq-label',
@@ -440,7 +491,9 @@ export default function AttackMapPage({
     const latestEvent =
         events[0] ?? null;
 
-    if (!isLoading && MOCK_EVENTS.length === 0 && !isPublicDemo()) {
+    const hasData = MOCK_EVENTS.length > 0 || (threatMapData?.points && threatMapData.points.length > 0);
+
+    if (!isLoading && !hasData && !isPublicDemo()) {
         return (
             <div className="at-attack-map-page-v2">
                 <PageHeader

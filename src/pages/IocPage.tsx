@@ -2,6 +2,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useCallback,
   type KeyboardEvent,
 } from 'react';
 
@@ -18,6 +19,7 @@ import {
   Link2,
   Network,
   Plus,
+  RefreshCw,
   Search,
   Server,
   ShieldAlert,
@@ -421,85 +423,102 @@ function parseAdvancedQuery(
 /* -------------------------------------------------------------------------- */
 
 export default function IocPage() {
-  const { MOCK_IOCS, onNavigate } =
-    useAppData();
+  const { onNavigate } = useAppData();
+  const [liveIocs, setLiveIocs] = useState<IocRecord[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [availableSources, setAvailableSources] = useState<string[]>([]);
+  const [iocStats, setIocStats] = useState<{
+    total_indicators: number;
+    active_network_iocs: number;
+    file_hashes: number;
+    new_24h: number;
+  }>({
+    total_indicators: 0,
+    active_network_iocs: 0,
+    file_hashes: 0,
+    new_24h: 0,
+  });
 
-  /* ------------------------------------------------------------------------ */
-  /*                          Normalize source data                           */
-  /* ------------------------------------------------------------------------ */
-
-  const iocs = useMemo<IocRecord[]>(
-    () =>
-      MOCK_IOCS.map(normalizeIoc).filter(
-        (ioc): ioc is IocRecord =>
-          ioc !== null,
-      ),
-    [MOCK_IOCS],
-  );
-
-  /* ------------------------------------------------------------------------ */
-  /*                                  State                                   */
-  /* ------------------------------------------------------------------------ */
-
-  const [search, setSearch] =
-    useState('');
-
-  const [
-    advancedMode,
-    setAdvancedMode,
-  ] = useState(false);
-
-  const [
-    severityFilter,
-    setSeverityFilter,
-  ] = useState<IocSeverity | 'ALL'>(
-    'ALL',
-  );
-
-  const [
-    typeFilter,
-    setTypeFilter,
-  ] = useState<IocType | 'ALL'>(
-    'ALL',
-  );
-
-  const [
-    sourceFilter,
-    setSourceFilter,
-  ] = useState('');
-
-  const [
-    selectedIocId,
-    setSelectedIocId,
-  ] = useState<string | null>(null);
-
-  const [
-    inspectorTab,
-    setInspectorTab,
-  ] = useState<InspectorTab>(
-    'Overview',
-  );
-
-  const [
-    showFilters,
-    setShowFilters,
-  ] = useState(false);
-
-  const [
-    addIocNotice,
-    setAddIocNotice,
-  ] = useState('');
-
-  const [
-    currentPage,
-    setCurrentPage,
-  ] = useState(1);
-
+  const [search, setSearch] = useState('');
+  const [advancedMode, setAdvancedMode] = useState(false);
+  const [severityFilter, setSeverityFilter] = useState<IocSeverity | 'ALL'>('ALL');
+  const [typeFilter, setTypeFilter] = useState<IocType | 'ALL'>('ALL');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [selectedIocId, setSelectedIocId] = useState<string | null>(null);
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('Overview');
+  const [showFilters, setShowFilters] = useState(false);
+  const [addIocNotice, setAddIocNotice] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 100;
+
+  const fetchIocData = useCallback(async (page = 1, isManualRefresh = false) => {
+    if (isManualRefresh) setIsRefreshing(true);
+    else setIsLoading(true);
+
+    try {
+      const typeParam = typeFilter === 'ALL' ? undefined : (typeFilter === 'ip' ? 'network' : typeFilter === 'hash' ? 'hash' : undefined);
+      const [feedRes, statsRes, filterRes] = await Promise.allSettled([
+        dataProvider.getIocFeed({
+          page,
+          limit: ITEMS_PER_PAGE,
+          search: search.trim() || undefined,
+          type: typeParam as any,
+          source: sourceFilter || undefined,
+        }),
+        dataProvider.getIocStats(),
+        dataProvider.getIocFilters(),
+      ]);
+
+      if (feedRes.status === 'fulfilled' && feedRes.value) {
+        const feed = feedRes.value;
+        const normalizedItems: IocRecord[] = (feed.data || []).map((item: any) => ({
+          id: `${item.source || 'src'}-${item.indicator_value || item.id || Math.random()}`,
+          type: (item.indicator_type || item.type || 'ip').toLowerCase(),
+          value: item.indicator_value || item.value || '',
+          source: item.source || 'Threat Intel',
+          severity: (item.severity || 'medium').toLowerCase(),
+          firstSeen: item.first_seen || item.firstSeen || new Date().toISOString(),
+          lastSeen: item.last_seen || item.lastSeen || new Date().toISOString(),
+          tags: item.tags || [],
+        }));
+        setLiveIocs(normalizedItems);
+        setTotal(feed.total ?? normalizedItems.length);
+        setTotalPages(feed.pages || Math.max(1, Math.ceil((feed.total ?? normalizedItems.length) / ITEMS_PER_PAGE)));
+      } else {
+        setLiveIocs([]);
+        setTotal(0);
+        setTotalPages(1);
+      }
+
+      if (statsRes.status === 'fulfilled' && statsRes.value?.data) {
+        setIocStats(statsRes.value.data);
+      }
+
+      if (filterRes.status === 'fulfilled' && filterRes.value?.data?.sources) {
+        setAvailableSources(filterRes.value.data.sources);
+      }
+    } catch (err) {
+      console.error('Failed to load IOC feed:', err);
+      setLiveIocs([]);
+      setTotal(0);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [typeFilter, sourceFilter, search]);
+
+  useEffect(() => {
+    void fetchIocData(currentPage);
+  }, [fetchIocData, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [search, typeFilter, severityFilter, sourceFilter, advancedMode]);
+
+  const iocs = liveIocs;
 
   /* ------------------------------------------------------------------------ */
   /*                       Synchronize inspector                              */
@@ -548,19 +567,21 @@ export default function IocPage() {
   const sourceOptions =
     useMemo(
       () =>
-        Array.from(
-          new Set(
-            iocs
-              .map(
-                (ioc) =>
-                  ioc.source,
-              )
-              .filter(Boolean),
-          ),
-        ).sort((a, b) =>
-          a.localeCompare(b),
-        ),
-      [iocs],
+        availableSources.length > 0
+          ? availableSources
+          : Array.from(
+              new Set(
+                iocs
+                  .map(
+                    (ioc) =>
+                      ioc.source,
+                  )
+                  .filter(Boolean),
+              ),
+            ).sort((a, b) =>
+              a.localeCompare(b),
+            ),
+      [availableSources, iocs],
     );
 
   /* ------------------------------------------------------------------------ */
@@ -1038,7 +1059,7 @@ export default function IocPage() {
   /*                                  Render                                  */
   /* ------------------------------------------------------------------------ */
 
-  if (iocs.length === 0 && !isPublicDemo()) {
+  if (!isLoading && liveIocs.length === 0 && !isPublicDemo()) {
     return (
       <div className="flex flex-col h-full overflow-hidden bg-[#0a0a0a]">
         <PageHeader
@@ -1048,6 +1069,17 @@ export default function IocPage() {
           ]}
           title="Indicators of Compromise"
           description="Manage and analyze IPs, domains, hashes, and URLs."
+          actions={
+            <button
+              type="button"
+              className="at-btn at-btn-secondary at-btn-sm"
+              onClick={() => void fetchIocData(currentPage, true)}
+              disabled={isRefreshing}
+            >
+              <RefreshCw size={13} className={isRefreshing ? 'at-spin' : ''} />
+              {isRefreshing ? 'Refreshing' : 'Refresh'}
+            </button>
+          }
         />
         <div style={{ padding: '24px' }}>
           <EmptyState
@@ -1082,6 +1114,16 @@ export default function IocPage() {
         description="Manage and analyze IPs, domains, hashes, and URLs."
         actions={
           <>
+            <button
+              type="button"
+              className="at-btn at-btn-secondary at-btn-sm"
+              onClick={() => void fetchIocData(currentPage, true)}
+              disabled={isRefreshing}
+            >
+              <RefreshCw size={13} className={isRefreshing ? 'at-spin' : ''} />
+              {isRefreshing ? 'Refreshing' : 'Refresh'}
+            </button>
+
             <button
               type="button"
               className="at-btn at-btn-secondary at-btn-sm"
@@ -1406,12 +1448,13 @@ export default function IocPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered
-                    .slice(
-                      (currentPage - 1) * ITEMS_PER_PAGE,
-                      currentPage * ITEMS_PER_PAGE,
-                    )
-                    .map(
+                  (filtered.length > ITEMS_PER_PAGE
+                    ? filtered.slice(
+                        (currentPage - 1) * ITEMS_PER_PAGE,
+                        currentPage * ITEMS_PER_PAGE,
+                      )
+                    : filtered
+                  ).map(
                     (ioc) => {
                       const Icon =
                         TYPE_ICONS[
@@ -1570,24 +1613,32 @@ export default function IocPage() {
             </table>
           </div>
 
-          {filtered.length > ITEMS_PER_PAGE && (
+          {(totalPages > 1 || filtered.length > ITEMS_PER_PAGE) && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: '1px solid var(--at-border)' }}>
               <button
                 type="button"
                 className="at-btn at-btn-ghost at-btn-sm"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || isLoading}
+                onClick={() => {
+                  const p = Math.max(1, currentPage - 1);
+                  setCurrentPage(p);
+                  void fetchIocData(p);
+                }}
               >
                 Previous
               </button>
               <span style={{ fontSize: '12px', color: 'var(--at-text-muted)' }}>
-                Page {currentPage} of {Math.ceil(filtered.length / ITEMS_PER_PAGE)}
+                Page {currentPage} of {totalPages} {total > 0 ? `(${total} indicators)` : ''}
               </span>
               <button
                 type="button"
                 className="at-btn at-btn-ghost at-btn-sm"
-                disabled={currentPage === Math.ceil(filtered.length / ITEMS_PER_PAGE)}
-                onClick={() => setCurrentPage(p => Math.min(Math.ceil(filtered.length / ITEMS_PER_PAGE), p + 1))}
+                disabled={currentPage === totalPages || isLoading}
+                onClick={() => {
+                  const p = Math.min(totalPages, currentPage + 1);
+                  setCurrentPage(p);
+                  void fetchIocData(p);
+                }}
               >
                 Next
               </button>

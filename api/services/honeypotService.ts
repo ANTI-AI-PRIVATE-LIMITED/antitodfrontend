@@ -285,9 +285,31 @@ export type ThreatMapV3Params = Pick<
     'search' | 'q' | 'risk_level' | 'country' | 'honeypot' | 'detection_label' | 'threat_category' | 'start_time' | 'end_time'
 >;
 
+export interface ThreatMapPointV3 {
+    src_ip: string;
+    geo_country: string;
+    geo_lat: number;
+    geo_lon: number;
+    threat_score: number;
+    risk_level: 'low' | 'medium' | 'high' | 'critical';
+    total_events: number;
+    honeypots_targeted: string[];
+    last_seen: string;
+}
+
+export interface ThreatMapTargetV3 {
+    honeypot: string;
+    geo_lat: number;
+    geo_lon: number;
+}
+
 export interface ThreatMapV3Response {
     search: string | null;
     filters?: { search?: string | null };
+    total?: number;
+    returned_points?: number;
+    points?: ThreatMapPointV3[];
+    targets?: ThreatMapTargetV3[];
     [key: string]: unknown;
 }
 

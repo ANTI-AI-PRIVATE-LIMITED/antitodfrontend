@@ -331,7 +331,27 @@ export default function AttackMapPage({
     const telemetryAvailable =
         eventCount > 0;
 
-    const [mapMode, setMapMode] = useState<'2d' | '3d'>('2d');
+    const [mapMode, setMapMode] = useState<'2d' | '3d'>(() => {
+        try {
+            const saved = localStorage.getItem('antitode-threat-map-mode');
+            if (saved === '2d' || saved === '3d') return saved;
+        } catch {
+            // ignore
+        }
+        return '3d';
+    });
+
+    const handleToggleMapMode = () => {
+        setMapMode(prev => {
+            const next = prev === '3d' ? '2d' : '3d';
+            try {
+                localStorage.setItem('antitode-threat-map-mode', next);
+            } catch {
+                // ignore
+            }
+            return next;
+        });
+    };
 
     const globeData = useMemo(() => {
         const arcs: ThreeGlobeArc[] = [];
@@ -690,7 +710,7 @@ export default function AttackMapPage({
                                     <button
                                         type="button"
                                         title={mapMode === '3d' ? "Switch to 2D Map" : "Switch to 3D Globe"}
-                                        onClick={() => setMapMode(m => m === '3d' ? '2d' : '3d')}
+                                        onClick={handleToggleMapMode}
                                         style={{
                                             display: 'inline-flex',
                                             alignItems: 'center',

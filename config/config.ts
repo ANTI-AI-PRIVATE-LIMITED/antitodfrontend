@@ -22,6 +22,8 @@ export const API_ENDPOINTS = {
     DELETE_SHIPPER: '/AdminRoutes/shippers/:shipperId',
     ADMIN_FORGOT_PASSWORD: '/AdminRoutes/forgotPassword',
     ADMIN_RESET_PASSWORD: '/AdminRoutes/resetPassword',
+    ADMIN_RESEND_VERIFICATION: '/AdminRoutes/resendVerification',
+    ADMIN_SIGNUP: '/AdminRoutes/signup',
 
     // RBAC
     RBAC_PERMISSIONS: '/AdminRoutes/rbac/permissions',

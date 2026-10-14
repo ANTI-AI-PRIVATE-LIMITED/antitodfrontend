@@ -119,6 +119,37 @@ export const authService = {
     },
 
     /**
+     * Resend verification email for unverified account (Task 100).
+     */
+    async resendVerification(adminEmail: string): Promise<{ message: string }> {
+        const response = await api.post<{ message: string }>(
+            API_ENDPOINTS.ADMIN_RESEND_VERIFICATION,
+            { AdminEmail: adminEmail }
+        );
+        return response.data;
+    },
+
+    /**
+     * Public self-serve signup (Task 100).
+     */
+    async signup(payload: {
+        AccountName: string;
+        AdminEmail: string;
+        AdminPassword: string;
+        Plan?: string;
+    }): Promise<{
+        message: string;
+        account?: { AccountId: string; Name: string; Plan: string };
+        admin?: { AdminID: string; AdminEmail: string } | null;
+    }> {
+        const response = await api.post(
+            API_ENDPOINTS.ADMIN_SIGNUP,
+            payload
+        );
+        return response.data;
+    },
+
+    /**
      * Logout client-side trigger.
      */
     logout(): void {

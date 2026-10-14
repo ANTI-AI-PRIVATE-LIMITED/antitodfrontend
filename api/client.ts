@@ -221,7 +221,7 @@ api.interceptors.response.use(
                 ? data?.message || "Account temporarily locked. Reset your password to unlock or try again later."
                 : data?.code === "RESCAN_TOO_SOON"
                 ? data?.message || "Target scanned recently. Scans are limited to once per 10 minutes. Please wait before rescanning."
-                : data?.message || "Too many requests. Please wait a moment before trying again.",
+                : data?.message || "Too many requests, wait and retry",
           },
         })
       );
@@ -279,6 +279,32 @@ export const handleApiError = (error: unknown): string => {
         return `Target limit reached (${cap} max). Your account has reached the maximum target cap. Delete existing targets or upgrade your plan.`;
       }
 
+      // 400 Weak Password (Access Control & User Management)
+      if (
+        status === 400 &&
+        (data?.code === "WEAK_PASSWORD" ||
+          (typeof data?.message === "string" && data.message.includes("WEAK_PASSWORD")) ||
+          (typeof data?.error === "string" && data.error.includes("WEAK_PASSWORD")))
+      ) {
+        if (typeof data?.message === "string" && data.message.includes("12 characters")) {
+          return data.message;
+        }
+        return "Password does not meet complexity requirements: at least 12 characters with upper case, lower case, number and symbol.";
+      }
+
+      // 403 Email Not Verified (Login)
+      if (
+        status === 403 &&
+        (data?.code === "EMAIL_NOT_VERIFIED" ||
+          (typeof data?.message === "string" && data.message.toLowerCase().includes("email not verified")) ||
+          (typeof data?.error === "string" && data.error.toLowerCase().includes("email not verified")))
+      ) {
+        if (typeof data?.message === "string" && data.message.toLowerCase().includes("confirm your email first")) {
+          return data.message;
+        }
+        return "Please confirm your email first. A verification link was sent to your email address.";
+      }
+
       // 402 Plan Inactive
       if (status === 402 || data?.code === "PLAN_INACTIVE") {
         return (
@@ -309,10 +335,14 @@ export const handleApiError = (error: unknown): string => {
       }
 
       // 429 Account Locked
-      if (status === 429 && data?.code === "ACCOUNT_LOCKED") {
+      if (
+        status === 429 &&
+        (data?.code === "ACCOUNT_LOCKED" ||
+          (typeof data?.message === "string" && data.message.toLowerCase().includes("locked")))
+      ) {
         return (
           data?.message ||
-          "Account temporarily locked due to too many failed attempts. Please reset your password to unlock."
+          "Account temporarily locked due to too many failed attempts. Try again later or reset your password to unlock immediately."
         );
       }
 
@@ -322,6 +352,11 @@ export const handleApiError = (error: unknown): string => {
           data?.message ||
           "This target was scanned recently. Scans are limited to once per 10 minutes. Please wait before rescanning."
         );
+      }
+
+      // 429 Generic Rate Limit
+      if (status === 429) {
+        return data?.message || "Too many requests, wait and retry";
       }
 
       if (data) {

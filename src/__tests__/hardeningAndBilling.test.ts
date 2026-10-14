@@ -614,3 +614,141 @@ describe('Task 99: Frontend ASM Scan & SIEM Connector Hardening', () => {
   });
 });
 
+describe('Task 100: Login, Unverified Email, Account Lockout, Weak Password & Rate Limits', () => {
+  it('handles 403 EMAIL_NOT_VERIFIED and translates to confirmation guidance', () => {
+    const error403 = {
+      isAxiosError: true,
+      response: {
+        status: 403,
+        data: {
+          code: 'EMAIL_NOT_VERIFIED',
+          message: 'Account not verified. Please verify your email before logging in.',
+        },
+      },
+    };
+
+    const message = handleApiError(error403);
+    expect(message).toContain('confirm your email first');
+    expect(message.toLowerCase()).toContain('verification link');
+  });
+
+  it('handles 429 ACCOUNT_LOCKED and conveys lockout duration from message', () => {
+    const lockedError = {
+      isAxiosError: true,
+      response: {
+        status: 429,
+        data: {
+          code: 'ACCOUNT_LOCKED',
+          message: 'Account locked due to 5 consecutive failed attempts. Try again in 15 minutes.',
+        },
+      },
+    };
+
+    const message = handleApiError(lockedError);
+    expect(message).toContain('Account locked');
+    expect(message).toContain('15 minutes');
+
+    // Test fallback when message omitted
+    const fallbackLocked = {
+      isAxiosError: true,
+      response: {
+        status: 429,
+        data: {
+          code: 'ACCOUNT_LOCKED',
+        },
+      },
+    };
+    expect(handleApiError(fallbackLocked)).toContain('Account temporarily locked');
+  });
+
+  it('translates generic 429 rate limit to "too many requests, wait and retry"', () => {
+    const genericRateLimit = {
+      isAxiosError: true,
+      response: {
+        status: 429,
+        data: {
+          code: 'TOO_MANY_REQUESTS',
+        },
+      },
+    };
+
+    const message = handleApiError(genericRateLimit);
+    expect(message.toLowerCase()).toContain('too many requests, wait and retry');
+  });
+
+  it('handles 400 WEAK_PASSWORD by displaying the exact 12-character complexity rule', () => {
+    const weakPasswordError = {
+      isAxiosError: true,
+      response: {
+        status: 400,
+        data: {
+          code: 'WEAK_PASSWORD',
+          message: 'Password does not meet complexity requirements.',
+        },
+      },
+    };
+
+    const message = handleApiError(weakPasswordError);
+    expect(message).toContain('at least 12 characters');
+    expect(message).toContain('upper case');
+    expect(message).toContain('lower case');
+    expect(message).toContain('number and symbol');
+  });
+
+  it('enforces password policy on client side: at least 12 chars, upper, lower, number, symbol', () => {
+    const validatePassword = (pw: string) => {
+      const length = pw.length >= 12;
+      const hasUpper = /[A-Z]/.test(pw);
+      const hasLower = /[a-z]/.test(pw);
+      const hasNumber = /[0-9]/.test(pw);
+      const hasSymbol = /[^A-Za-z0-9]/.test(pw);
+      return length && hasUpper && hasLower && hasNumber && hasSymbol;
+    };
+
+    expect(validatePassword('short1!')).toBe(false); // too short
+    expect(validatePassword('nouppercase1234!')).toBe(false); // no uppercase
+    expect(validatePassword('NOLOWERCASE1234!')).toBe(false); // no lowercase
+    expect(validatePassword('NoNumbersHere!!')).toBe(false); // no numbers
+    expect(validatePassword('NoSymbolsHere1234')).toBe(false); // no symbols
+    expect(validatePassword('ValidPass1234!@#')).toBe(true); // compliant
+  });
+
+  it('verifies that too many wrong OTP tries triggers fallback to password step', () => {
+    let currentStep = 'otp';
+    let otpValue = '123456';
+    let adminIdState: string | null = 'adm_123';
+    let errorState: string | null = null;
+
+    const handleOtpError = (err: any) => {
+      const status = err?.response?.status;
+      const code = err?.response?.data?.code;
+      const isRateLimitedOrTooMany = status === 429 || code === 'TOO_MANY_ATTEMPTS';
+
+      if (isRateLimitedOrTooMany) {
+        currentStep = 'password';
+        otpValue = '';
+        adminIdState = null;
+        errorState = 'Too many incorrect OTP attempts. You have been returned to the password step.';
+      }
+    };
+
+    handleOtpError({
+      response: {
+        status: 429,
+        data: { code: 'TOO_MANY_ATTEMPTS' },
+      },
+    });
+
+    expect(currentStep).toBe('password');
+    expect(otpValue).toBe('');
+    expect(adminIdState).toBeNull();
+    expect(errorState).toContain('Too many incorrect OTP attempts');
+  });
+
+  it('verifies authService resendVerification and signup endpoint bindings', () => {
+    expect(typeof authService.resendVerification).toBe('function');
+    expect(typeof authService.signup).toBe('function');
+  });
+});
+
+

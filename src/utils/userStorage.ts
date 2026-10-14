@@ -68,13 +68,16 @@ export const userStorage = {
 };
 
 /**
- * Purges all user-specific data from browser storage on sign out and session expiry.
+ * Purges all user-specific data from browser storage on sign out, 401, and session expiry.
  * Clears:
  * - xyberah_* entries (cases, bench, brand assets, filters, cache, settings, demo mode)
- * - user_vt_api_key
- * - authtoken & authtoken_expires
- * - antitode_* entries
- * - all sessionStorage
+ * - antitode_* entries (cases, investigations, settings, views)
+ * - user_* keys (API keys, profiles)
+ * - authtoken, authtoken_expires, admin-auth-token, admin-meta
+ * - Cached feeds (cve_feed_cache, exploit_feed_cache, threat_news_cache, etc.)
+ * - CyberChef inputs & recipes (cyberchef_input, cyberchef_recipe)
+ * - Chat & AI conversation history (chat_*, threat_chat_*)
+ * - All sessionStorage
  */
 export function clearAllUserBrowserData(): void {
   try {
@@ -82,13 +85,24 @@ export function clearAllUserBrowserData(): void {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key) continue;
+      const lower = key.toLowerCase();
       if (
-        key.startsWith('xyberah_') ||
-        key.startsWith('antitode_') ||
-        key.startsWith('antitode-') ||
-        key.startsWith('user_vt_api_key') ||
-        key === 'authtoken' ||
-        key === 'authtoken_expires'
+        lower.startsWith('xyberah') ||
+        lower.startsWith('antitode') ||
+        lower.startsWith('user_') ||
+        lower.startsWith('user-') ||
+        lower.startsWith('admin') ||
+        lower.startsWith('auth') ||
+        lower.includes('token') ||
+        lower.includes('feed') ||
+        lower.includes('cache') ||
+        lower.includes('chat') ||
+        lower.includes('case') ||
+        lower.includes('investigation') ||
+        lower.includes('cyberchef') ||
+        lower.includes('session') ||
+        lower.includes('history') ||
+        lower.includes('plan')
       ) {
         keysToRemove.push(key);
       }

@@ -41,17 +41,31 @@ const determineCategory = (title: string, desc: string): NewsCategory => {
     return 'General';
 };
 
-// Sanitizer to remove HTML tags but keep text content safe
+// Safe sanitizer using DOMParser (never innerHTML) to strip HTML/scripts and return plain text
 const sanitizeText = (html: string): string => {
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-    // Remove all script tags first
-    const scripts = tempDiv.getElementsByTagName('script');
-    for (let i = scripts.length - 1; i >= 0; i--) {
-        scripts[i].parentNode?.removeChild(scripts[i]);
+    if (!html) return "";
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        // Strip dangerous tags: script, style, iframe, object, embed, link, meta
+        const dangerousElements = doc.querySelectorAll('script, style, iframe, object, embed, link, meta');
+        dangerousElements.forEach(el => el.remove());
+        // Remove event handlers and javascript: attributes from all remaining elements
+        const allElements = doc.querySelectorAll('*');
+        allElements.forEach(el => {
+            for (let i = el.attributes.length - 1; i >= 0; i--) {
+                const attr = el.attributes[i];
+                if (attr.name.toLowerCase().startsWith('on') || attr.value.toLowerCase().includes('javascript:')) {
+                    el.removeAttribute(attr.name);
+                }
+            }
+        });
+        const text = doc.body?.textContent || "";
+        const clean = text.replace(/\s+/g, ' ').trim();
+        return clean.substring(0, 250) + (clean.length > 250 ? '...' : '');
+    } catch {
+        return "";
     }
-    const text = tempDiv.textContent || tempDiv.innerText || "";
-    return text.substring(0, 250) + (text.length > 250 ? '...' : '');
 };
 
 // Strategy 1: RSS2JSON (Reliable JSON, avoids CORS/MIME issues)

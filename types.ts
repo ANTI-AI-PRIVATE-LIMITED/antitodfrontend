@@ -143,6 +143,7 @@ export interface AnalyzedHost {
     asn?: string;
     org?: string;
     eventCount?: number;
+    total_commands?: number | null;
     isBlacklisted?: boolean;
     ports?: any[];
 }

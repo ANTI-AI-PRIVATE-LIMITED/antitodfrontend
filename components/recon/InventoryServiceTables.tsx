@@ -148,7 +148,7 @@ export const InventoryAllServicesTable: React.FC<AllServicesProps> = ({
                         <a
                           href={probeUrl}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                           className="break-all font-mono text-[13px] font-semibold text-sky-400 hover:text-sky-300 hover:underline"
                         >
                           {String(asset.value ?? row.value ?? '—')}

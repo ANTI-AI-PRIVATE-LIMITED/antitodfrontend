@@ -1,5 +1,6 @@
 import api from '../client';
 import { API_ENDPOINTS } from '../../config/config';
+import { clearAllUserBrowserData } from '../../src/utils/userStorage';
 
 export interface LoginCredentials {
     AdminEmail: string;
@@ -119,6 +120,7 @@ export const authService = {
      * Logout client-side trigger.
      */
     logout(): void {
+        clearAllUserBrowserData();
         localStorage.removeItem('admin-auth-token');
         sessionStorage.removeItem('admin-auth-token');
     },

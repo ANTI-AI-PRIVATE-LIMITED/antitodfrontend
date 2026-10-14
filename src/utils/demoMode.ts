@@ -1,4 +1,5 @@
 import { AUTH_CONFIG } from '../../config/config';
+import { clearAllUserBrowserData } from './userStorage';
 
 export const DEMO_GUEST_TOKEN = 'demo-guest-token';
 
@@ -101,6 +102,7 @@ export function enterDemoMode(): void {
  */
 export function exitDemoMode(): void {
   try {
+    clearAllUserBrowserData();
     sessionStorage.removeItem('xyberah_demo_mode');
     localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
     localStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);

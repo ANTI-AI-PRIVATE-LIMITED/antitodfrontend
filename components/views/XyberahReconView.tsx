@@ -2940,7 +2940,7 @@ export const XyberahReconView: React.FC = () => {
                                           <a
                                             href={url}
                                             target="_blank"
-                                            rel="noreferrer"
+                                            rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1 break-all text-sky-400 hover:text-sky-300"
                                           >
                                             {url}
@@ -3515,7 +3515,7 @@ export const XyberahReconView: React.FC = () => {
                                   <a
                                     href={url}
                                     target="_blank"
-                                    rel="noreferrer"
+                                    rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 break-all text-sky-400 hover:text-sky-300"
                                   >
                                     {url}

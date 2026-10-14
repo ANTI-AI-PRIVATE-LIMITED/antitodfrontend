@@ -637,7 +637,7 @@ export const SandboxBrowserView: React.FC = () => {
                         <iframe 
                             src={iframeSrc}
                             className="w-full h-full border-none bg-white"
-                            sandbox="allow-forms allow-same-origin allow-scripts"
+                            sandbox="allow-forms allow-scripts"
                             referrerPolicy="no-referrer"
                             title="Sandbox"
                         />

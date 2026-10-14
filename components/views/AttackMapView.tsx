@@ -668,6 +668,9 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
                             labels={globeLabels}
                             isPaused={isPaused}
                             allowInteraction={!cinematic || allowInteraction}
+                            initialAltitude={cinematic ? 2.45 : 2.7}
+                            initialLat={cinematic ? 15 : 12}
+                            initialLng={-35}
                         />
                     </Suspense>
                 </div>

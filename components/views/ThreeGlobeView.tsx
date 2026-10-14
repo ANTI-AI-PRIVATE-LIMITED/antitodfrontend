@@ -58,6 +58,9 @@ interface ThreeGlobeViewProps {
     isPaused: boolean;
     onGlobeReady?: () => void;
     allowInteraction?: boolean;
+    initialAltitude?: number;
+    initialLat?: number;
+    initialLng?: number;
 }
 
 function getRgba(color: string, alpha: number): string {
@@ -88,7 +91,10 @@ export const ThreeGlobeView = forwardRef<ThreeGlobeViewHandle, ThreeGlobeViewPro
     labels,
     isPaused,
     onGlobeReady,
-    allowInteraction = true
+    allowInteraction = true,
+    initialAltitude = 2.5,
+    initialLat = 12,
+    initialLng = -35
 }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const globeEl = useRef<GlobeMethods | undefined>(undefined);
@@ -132,8 +138,8 @@ export const ThreeGlobeView = forwardRef<ThreeGlobeViewHandle, ThreeGlobeViewPro
         if (!globeEl.current) return;
         const globe = globeEl.current;
 
-        // Center on Atlantic between Americas and Europe/Africa with good initial angle
-        globe.pointOfView({ lat: 24, lng: -45, altitude: 2.2 }, 0);
+        // Center with optimal framing and altitude
+        globe.pointOfView({ lat: initialLat, lng: initialLng, altitude: initialAltitude }, 0);
 
         const controls = globe.controls();
         if (controls) {
@@ -146,23 +152,30 @@ export const ThreeGlobeView = forwardRef<ThreeGlobeViewHandle, ThreeGlobeViewPro
             controls.enablePan = false;
         }
 
-        // Add custom scene lighting to illuminate the Earth
+        // Add custom scene lighting to illuminate the Earth and make water bodies lighter & realistic
         const scene = globe.scene();
         if (scene) {
-            const keySunLight = new THREE.DirectionalLight(0xffffff, 1.6);
+            // Natural sky/ocean hemisphere light to brighten oceanic water bodies
+            const hemiLight = new THREE.HemisphereLight(0x9bd4ff, 0x18345c, 1.25);
+            scene.add(hemiLight);
+
+            // Crisp key sunlight on daytime hemisphere
+            const keySunLight = new THREE.DirectionalLight(0xffffff, 1.9);
             keySunLight.position.set(-2, 1.5, 2.5);
             scene.add(keySunLight);
 
-            const fillLight = new THREE.DirectionalLight(0x90b0e0, 0.7);
+            // Fill light bringing turquoise/azure brilliance to oceans
+            const fillLight = new THREE.DirectionalLight(0x7ec8ff, 1.1);
             fillLight.position.set(2, -1, -2);
             scene.add(fillLight);
 
-            const ambientLight = new THREE.AmbientLight(0x405570, 0.8);
+            // Ambient light ensuring oceans have depth without turning pitch-black
+            const ambientLight = new THREE.AmbientLight(0x386088, 0.95);
             scene.add(ambientLight);
         }
 
         if (onGlobeReady) onGlobeReady();
-    }, [isPaused, onGlobeReady, allowInteraction]);
+    }, [isPaused, onGlobeReady, allowInteraction, initialAltitude]);
 
     // Update autoRotate when isPaused or allowInteraction changes
     useEffect(() => {
@@ -187,14 +200,14 @@ export const ThreeGlobeView = forwardRef<ThreeGlobeViewHandle, ThreeGlobeViewPro
                     bumpImageUrl="/textures/earth-topology.png"
                     showAtmosphere={true}
                     atmosphereColor="#38bdf8"
-                    atmosphereAltitude={0.18}
+                    atmosphereAltitude={0.20}
                     arcsData={arcs}
                     arcStartLat={(d: any) => (d as ThreeGlobeArc).startLat}
                     arcStartLng={(d: any) => (d as ThreeGlobeArc).startLng}
                     arcEndLat={(d: any) => (d as ThreeGlobeArc).endLat}
                     arcEndLng={(d: any) => (d as ThreeGlobeArc).endLng}
                     arcColor={(d: any) => [(d as ThreeGlobeArc).color, (d as ThreeGlobeArc).color]}
-                    arcAltitude={0.25}
+                    arcAltitude={0.20}
                     arcStroke={(d: any) => (d as ThreeGlobeArc).risk === 'CRITICAL' ? 1.8 : 1.2}
                     arcDashLength={0.4}
                     arcDashGap={0.2}

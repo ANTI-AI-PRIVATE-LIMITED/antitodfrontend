@@ -740,7 +740,7 @@ export default function AttackMapPage({
                                 </div>
                             </div>
 
-                            <div className="at-map-canvas-v2" style={{ position: 'relative', flex: 1, minHeight: '660px' }}>
+                            <div className="at-map-canvas-v2" style={{ position: 'relative', flex: 1, minHeight: '520px', height: '520px', overflow: 'hidden' }}>
                                 {mapMode === '3d' ? (
                                     <div style={{ position: 'absolute', inset: 0, zIndex: 5 }}>
                                         <Suspense fallback={
@@ -756,6 +756,9 @@ export default function AttackMapPage({
                                                 labels={globeData.labels}
                                                 isPaused={false}
                                                 allowInteraction={true}
+                                                initialAltitude={2.45}
+                                                initialLat={18}
+                                                initialLng={-30}
                                             />
                                         </Suspense>
                                     </div>

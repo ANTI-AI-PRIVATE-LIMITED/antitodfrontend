@@ -60,8 +60,12 @@ export default function Header({
   }, [showUserMenu]);
 
   const handleSignOut = () => {
-    removeToken();
-    window.location.href = '/login';
+    if (isPublicDemo()) {
+      exitDemoMode();
+    } else {
+      removeToken();
+      window.location.href = '/login';
+    }
   };
   const item = findNavItem(activeView);
   const group = findNavGroup(activeView);
@@ -161,15 +165,6 @@ export default function Header({
       </button>
 
       <div className="at-header-right">
-        <button
-          type="button"
-          className="at-header-quick-action"
-          title="AI Assistant"
-          aria-label="Open AI Assistant"
-          onClick={() => onNavigate && onNavigate('chat')}
-        >
-          <Sparkles size={15} />
-        </button>
 
         <button
           type="button"
@@ -207,14 +202,7 @@ export default function Header({
         <button
           type="button"
           className="at-header-quick-action hover:text-red-400"
-          onClick={() => {
-            if (isPublicDemo()) {
-              exitDemoMode();
-            } else {
-              removeToken();
-              window.location.href = '/login';
-            }
-          }}
+          onClick={handleSignOut}
           aria-label="Sign out"
           title="Sign out / Logout"
         >

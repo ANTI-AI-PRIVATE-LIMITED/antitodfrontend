@@ -142,15 +142,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const stored = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
     if (stored) {
       if (isStoredSessionExpired()) {
-        localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-        localStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);
-        setToken(null);
+        removeToken();
       } else {
         setToken(stored);
       }
     }
     setInitialized(true);
-  }, []);
+  }, [removeToken]);
 
   useEffect(() => {
     if (!initialized) return;

@@ -18,7 +18,7 @@
 
 import React, { useState, Suspense } from 'react';
 import type { ReactNode } from 'react';
-import { Lock, ShieldAlert } from 'lucide-react';
+import { Lock, ShieldAlert, Bot } from 'lucide-react';
 
 import type {
   AnalyzedHost,
@@ -552,11 +552,24 @@ export default function ViewRouter({
     case 'chat':
       renderedView = (
         <LegacyWrapper>
-          <ChatView
-            results={results}
-            actors={malpediaActors}
-            cveData={cveData}
-          />
+          <div className="flex flex-col items-center justify-center min-h-[460px] text-center p-8 bg-neutral-900/60 border border-neutral-800 rounded-xl my-6">
+            <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 mb-4">
+              <Bot size={24} />
+            </div>
+            <h3 className="text-lg font-semibold text-neutral-200 mb-2">AI Assistant Disabled for Version 1</h3>
+            <p className="text-sm text-neutral-400 max-w-md mb-6 leading-relaxed">
+              The integrated AI SOC assistant is turned off for this release. All intelligence modules and honeypot operations run fully deterministic rules and backend verification.
+            </p>
+            {onNavigate && (
+              <button
+                type="button"
+                onClick={() => onNavigate('dashboard')}
+                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-sm font-medium transition-colors"
+              >
+                Return to Dashboard
+              </button>
+            )}
+          </div>
         </LegacyWrapper>
       );
       break;

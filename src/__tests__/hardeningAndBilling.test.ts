@@ -393,3 +393,76 @@ describe('Task 96: Zero Demo Leakage & Customer Empty States', () => {
   });
 });
 
+describe('Task 97: Multi-User Storage Isolation & Sign Out Cleanup', () => {
+  beforeEach(() => {
+    mockLocalStorage.clear();
+    mockSessionStorage.clear();
+  });
+
+  it('keys stored data by admin id and prevents shared browser leakage between User A and User B', () => {
+    // 1. User A logs in
+    mockLocalStorage.setItem('xyberah_active_admin_id', 'admin-user-alpha');
+    mockLocalStorage.setItem('xyberah_current_admin', JSON.stringify({ AdminID: 'admin-user-alpha', email: 'alpha@xyberah.com' }));
+
+    // User A creates operational data
+    userStorage.setItem('xyberah_cases', JSON.stringify([{ id: 'case-alpha-1', title: 'Alpha Secret Incident' }]));
+    userStorage.setItem('xyberah_brand_assets', JSON.stringify([{ domain: 'alpha-corp.com' }]));
+    userStorage.setItem('xyberah_analysis_filter', JSON.stringify({ severity: 'CRITICAL', status: 'OPEN' }));
+    userStorage.setItem('xyberah_bench_view_mode', 'TIMELINE');
+    userStorage.setItem('user_vt_api_key', 'vt-alpha-secret-key-123');
+
+    // Confirm User A can read their data
+    expect(userStorage.getItem('xyberah_cases')).toContain('Alpha Secret Incident');
+    expect(userStorage.getItem('xyberah_brand_assets')).toContain('alpha-corp.com');
+    expect(userStorage.getItem('xyberah_analysis_filter')).toContain('CRITICAL');
+    expect(userStorage.getItem('xyberah_bench_view_mode')).toBe('TIMELINE');
+    expect(userStorage.getItem('user_vt_api_key')).toBe('vt-alpha-secret-key-123');
+
+    // Confirm data is physically keyed by admin id in storage
+    expect(mockLocalStorage.getItem('xyberah_cases_admin-user-alpha')).not.toBeNull();
+    expect(mockLocalStorage.getItem('xyberah_brand_assets_admin-user-alpha')).not.toBeNull();
+    expect(mockLocalStorage.getItem('xyberah_analysis_filter_admin-user-alpha')).not.toBeNull();
+    expect(mockLocalStorage.getItem('xyberah_bench_view_mode_admin-user-alpha')).toBe('TIMELINE');
+    expect(mockLocalStorage.getItem('user_vt_api_key_admin-user-alpha')).toBe('vt-alpha-secret-key-123');
+
+    // 2. User A signs out -> Storage is cleared
+    clearAllUserBrowserData();
+
+    // Confirm all xyberah_* and user_* entries are purged
+    expect(mockLocalStorage.getItem('xyberah_cases_admin-user-alpha')).toBeNull();
+    expect(mockLocalStorage.getItem('xyberah_brand_assets_admin-user-alpha')).toBeNull();
+    expect(mockLocalStorage.getItem('xyberah_analysis_filter_admin-user-alpha')).toBeNull();
+    expect(mockLocalStorage.getItem('user_vt_api_key_admin-user-alpha')).toBeNull();
+    expect(mockLocalStorage.getItem('xyberah_active_admin_id')).toBeNull();
+
+    // 3. User B logs in on the same browser
+    mockLocalStorage.setItem('xyberah_active_admin_id', 'admin-user-beta');
+    mockLocalStorage.setItem('xyberah_current_admin', JSON.stringify({ AdminID: 'admin-user-beta', email: 'beta@xyberah.com' }));
+
+    // User B must see NONE of User A's data
+    expect(userStorage.getItem('xyberah_cases')).toBeNull();
+    expect(userStorage.getItem('xyberah_brand_assets')).toBeNull();
+    expect(userStorage.getItem('xyberah_analysis_filter')).toBeNull();
+    expect(userStorage.getItem('xyberah_bench_view_mode')).toBeNull();
+    expect(userStorage.getItem('user_vt_api_key')).toBeNull();
+
+    // 4. Dirty storage protection: Even if User A had residual data, User B never sees it
+    mockLocalStorage.setItem('xyberah_cases_admin-user-alpha', JSON.stringify([{ id: 'leak-case' }]));
+    mockLocalStorage.setItem('xyberah_cases', JSON.stringify([{ id: 'legacy-unscoped-case' }]));
+    expect(userStorage.getItem('xyberah_cases')).toBeNull();
+  });
+
+  it('correctly extracts admin id from JWT token if active admin id is not yet set in localStorage', () => {
+    // Generate a valid mock JWT payload with AdminID
+    const payload = { AdminID: 'jwt-extracted-admin', sub: 'admin@xyberah.com' };
+    const base64Payload = btoa(JSON.stringify(payload));
+    const mockJwt = `header.${base64Payload}.signature`;
+
+    mockLocalStorage.setItem('authtoken', mockJwt);
+    expect(getActiveAdminId()).toBe('jwt-extracted-admin');
+
+    userStorage.setItem('xyberah_cases', JSON.stringify([{ id: 'jwt-case' }]));
+    expect(mockLocalStorage.getItem('xyberah_cases_jwt-extracted-admin')).toContain('jwt-case');
+  });
+});
+

@@ -16,6 +16,19 @@ export function getActiveAdminId(): string {
       const parsed = JSON.parse(rawAdmin);
       if (parsed?.AdminID) return String(parsed.AdminID);
     }
+
+    // Try parsing JWT token if present
+    const token = localStorage.getItem('authtoken') || localStorage.getItem('admin-auth-token');
+    if (token && token.includes('.')) {
+      const parts = token.split('.');
+      if (parts.length >= 2) {
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (payload?.AdminID) return String(payload.AdminID);
+        if (payload?.adminId) return String(payload.adminId);
+        if (payload?.id) return String(payload.id);
+        if (payload?.sub && !payload.sub.includes('@')) return String(payload.sub);
+      }
+    }
   } catch {
     // Ignore JSON parse errors
   }
@@ -37,10 +50,11 @@ export function getUserStorageKey(baseKey: string, customAdminId?: string): stri
 export const userStorage = {
   getItem: (baseKey: string): string | null => {
     try {
-      const scopedKey = getUserStorageKey(baseKey);
-      const scopedVal = localStorage.getItem(scopedKey);
-      if (scopedVal !== null) return scopedVal;
-      // Fallback check to un-scoped key for seamless backward compatibility if same user
+      const adminId = getActiveAdminId();
+      if (adminId && adminId !== 'default') {
+        const scopedKey = getUserStorageKey(baseKey, adminId);
+        return localStorage.getItem(scopedKey);
+      }
       return localStorage.getItem(baseKey);
     } catch {
       return null;

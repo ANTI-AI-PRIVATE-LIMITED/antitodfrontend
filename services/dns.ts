@@ -1,13 +1,8 @@
 
 import { IpDataResponse, ExtendedSecurityInfo, DnsBlockResult, ShodanData } from '../types';
-import { BACKEND_URL, API_ENDPOINTS } from '../config/config';
+import { API_ENDPOINTS } from '../config/config';
+import api from '../api/client';
 import { Buffer } from 'buffer';
-
-if (typeof window !== 'undefined' && !(window as any).Buffer) {
-    (window as any).Buffer = Buffer;
-}
-
-const BASE_URL = 'https://api.ipdata.co';
 
 // --- DGA ANALYSIS DATA ---
 
@@ -188,21 +183,30 @@ export const enrichIP = async (ip: string): Promise<IpDataResponse | null> => {
         return null;
     }
 
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin-auth-token') : null;
-    const proxyUrl = `${BACKEND_URL}${API_ENDPOINTS.PROXY_IPDATA}/${encodeURIComponent(ip)}`;
-
-    const [proxyRes, shodanData] = await Promise.all([
-        fetch(proxyUrl, {
-            headers: token ? { authtoken: token } : {},
-        }).catch(() => null),
+    const [proxyData, shodanData] = await Promise.all([
+        api.get<any>(`${API_ENDPOINTS.PROXY_IPDATA}/${encodeURIComponent(ip)}`)
+            .then(res => res.data)
+            .catch(err => {
+                const status = err.response?.status;
+                if (status === 502) {
+                    console.warn(`[IPData Proxy] 502 PROVIDER_ERROR: Upstream IPData unreachable for ${ip}`);
+                } else if (status === 503) {
+                    console.warn(`[IPData Proxy] 503 PROVIDER_NOT_CONFIGURED: IPDATA_API_KEY is not configured on backend`);
+                } else if (status === 429) {
+                    console.warn(`[IPData Proxy] 429 PROXY_RATE_LIMITED: IPData proxy rate limit exceeded`);
+                } else {
+                    console.warn(`[IPData Proxy] Request failed (${status || 'network'}):`, err.message);
+                }
+                return null;
+            }),
         fetchShodanInternetDb(ip)
     ]);
 
-    if (!proxyRes || !proxyRes.ok) {
+    if (!proxyData) {
         return null;
     }
 
-    const data = await proxyRes.json();
+    const data = proxyData;
 
     return {
         ip: data.ip,

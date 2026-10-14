@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import { exportAsCsv } from '../utils/exportHelpers';
+import { userStorage } from '../utils/userStorage';
 import {
   Activity,
   AlertTriangle,
@@ -382,7 +383,7 @@ export default function InvestigationPage() {
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(
+      const saved = userStorage.getItem(
         'antitode-investigation-state',
       );
 
@@ -762,7 +763,7 @@ export default function InvestigationPage() {
     };
 
     try {
-      window.localStorage.setItem(
+      userStorage.setItem(
         'antitode-investigation-state',
         JSON.stringify(state),
       );

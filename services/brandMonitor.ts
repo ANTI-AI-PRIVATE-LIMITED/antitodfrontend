@@ -527,16 +527,9 @@ export const checkDomainStatus = async (item: TyposquatResult, officialLogo?: st
                 if (geo) country = geo.country_code;
             } catch(e) {}
 
-            // Generate visual URL
-            const screenshotUrl = `https://image.thum.io/get/width/400/crop/600/noanimate/https://${item.variation}`;
-            
-            let logoScore = 0;
-            if (officialLogo) {
-                // Perform visual analysis if official logo is present
-                try {
-                    logoScore = await analyzeVisualSimilarity(officialLogo, screenshotUrl);
-                } catch(e) {}
-            }
+            // Task 102: Third-party screenshot service (thum.io) removed to prevent customer brand data leakage
+            const screenshotUrl = undefined;
+            const logoScore = 0;
             
             // Check for Phonetic similarity
             const phoneticMatch = getSoundex(item.variation.split('.')[0]) === getSoundex(item.original.split('.')[0]);

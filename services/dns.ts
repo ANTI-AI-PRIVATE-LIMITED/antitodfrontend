@@ -166,7 +166,7 @@ export const DNS_RECORD_TYPES = ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA',
 
 export const fetchShodanInternetDb = async (ip: string): Promise<ShodanData | undefined> => {
     try {
-        const res = await fetch(`https://internetdb.shodan.io/${ip}`);
+        const res = await fetch(toProxyUrl(`https://internetdb.shodan.io/${ip}`));
         if (res.ok) {
             return await res.json();
         }

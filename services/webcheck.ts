@@ -50,10 +50,10 @@ export const performWebCheck = async (input: string, onUpdate?: (result: WebChec
     // Initial Callback
     if (onUpdate) onUpdate({ ...result });
 
-    // Generate Visual URLs immediately
+    // Task 102: Third-party screenshot service (thum.io) removed to prevent customer data leakage
     result.visuals = {
-        screenshot: `https://image.thum.io/get/width/600/crop/800/noanimate/${url}`,
-        favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`
+        screenshot: '',
+        favicon: ''
     };
     if (onUpdate) onUpdate({ ...result });
 

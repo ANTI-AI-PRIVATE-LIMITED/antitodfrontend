@@ -5,10 +5,9 @@ import { toProxyUrl } from './proxy';
 const CACHE_KEY = 'xyberah_cve_feed_cache';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-// Proxy order: Backend proxy (Task 101) -> Direct
+// Proxy order: Backend proxy (Task 101 & 102) - direct fetch workarounds removed
 const PROXIES = [
     (url: string) => toProxyUrl(url),
-    (url: string) => url,
 ];
 
 const FEEDS = [

@@ -1,6 +1,8 @@
 
 
+import DOMPurify from 'dompurify';
 import { ThreatNewsItem, NewsCategory } from '../types';
+import { toProxyUrl } from './proxy';
 
 const CACHE_KEY = 'xyberah_news_cache_v3';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -41,31 +43,59 @@ const determineCategory = (title: string, desc: string): NewsCategory => {
     return 'General';
 };
 
-// Safe sanitizer using DOMParser (never innerHTML) to strip HTML/scripts and return plain text
-const sanitizeText = (html: string): string => {
+// Task 102: Safe sanitizer using DOMPurify and text-only parsing (never innerHTML) to strip HTML/scripts and return plain text
+export const sanitizeText = (html: string): string => {
     if (!html) return "";
     try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        // Strip dangerous tags: script, style, iframe, object, embed, link, meta
-        const dangerousElements = doc.querySelectorAll('script, style, iframe, object, embed, link, meta');
-        dangerousElements.forEach(el => el.remove());
-        // Remove event handlers and javascript: attributes from all remaining elements
-        const allElements = doc.querySelectorAll('*');
-        allElements.forEach(el => {
-            for (let i = el.attributes.length - 1; i >= 0; i--) {
-                const attr = el.attributes[i];
-                if (attr.name.toLowerCase().startsWith('on') || attr.value.toLowerCase().includes('javascript:')) {
-                    el.removeAttribute(attr.name);
-                }
+        let purifyInstance: any = null;
+        if (typeof (DOMPurify as any)?.sanitize === 'function') {
+            purifyInstance = DOMPurify;
+        } else if (typeof DOMPurify === 'function') {
+            const win = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? (globalThis as any).window : null);
+            if (win && (win.document || win.DOMParser)) {
+                try {
+                    purifyInstance = (DOMPurify as any)(win);
+                } catch {}
             }
-        });
-        const text = doc.body?.textContent || "";
-        const clean = text.replace(/\s+/g, ' ').trim();
-        return clean.substring(0, 250) + (clean.length > 250 ? '...' : '');
-    } catch {
-        return "";
-    }
+        }
+
+        if (purifyInstance && typeof purifyInstance.sanitize === 'function') {
+            const cleanHtml = purifyInstance.sanitize(html, {
+                ALLOWED_TAGS: [], // strip all tags, return text only
+                ALLOWED_ATTR: []
+            });
+            const text = typeof cleanHtml === 'string' ? cleanHtml : (cleanHtml as any)?.textContent || "";
+            const clean = text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+            if (clean) {
+                return clean.substring(0, 250) + (clean.length > 250 ? '...' : '');
+            }
+        }
+    } catch {}
+
+    // Fallback: DOMParser text-only parse
+    try {
+        if (typeof DOMParser !== 'undefined') {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const dangerousElements = doc.querySelectorAll('script, style, iframe, object, embed, link, meta');
+            dangerousElements.forEach(el => el.remove());
+            const text = doc.body?.textContent || "";
+            const clean = text.replace(/\s+/g, ' ').trim();
+            if (clean) {
+                return clean.substring(0, 250) + (clean.length > 250 ? '...' : '');
+            }
+        }
+    } catch {}
+
+    // Universal fallback: text-only regex stripping
+    const stripped = html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return stripped.substring(0, 250) + (stripped.length > 250 ? '...' : '');
 };
 
 // Strategy 1: RSS2JSON (Reliable JSON, avoids CORS/MIME issues)
@@ -104,8 +134,6 @@ const fetchRss2Json = async (url: string): Promise<ThreatNewsItem[] | null> => {
         return null;
     }
 };
-
-import { toProxyUrl } from './proxy';
 
 // Strategy 2: Backend Proxy XML/RSS Fetch (Task 101)
 const fetchProxyRss = async (url: string, sourceName: string): Promise<ThreatNewsItem[] | null> => {

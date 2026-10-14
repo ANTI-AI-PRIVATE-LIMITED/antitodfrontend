@@ -6,11 +6,10 @@ interface ProxyConfig {
     supportsHeaders: boolean;
 }
 
-// Order: Backend proxy (allowlisted feeds) -> Direct fallback (for public CORS-enabled feeds)
-// Public relays (allorigins, corsproxy) have been removed per Task 101.
+// Order: Backend proxy (allowlisted feeds) per Task 101 & 102.
+// Public relays and direct fetch workarounds have been removed.
 const PROXIES: ProxyConfig[] = [
     { name: 'BackendProxy', url: (u) => toProxyUrl(u), supportsHeaders: true },
-    { name: 'Direct', url: (u) => u, supportsHeaders: true },
 ];
 
 /**

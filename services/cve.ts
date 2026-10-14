@@ -5,10 +5,9 @@ import { toProxyUrl } from './proxy';
 const NVD_API_URL = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
 const CISA_KEV_GITHUB_MAIN = 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json';
 
-// Proxy order: Backend proxy (Task 101) -> Direct fetch
+// Proxy order: Backend proxy (Task 101 & 102) - direct fetch workarounds removed
 const PROXIES = [
     (url: string) => toProxyUrl(url),
-    (url: string) => url,
 ];
 
 // Helper to fetch with proxy rotation

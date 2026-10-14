@@ -29,8 +29,7 @@ const fetchRawMitreData = async (): Promise<any> => {
     
     const sources = [
         toProxyUrl(MITRE_RAW_URL),
-        MITRE_RAW_URL,
-        'https://cdn.jsdelivr.net/gh/mitre/cti@master/enterprise-attack/enterprise-attack.json'
+        toProxyUrl('https://cdn.jsdelivr.net/gh/mitre/cti@master/enterprise-attack/enterprise-attack.json')
     ];
 
     for (const url of sources) {

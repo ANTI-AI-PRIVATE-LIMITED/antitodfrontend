@@ -217,10 +217,9 @@ export const fetchRemoteMalpedia = async (): Promise<MalpediaActor[]> => {
     // Malpedia feed URL
     const targetUrl = 'https://malpedia.caad.fkie.fraunhofer.de/api/get/misp';
     
-    // Proxy order: Backend proxy (Task 101) -> Direct
+    // Proxy order: Backend proxy (Task 101 & 102) - direct fetch workarounds removed
     const PROXIES = [
         (url: string) => toProxyUrl(url),
-        (url: string) => url,
     ];
 
     for (const proxy of PROXIES) {

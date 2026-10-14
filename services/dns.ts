@@ -3,6 +3,7 @@ import { IpDataResponse, ExtendedSecurityInfo, DnsBlockResult, ShodanData } from
 import { API_ENDPOINTS } from '../config/config';
 import api from '../api/client';
 import { Buffer } from 'buffer';
+import { toProxyUrl } from './proxy';
 
 // --- DGA ANALYSIS DATA ---
 
@@ -113,13 +114,10 @@ const DOMAIN_BLOCKLISTS = [
     'dnsbl.spfbl.net'
 ];
 
-// Proxy Rotation for Binary DNS (DoH GET params)
+// Proxy Rotation for Binary DNS: Direct -> Backend Proxy (Task 101)
 const PROXIES = [
     (url: string) => url, // Direct DoH support
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`, // Vercel
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`
+    (url: string) => toProxyUrl(url), // Backend proxy
 ];
 
 export interface DetailedDnsRecord {

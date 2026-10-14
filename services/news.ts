@@ -105,15 +105,17 @@ const fetchRss2Json = async (url: string): Promise<ThreatNewsItem[] | null> => {
     }
 };
 
-// Strategy 2: AllOrigins JSON Wrapper (Fallback)
-const fetchAllOrigins = async (url: string, sourceName: string): Promise<ThreatNewsItem[] | null> => {
+import { toProxyUrl } from './proxy';
+
+// Strategy 2: Backend Proxy XML/RSS Fetch (Task 101)
+const fetchProxyRss = async (url: string, sourceName: string): Promise<ThreatNewsItem[] | null> => {
     try {
-        const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        const res = await fetch(apiUrl);
+        const proxyEndpoint = toProxyUrl(url);
+        const res = await fetch(proxyEndpoint);
         if (!res.ok) return null;
-        const data = await res.json();
-        if (!data.contents) return null;
-        return parseXmlFeed(data.contents, sourceName);
+        const xmlText = await res.text();
+        if (!xmlText || !xmlText.trim().startsWith('<')) return null;
+        return parseXmlFeed(xmlText, sourceName);
     } catch (e) {
         return null;
     }
@@ -184,9 +186,9 @@ export const fetchThreatNews = async (): Promise<ThreatNewsItem[]> => {
         // Try Strategy 1 first
         let items = await fetchRss2Json(feed.url);
         
-        // Fallback to Strategy 2
+        // Fallback to Strategy 2 (Backend allowlisted proxy)
         if (!items) {
-            items = await fetchAllOrigins(feed.url, feed.name);
+            items = await fetchProxyRss(feed.url, feed.name);
         }
 
         if (items) {

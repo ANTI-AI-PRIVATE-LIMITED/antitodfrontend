@@ -3,6 +3,7 @@ import { queryDoH, enrichIP } from './dns';
 import { fetchShodanInternetDb } from './dns'; 
 import { CrtShEntry, WaybackResult } from '../types';
 import { fetchJsonWithCors } from './http';
+import { toProxyUrl } from './proxy';
 
 // --- IpApiIs Result Interface ---
 export interface IpApiIsResult {
@@ -320,8 +321,8 @@ export const fetchIpWhoIs = async (query: string = ''): Promise<IpWhoIsResult> =
         
         // If direct fetch fails (e.g. Mixed Content block), fallback to proxy
         if (!res || !res.ok) {
-            const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-            res = await fetch(proxyUrl);
+            const proxyEndpoint = toProxyUrl(url);
+            res = await fetch(proxyEndpoint);
         }
 
         if (res && res.ok) {
@@ -631,101 +632,9 @@ export interface HttpHeaderResult {
     statusText: string;
 }
 
-const HTTP_PROXIES = [
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}` // Reliable Fallback
-];
-
-export const analyzeHttpHeaders = async (target: string): Promise<HttpHeaderResult | null> => {
-    let url = target.trim();
-    if (!url.startsWith('http')) url = `https://${url}`;
-
-    for (const proxyGen of HTTP_PROXIES) {
-        try {
-            const proxyUrl = proxyGen(url);
-            // Use GET to potentially get content-dependent headers, but keep it light if possible
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s
-
-            const res = await fetch(proxyUrl, {
-                method: 'GET', 
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            
-            // Check for Local Proxy Marker (X-Source-Proxy)
-            const isLocal = proxyUrl.startsWith('/api/');
-            const proxyHeader = res.headers.get('X-Source-Proxy');
-
-            if (isLocal && !proxyHeader) {
-                // The local proxy endpoint itself is likely missing or not an edge function
-                // Skip to next proxy
-                continue;
-            }
-
-            const headers: Record<string, string> = {};
-            res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
-
-            // Security Checks
-            const checks = [
-                { name: 'Strict-Transport-Security', key: 'strict-transport-security' },
-                { name: 'Content-Security-Policy', key: 'content-security-policy' },
-                { name: 'X-Frame-Options', key: 'x-frame-options' },
-                { name: 'X-Content-Type-Options', key: 'x-content-type-options' },
-                { name: 'Referrer-Policy', key: 'referrer-policy' },
-                { name: 'Permissions-Policy', key: 'permissions-policy' },
-                { name: 'X-XSS-Protection', key: 'x-xss-protection' },
-                { name: 'Access-Control-Allow-Origin', key: 'access-control-allow-origin' }
-            ];
-
-            const security = checks.map(c => ({
-                name: c.name,
-                value: headers[c.key] || 'Missing',
-                valid: !!headers[c.key]
-            }));
-
-            // Server Intelligence
-            const serverInfo = {
-                server: headers['server'],
-                poweredBy: headers['x-powered-by'],
-                aspNet: headers['x-aspnet-version'],
-                via: headers['via']
-            };
-
-            // Cookie Parsing
-            const cookies: { name: string; attributes: string[] }[] = [];
-            // Note: fetch API might merge Set-Cookie headers. 
-            const setCookie = headers['set-cookie'];
-            if (setCookie) {
-                // Heuristic splitting if multiple cookies are joined by comma (imperfect but helpful)
-                // A safer split looks for ", " followed by a token and "=" 
-                const rawCookies = setCookie.split(/,(?=\s*[a-zA-Z0-9_-]+=)/);
-                
-                rawCookies.forEach(rc => {
-                    const parts = rc.split(';');
-                    const [nameVal, ...attrs] = parts;
-                    const [name] = nameVal.split('=');
-                    cookies.push({
-                        name: name.trim(),
-                        attributes: attrs.map(a => a.trim())
-                    });
-                });
-            }
-
-            return {
-                headers,
-                security,
-                cookies,
-                serverInfo,
-                status: res.status,
-                statusText: res.statusText || (res.status === 200 ? 'OK' : 'Unknown')
-            };
-        } catch (e) {
-            // Try next proxy
-        }
-    }
+export const analyzeHttpHeaders = async (_target: string): Promise<HttpHeaderResult | null> => {
+    // Task 101: Tools that fetch a URL the user types cannot work through an allowlist.
+    // Labeled 'coming soon' in v1.1. Do not fall back to direct browser fetch.
     return null;
 };
 
@@ -875,9 +784,9 @@ export const performPing = async (target: string, seq: number): Promise<PingResu
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+        const proxyEndpoint = toProxyUrl(url);
         
-        await fetch(proxyUrl, { 
+        await fetch(proxyEndpoint, { 
             method: 'HEAD', 
             cache: 'no-store', 
             signal: controller.signal 

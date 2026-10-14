@@ -6,6 +6,7 @@ export const API_ENDPOINTS = {
     PROXY_IPDATA: '/AdminRoutes/proxy/ipdata',
     PROXY_RANSOMWARE_LIVE: '/AdminRoutes/proxy/ransomware-live',
     PROXY_GEMINI: '/AdminRoutes/proxy/gemini',
+    PROXY_FETCH: '/AdminRoutes/proxy/fetch',
 
     // Admin endpoints
     ADMIN_LOGIN: '/AdminRoutes/adminLogin',

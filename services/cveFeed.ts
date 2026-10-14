@@ -1,14 +1,14 @@
 
 import { CveFeedItem } from '../types';
+import { toProxyUrl } from './proxy';
 
 const CACHE_KEY = 'xyberah_cve_feed_cache';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-// List of CORS proxies to try in order
-// Direct -> Vercel -> Public
+// Proxy order: Backend proxy (Task 101) -> Direct
 const PROXIES = [
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`, // Vercel
-    (url: string) => url, // Direct
+    (url: string) => toProxyUrl(url),
+    (url: string) => url,
 ];
 
 const FEEDS = [
@@ -51,13 +51,8 @@ const fetchWithProxy = async (targetUrl: string): Promise<string | null> => {
 
     for (const proxyGen of PROXIES) {
         try {
-            const proxyUrl = proxyGen(urlWithCacheBust);
-            const response = await fetch(proxyUrl);
-            
-            // Check for Vercel marker if using local proxy path
-            if (proxyUrl.startsWith('/api/proxy') && !response.headers.get('X-Source-Proxy') && !response.ok) {
-                continue;
-            }
+            const proxyEndpoint = proxyGen(urlWithCacheBust);
+            const response = await fetch(proxyEndpoint);
 
             if (response.ok) {
                 const text = await response.text();

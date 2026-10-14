@@ -1,5 +1,6 @@
 
 import { MalpediaActor, GraphData, NodeType, GraphNode, GraphLink } from '../types';
+import { toProxyUrl } from './proxy';
 
 export interface MitreTechnique {
     id: string; // T1234
@@ -21,13 +22,15 @@ export interface MitreMatrix {
 let cachedRawBundle: any = null;
 let cachedMatrix: MitreMatrix | null = null;
 
+const MITRE_RAW_URL = 'https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json';
+
 const fetchRawMitreData = async (): Promise<any> => {
     if (cachedRawBundle) return cachedRawBundle;
     
     const sources = [
-        'https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json',
-        'https://cdn.jsdelivr.net/gh/mitre/cti@master/enterprise-attack/enterprise-attack.json',
-        '/api/proxy?url=https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json'
+        toProxyUrl(MITRE_RAW_URL),
+        MITRE_RAW_URL,
+        'https://cdn.jsdelivr.net/gh/mitre/cti@master/enterprise-attack/enterprise-attack.json'
     ];
 
     for (const url of sources) {

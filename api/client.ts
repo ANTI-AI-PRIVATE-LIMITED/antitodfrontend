@@ -219,6 +219,8 @@ api.interceptors.response.use(
             message:
               data?.code === "ACCOUNT_LOCKED"
                 ? data?.message || "Account temporarily locked. Reset your password to unlock or try again later."
+                : data?.code === "PROXY_RATE_LIMITED"
+                ? data?.message || "Security proxy rate limit exceeded, wait and retry"
                 : data?.code === "RESCAN_TOO_SOON"
                 ? data?.message || "Target scanned recently. Scans are limited to once per 10 minutes. Please wait before rescanning."
                 : data?.message || "Too many requests, wait and retry",
@@ -247,23 +249,11 @@ export interface ApiErrorDetail {
   upgradeUrl?: string;
 }
 
-// Helper function to handle API errors and extract rich descriptions
 export const handleApiError = (error: unknown): string => {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<{
-      message?: string;
-      error?: string | { message?: string };
-      code?: string;
-      reason?: string;
-      skipped?: Array<{ value?: string; reason?: string; limit?: number }>;
-      limit?: number;
-      used?: number;
-      upgrade_url?: string;
-    }>;
-
-    if (axiosError.response) {
-      const status = axiosError.response.status;
-      const data = axiosError.response.data;
+  const response = (error as any)?.response;
+  if (axios.isAxiosError(error) || response) {
+    const status = response?.status;
+    const data = response?.data;
 
       // 400 Target Limit Reached (ASM customer cap)
       if (
@@ -354,6 +344,54 @@ export const handleApiError = (error: unknown): string => {
         );
       }
 
+      // 403 Security Proxy Host Not Allowed (Task 101)
+      if (
+        status === 403 &&
+        (data?.code === "HOST_NOT_ALLOWED" ||
+          (typeof data?.message === "string" && data.message.includes("HOST_NOT_ALLOWED")))
+      ) {
+        return (
+          data?.message ||
+          "Target host is not in the security proxy allowlist (403 HOST_NOT_ALLOWED)."
+        );
+      }
+
+      // 413 Payload Too Large (5MB limit) (Task 101)
+      if (
+        status === 413 ||
+        data?.code === "TOO_LARGE" ||
+        (typeof data?.message === "string" && data.message.toLowerCase().includes("too large"))
+      ) {
+        return (
+          data?.message ||
+          "Response payload exceeds the 5MB proxy size limit (413 TOO_LARGE)."
+        );
+      }
+
+      // 502 Upstream Error (Task 101)
+      if (
+        status === 502 ||
+        data?.code === "UPSTREAM_ERROR" ||
+        (typeof data?.message === "string" && data.message.includes("UPSTREAM_ERROR"))
+      ) {
+        return (
+          data?.message ||
+          "Upstream intelligence provider is temporarily unreachable (502 UPSTREAM_ERROR)."
+        );
+      }
+
+      // 429 Proxy Rate Limit (Task 101)
+      if (
+        status === 429 &&
+        (data?.code === "PROXY_RATE_LIMITED" ||
+          (typeof data?.message === "string" && data.message.includes("PROXY_RATE_LIMITED")))
+      ) {
+        return (
+          data?.message ||
+          "Security proxy rate limit exceeded. Please wait a moment and retry (429 PROXY_RATE_LIMITED)."
+        );
+      }
+
       // 429 Generic Rate Limit
       if (status === 429) {
         return data?.message || "Too many requests, wait and retry";
@@ -364,10 +402,9 @@ export const handleApiError = (error: unknown): string => {
         if (typeof data.error === "object" && data.error?.message) return data.error.message;
         if (data.message) return data.message;
       }
-    }
 
-    if (axiosError.message) {
-      return axiosError.message;
+    if ((error as any)?.message) {
+      return (error as any).message;
     }
   }
 

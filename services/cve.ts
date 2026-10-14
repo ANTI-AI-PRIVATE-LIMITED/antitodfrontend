@@ -1,30 +1,22 @@
 
 import { CveEntry } from '../types';
+import { toProxyUrl } from './proxy';
 
 const NVD_API_URL = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
 const CISA_KEV_GITHUB_MAIN = 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json';
 
-// Proxy rotation to bypass CORS
-// Order: Direct -> Vercel -> Public
+// Proxy order: Backend proxy (Task 101) -> Direct fetch
 const PROXIES = [
-    (url: string) => url, // Try direct first
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`, // Vercel
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
+    (url: string) => toProxyUrl(url),
+    (url: string) => url,
 ];
 
 // Helper to fetch with proxy rotation
 const fetchJsonWithProxy = async (targetUrl: string): Promise<any> => {
     for (const proxyGen of PROXIES) {
         try {
-            const url = proxyGen(targetUrl);
-            const res = await fetch(url);
-
-            // Check for Vercel marker if using local proxy path
-            if (url.startsWith('/api/proxy') && !res.headers.get('X-Source-Proxy') && !res.ok) {
-                continue;
-            }
+            const proxyEndpoint = proxyGen(targetUrl);
+            const res = await fetch(proxyEndpoint);
 
             if (res.ok) {
                 const text = await res.text();

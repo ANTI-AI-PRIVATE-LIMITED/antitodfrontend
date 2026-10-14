@@ -5,12 +5,17 @@ import { WebCheckResult } from '../../types';
 import { performWebCheck } from '../../services/webcheck';
 import { downloadFile, generateWebCheckPDF } from '../../services/exporter';
 
-const Card: React.FC<{ title: string, icon: any, children: React.ReactNode, color?: string, className?: string, loading?: boolean }> = ({ title, icon: Icon, children, color = "text-red-500", className = "", loading = false }) => (
+const Card: React.FC<{ title: string, icon: any, children: React.ReactNode, color?: string, className?: string, loading?: boolean, badge?: string }> = ({ title, icon: Icon, children, color = "text-red-500", className = "", loading = false, badge }) => (
     <div className={`bg-[#111] border border-[#222] rounded-lg p-5 backdrop-blur-sm flex flex-col h-full hover:border-[#333] transition-colors ${className}`}>
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 justify-between">
             <div className="flex items-center gap-2">
                 <Icon className={color} size={18} />
                 <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">{title}</h3>
+                {badge && (
+                    <span className="text-[9px] font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                        {badge}
+                    </span>
+                )}
             </div>
             {loading && <Loader2 className="animate-spin text-neutral-600" size={12}/>}
         </div>
@@ -277,7 +282,7 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                     </div>
 
                     {/* 2. Visual Recon */}
-                    <Card title="Visual Recon" icon={Eye} color="text-white" className="md:col-span-1 row-span-2">
+                    <Card title="Visual Recon" badge="Coming Soon" icon={Eye} color="text-white" className="md:col-span-1 row-span-2">
                         <div className="space-y-4 h-full flex flex-col">
                             {result.visuals?.screenshot ? (
                                 <div 
@@ -540,7 +545,7 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                     </Card>
 
                     {/* 9. HTTP Headers */}
-                    <Card title="HTTP Headers" icon={FileCode} color="text-white" loading={loading && Object.keys(result.http.headers).length === 0}>
+                    <Card title="HTTP Headers" badge="Coming Soon" icon={FileCode} color="text-white" loading={loading && Object.keys(result.http.headers).length === 0}>
                         <div className="space-y-1 font-mono text-[10px] text-[#AAA] h-48 overflow-y-auto custom-scrollbar">
                             {Object.keys(result.http.headers).length > 0 ? (
                                 Object.entries(result.http.headers).map(([k, v]) => (
@@ -549,34 +554,37 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                                     </div>
                                 ))
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-[#888]">
-                                    <span className="italic">{loading ? "Connecting..." : "No headers captured."}</span>
+                                <div className="flex flex-col items-center justify-center h-full text-center p-3">
+                                    <span className="text-xs text-neutral-400 font-mono">Arbitrary website inspection coming soon in v1.1 via backend egress.</span>
                                 </div>
                             )}
                         </div>
                     </Card>
 
                     {/* 10. Security Policy */}
-                    <Card title="Security Policy" icon={Shield} color="text-red-400" loading={loading && result.http.securityHeaders.length === 0}>
+                    <Card title="Security Policy" badge="Coming Soon" icon={Shield} color="text-red-400" loading={loading && result.http.securityHeaders.length === 0}>
                         <div className="space-y-2">
-                            {result.http.securityHeaders.map(h => (
-                                <div key={h.name} className="flex items-center justify-between text-xs">
-                                    <span className="text-[#AAA] truncate pr-2" title={h.name}>{h.name}</span>
-                                    {h.valid ? (
-                                        <CheckCircle size={14} className="text-white flex-shrink-0"/>
-                                    ) : (
-                                        <XCircle size={14} className="text-red-500/50 flex-shrink-0"/>
-                                    )}
+                            {result.http.securityHeaders.length > 0 ? (
+                                result.http.securityHeaders.map(h => (
+                                    <div key={h.name} className="flex items-center justify-between text-xs">
+                                        <span className="text-[#AAA] truncate pr-2" title={h.name}>{h.name}</span>
+                                        {h.valid ? (
+                                            <CheckCircle size={14} className="text-white flex-shrink-0"/>
+                                        ) : (
+                                            <XCircle size={14} className="text-red-500/50 flex-shrink-0"/>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-center p-3">
+                                    <span className="text-xs text-neutral-400 font-mono">Security header policy audit coming soon in v1.1.</span>
                                 </div>
-                            ))}
-                            {result.http.securityHeaders.length === 0 && !loading && (
-                                <div className="text-center text-[#888] text-xs italic py-8">Policies unavailable.</div>
                             )}
                         </div>
                     </Card>
 
                     {/* 11. Tech Stack */}
-                    <Card title="Tech Stack" icon={Layers} color="text-white">
+                    <Card title="Tech Stack" badge="Coming Soon" icon={Layers} color="text-white">
                         <div className="flex flex-wrap gap-2">
                             {result.page.techStack.map(tech => (
                                 <span key={tech} className="px-2 py-1 bg-neutral-900/20 border border-neutral-500/30 text-white rounded text-xs font-bold">

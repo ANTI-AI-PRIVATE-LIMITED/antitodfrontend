@@ -44,39 +44,12 @@ const cosineSimilarity = (a: number[], b: number[]): number => {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 };
 
-export const analyzeVisualSimilarity = async (officialLogoSrc: string, targetScreenshotUrl: string): Promise<number> => {
-    if (!officialLogoSrc || !targetScreenshotUrl) return 0;
-    
-    try {
-        const model = await loadModel();
-        if (!model) return 0;
-
-        // Use a proxy for the target screenshot to avoid CORS if needed
-        // Assuming image.thum.io supports CORS or we use a proxy
-        const proxyUrl = (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`;
-        
-        const [img1, img2] = await Promise.all([
-            loadImage(officialLogoSrc),
-            loadImage(targetScreenshotUrl.startsWith('data:') ? targetScreenshotUrl : proxyUrl(targetScreenshotUrl))
-        ]);
-
-        const embedding1 = await model.infer(img1, true);
-        const embedding2 = await model.infer(img2, true);
-
-        const data1 = await embedding1.data();
-        const data2 = await embedding2.data();
-
-        const sim = cosineSimilarity(Array.from(data1), Array.from(data2));
-        
-        embedding1.dispose();
-        embedding2.dispose();
-
-        return Math.max(0, Math.min(100, Math.round(sim * 100)));
-    } catch (e) {
-        console.warn("Visual Analysis Failed", e);
-        return 0;
-    }
+export const analyzeVisualSimilarity = async (_officialLogoSrc: string, _targetScreenshotUrl: string): Promise<number> => {
+    // Task 101: Tools that fetch a URL the user types cannot work through an allowlist.
+    // Brand screenshot visual comparison is labeled 'Coming Soon' for v1.1.
+    return 0;
 };
+
 
 // --- Fuzzy Logic Helper (Levenshtein Distance) ---
 const levenshtein = (a: string, b: string): number => {

@@ -751,4 +751,101 @@ describe('Task 100: Login, Unverified Email, Account Lockout, Weak Password & Ra
   });
 });
 
+describe('Task 101: Shared Backend Proxy Route & Public Relay Elimination', () => {
+  it('toProxyUrl formats target URL with /AdminRoutes/proxy/fetch and encoded URL', async () => {
+    const { toProxyUrl, PROXY_ROUTE } = await import('../../services/proxy');
+    const target = 'https://feeds.feedburner.com/TheHackersNews';
+    const result = toProxyUrl(target);
+    expect(result).toContain(PROXY_ROUTE);
+    expect(result).toContain(`url=${encodeURIComponent(target)}`);
+  });
+
+  it('formatProxyErrorMessage formats 403, 502, 429, and 413 accurately', async () => {
+    const { formatProxyErrorMessage } = await import('../../services/proxy');
+    
+    const err403 = formatProxyErrorMessage(403, { code: 'HOST_NOT_ALLOWED' });
+    expect(err403).toContain('HOST_NOT_ALLOWED');
+    expect(err403).toContain('allowlist');
+
+    const err502 = formatProxyErrorMessage(502, { code: 'UPSTREAM_ERROR' });
+    expect(err502).toContain('UPSTREAM_ERROR');
+    expect(err502).toContain('unreachable');
+
+    const err429 = formatProxyErrorMessage(429, { code: 'PROXY_RATE_LIMITED' });
+    expect(err429).toContain('PROXY_RATE_LIMITED');
+    expect(err429).toContain('rate limit');
+
+    const err413 = formatProxyErrorMessage(413, { code: 'TOO_LARGE' });
+    expect(err413).toContain('TOO_LARGE');
+    expect(err413).toContain('5MB');
+  });
+
+  it('handleApiError translates proxy error status codes and codes', () => {
+    const err403 = handleApiError({
+      response: {
+        status: 403,
+        data: { code: 'HOST_NOT_ALLOWED' },
+      },
+    });
+    expect(err403).toContain('HOST_NOT_ALLOWED');
+
+    const err502 = handleApiError({
+      response: {
+        status: 502,
+        data: { code: 'UPSTREAM_ERROR' },
+      },
+    });
+    expect(err502).toContain('UPSTREAM_ERROR');
+
+    const err429 = handleApiError({
+      response: {
+        status: 429,
+        data: { code: 'PROXY_RATE_LIMITED' },
+      },
+    });
+    expect(err429).toContain('PROXY_RATE_LIMITED');
+
+    const err413 = handleApiError({
+      response: {
+        status: 413,
+        data: { code: 'TOO_LARGE' },
+      },
+    });
+    expect(err413).toContain('TOO_LARGE');
+  });
+
+  it('verifies that API_ENDPOINTS defines PROXY_FETCH', async () => {
+    const { API_ENDPOINTS } = await import('../../config/config');
+    expect(API_ENDPOINTS.PROXY_FETCH).toBe('/AdminRoutes/proxy/fetch');
+  });
+
+  it('verifies proxy fetch interceptor attaches authtoken from localStorage', async () => {
+    const { toProxyUrl, installProxyFetchInterceptor } = await import('../../services/proxy');
+    const token = 'test-admin-token-xyz';
+    localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
+
+    let capturedHeaders: HeadersInit | undefined;
+    const originalFetch = window.fetch;
+    window.fetch = (async (input: any, init?: any) => {
+      capturedHeaders = init?.headers;
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }) as any;
+
+    try {
+      installProxyFetchInterceptor(true);
+      
+      const testProxyUrl = toProxyUrl('https://services.nvd.nist.gov/rest/json/cves/2.0');
+      await window.fetch(testProxyUrl);
+
+      // Verify header was injected
+      const headers = new Headers(capturedHeaders);
+      expect(headers.get(AUTH_CONFIG.TOKEN_HEADER)).toBe(token);
+    } finally {
+      window.fetch = originalFetch;
+      localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+    }
+  });
+});
+
+
 

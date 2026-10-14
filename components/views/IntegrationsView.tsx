@@ -625,33 +625,47 @@ export const IntegrationsView: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Secrets Posture (Write-only verification) */}
+                      {/* Secrets Posture (Write-only verification: strictly "set" or "not set") */}
                       <td className="py-3.5 px-3">
                         <div className="flex flex-col gap-1">
-                          {c.hasAuthToken ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-emerald-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              Token: Set
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-mono text-neutral-500">
-                              Token: Not set
-                            </span>
-                          )}
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-mono font-medium ${
+                              c.hasAuthToken ? 'text-emerald-400' : 'text-neutral-500'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                c.hasAuthToken ? 'bg-emerald-400' : 'bg-neutral-600'
+                              }`}
+                            />
+                            Token: {c.hasAuthToken ? 'Set' : 'Not set'}
+                          </span>
 
-                          {c.hasPassword ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-emerald-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              Password: Set
-                            </span>
-                          ) : null}
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-mono font-medium ${
+                              c.hasPassword ? 'text-emerald-400' : 'text-neutral-500'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                c.hasPassword ? 'bg-emerald-400' : 'bg-neutral-600'
+                              }`}
+                            />
+                            Password: {c.hasPassword ? 'Set' : 'Not set'}
+                          </span>
 
-                          {c.hasSecret ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-sky-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                              HMAC Signature: Set
-                            </span>
-                          ) : null}
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-mono font-medium ${
+                              c.hasSecret ? 'text-sky-400' : 'text-neutral-500'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                c.hasSecret ? 'bg-sky-400' : 'bg-neutral-600'
+                              }`}
+                            />
+                            Secret: {c.hasSecret ? 'Set' : 'Not set'}
+                          </span>
                         </div>
                       </td>
 
@@ -958,9 +972,13 @@ export const IntegrationsView: React.FC = () => {
                   <div>
                     <label className="block text-neutral-400 font-medium mb-1 flex items-center justify-between">
                       <span>Auth Token / API Key</span>
-                      {editingConnector?.hasAuthToken && (
-                        <span className="text-[10px] text-emerald-400 font-mono font-normal">
-                          ● Secret is set
+                      {editingConnector && (
+                        <span
+                          className={`text-[10px] font-mono font-medium ${
+                            editingConnector.hasAuthToken ? 'text-emerald-400' : 'text-neutral-500'
+                          }`}
+                        >
+                          {editingConnector.hasAuthToken ? '● Token: Set' : '○ Token: Not set'}
                         </span>
                       )}
                     </label>
@@ -968,8 +986,8 @@ export const IntegrationsView: React.FC = () => {
                       type="password"
                       placeholder={
                         editingConnector?.hasAuthToken
-                          ? '•••••••• (Leave blank to keep existing)'
-                          : 'Enter token or API key'
+                          ? '•••••••• (Token is set — leave blank to keep unchanged)'
+                          : 'Enter token or API key (Not set)'
                       }
                       value={formAuthToken}
                       onChange={(e) => setFormAuthToken(e.target.value)}
@@ -996,9 +1014,13 @@ export const IntegrationsView: React.FC = () => {
                   <div>
                     <label className="block text-neutral-400 font-medium mb-1 flex items-center justify-between">
                       <span>Password (Optional)</span>
-                      {editingConnector?.hasPassword && (
-                        <span className="text-[10px] text-emerald-400 font-mono font-normal">
-                          ● Password is set
+                      {editingConnector && (
+                        <span
+                          className={`text-[10px] font-mono font-medium ${
+                            editingConnector.hasPassword ? 'text-emerald-400' : 'text-neutral-500'
+                          }`}
+                        >
+                          {editingConnector.hasPassword ? '● Password: Set' : '○ Password: Not set'}
                         </span>
                       )}
                     </label>
@@ -1006,8 +1028,8 @@ export const IntegrationsView: React.FC = () => {
                       type="password"
                       placeholder={
                         editingConnector?.hasPassword
-                          ? '•••••••• (Leave blank to keep existing)'
-                          : 'Optional Basic Auth password'
+                          ? '•••••••• (Password is set — leave blank to keep unchanged)'
+                          : 'Optional Basic Auth password (Not set)'
                       }
                       value={formPassword}
                       onChange={(e) => setFormPassword(e.target.value)}
@@ -1020,9 +1042,13 @@ export const IntegrationsView: React.FC = () => {
                 <div className="pt-2 border-t border-neutral-800/60">
                   <label className="block text-neutral-400 font-medium mb-1 flex items-center justify-between">
                     <span>HMAC Signing Secret (X-Antitode-Signature)</span>
-                    {editingConnector?.hasSecret && (
-                      <span className="text-[10px] text-sky-400 font-mono font-normal">
-                        ● Signing key is set
+                    {editingConnector && (
+                      <span
+                        className={`text-[10px] font-mono font-medium ${
+                          editingConnector.hasSecret ? 'text-sky-400' : 'text-neutral-500'
+                        }`}
+                      >
+                        {editingConnector.hasSecret ? '● Secret: Set' : '○ Secret: Not set'}
                       </span>
                     )}
                   </label>
@@ -1030,8 +1056,8 @@ export const IntegrationsView: React.FC = () => {
                     type="password"
                     placeholder={
                       editingConnector?.hasSecret
-                        ? '•••••••• (Leave blank to keep existing)'
-                        : 'Optional SHA-256 HMAC payload verification secret'
+                        ? '•••••••• (Secret is set — leave blank to keep unchanged)'
+                        : 'Optional SHA-256 HMAC payload verification secret (Not set)'
                     }
                     value={formSecret}
                     onChange={(e) => setFormSecret(e.target.value)}

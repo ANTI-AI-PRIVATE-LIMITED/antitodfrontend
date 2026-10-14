@@ -100,6 +100,33 @@ api.interceptors.response.use(
       }
     }
 
+    // Handle 400 Bad Request / Target Limit Reached (ASM customer cap)
+    if (error.response && error.response.status === 400) {
+      const data = error.response.data as any;
+      const isTargetLimit =
+        data?.reason === "target_limit_reached" ||
+        (Array.isArray(data?.skipped) &&
+          data.skipped.some((s: any) => s.reason === "target_limit_reached"));
+      if (isTargetLimit) {
+        const limitVal =
+          data?.limit ||
+          data?.skipped?.find((s: any) => s.reason === "target_limit_reached")?.limit ||
+          25;
+        console.warn("[API] 400 Target limit reached:", limitVal);
+        window.dispatchEvent(
+          new CustomEvent("plan-limit-reached", {
+            detail: {
+              status: 400,
+              code: "TARGET_LIMIT_REACHED",
+              limit: limitVal,
+              message: `Target limit reached (${limitVal} max). Your account has reached the maximum target cap. Upgrade your plan to increase capacity.`,
+              upgradeUrl: "/settings",
+            },
+          })
+        );
+      }
+    }
+
     // Handle 402 Payment Required / Plan Inactive
     if (error.response && error.response.status === 402) {
       const data = error.response.data as any;
@@ -180,10 +207,10 @@ api.interceptors.response.use(
       );
     }
 
-    // Handle 429 Too Many Requests / Account Lockout
+    // Handle 429 Too Many Requests / Account Lockout / Rescan Cooldown
     if (error.response && error.response.status === 429) {
       const data = error.response.data as any;
-      console.warn("[API] 429 Rate limited / Account locked:", data);
+      console.warn("[API] 429 Rate limited / Account locked / Rescan cooldown:", data);
       window.dispatchEvent(
         new CustomEvent("rate-limited", {
           detail: {
@@ -192,6 +219,8 @@ api.interceptors.response.use(
             message:
               data?.code === "ACCOUNT_LOCKED"
                 ? data?.message || "Account temporarily locked. Reset your password to unlock or try again later."
+                : data?.code === "RESCAN_TOO_SOON"
+                ? data?.message || "Target scanned recently. Scans are limited to once per 10 minutes. Please wait before rescanning."
                 : data?.message || "Too many requests. Please wait a moment before trying again.",
           },
         })
@@ -225,6 +254,8 @@ export const handleApiError = (error: unknown): string => {
       message?: string;
       error?: string | { message?: string };
       code?: string;
+      reason?: string;
+      skipped?: Array<{ value?: string; reason?: string; limit?: number }>;
       limit?: number;
       used?: number;
       upgrade_url?: string;
@@ -233,6 +264,20 @@ export const handleApiError = (error: unknown): string => {
     if (axiosError.response) {
       const status = axiosError.response.status;
       const data = axiosError.response.data;
+
+      // 400 Target Limit Reached (ASM customer cap)
+      if (
+        status === 400 &&
+        (data?.reason === "target_limit_reached" ||
+          (Array.isArray((data as any)?.skipped) &&
+            (data as any).skipped.some((s: any) => s.reason === "target_limit_reached")))
+      ) {
+        const cap =
+          data?.limit ||
+          (data as any)?.skipped?.find((s: any) => s.reason === "target_limit_reached")?.limit ||
+          25;
+        return `Target limit reached (${cap} max). Your account has reached the maximum target cap. Delete existing targets or upgrade your plan.`;
+      }
 
       // 402 Plan Inactive
       if (status === 402 || data?.code === "PLAN_INACTIVE") {
@@ -268,6 +313,14 @@ export const handleApiError = (error: unknown): string => {
         return (
           data?.message ||
           "Account temporarily locked due to too many failed attempts. Please reset your password to unlock."
+        );
+      }
+
+      // 429 Rescan Cooldown
+      if (status === 429 && data?.code === "RESCAN_TOO_SOON") {
+        return (
+          data?.message ||
+          "This target was scanned recently. Scans are limited to once per 10 minutes. Please wait before rescanning."
         );
       }
 

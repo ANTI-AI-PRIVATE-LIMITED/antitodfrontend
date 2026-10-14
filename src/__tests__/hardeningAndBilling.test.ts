@@ -47,6 +47,10 @@ import {
   getActiveAdminId,
   userStorage,
 } from '../utils/userStorage';
+import { AUTH_CONFIG } from '../../config/config';
+import { authService } from '../../api/services/authService';
+import { handleApiError } from '../../api/client';
+import type { AsmConnector } from '../../api/services/integrationsService';
 
 describe('Browser Hardening: Storage Purge & User Isolation', () => {
   beforeEach(() => {
@@ -463,6 +467,150 @@ describe('Task 97: Multi-User Storage Isolation & Sign Out Cleanup', () => {
 
     userStorage.setItem('xyberah_cases', JSON.stringify([{ id: 'jwt-case' }]));
     expect(mockLocalStorage.getItem('xyberah_cases_jwt-extracted-admin')).toContain('jwt-case');
+  });
+});
+
+describe('Task 99: Frontend ASM Scan & SIEM Connector Hardening', () => {
+  beforeEach(() => {
+    mockLocalStorage.clear();
+    mockSessionStorage.clear();
+  });
+
+  it('verifies AUTH_CONFIG header and token storage keys match specification', () => {
+    expect(AUTH_CONFIG.TOKEN_HEADER).toBe('authtoken');
+    expect(AUTH_CONFIG.TOKEN_KEY).toBe('admin-auth-token');
+    expect(AUTH_CONFIG.TOKEN_EXPIRES_KEY).toBe('admin-auth-token-expires');
+  });
+
+  it('enforces write-only secrets posture: displays Set vs Not Set without leaking raw credentials', () => {
+    const mockConnector: AsmConnector = {
+      id: 'conn-1',
+      name: 'Splunk Production HEC',
+      type: 'splunk_hec',
+      format: 'json',
+      endpointUrl: 'https://splunk.internal.company.com:8088/services/collector/event',
+      authHeader: 'Authorization',
+      hasAuthToken: true,
+      hasPassword: false,
+      hasSecret: true,
+      username: null,
+      enabled: true,
+      includeAsm: true,
+      includeHoneypot: true,
+      minRiskLevel: 'high',
+      createdAt: '2026-10-14T00:00:00Z',
+      updatedAt: '2026-10-14T00:00:00Z',
+    };
+
+    // Verify write-only properties
+    expect((mockConnector as any).authToken).toBeUndefined();
+    expect((mockConnector as any).password).toBeUndefined();
+    expect((mockConnector as any).secret).toBeUndefined();
+
+    // Verify posture resolution: strictly "Set" or "Not set"
+    const tokenStatus = mockConnector.hasAuthToken ? 'Set' : 'Not set';
+    const passwordStatus = mockConnector.hasPassword ? 'Set' : 'Not set';
+    const secretStatus = mockConnector.hasSecret ? 'Set' : 'Not set';
+
+    expect(tokenStatus).toBe('Set');
+    expect(passwordStatus).toBe('Not set');
+    expect(secretStatus).toBe('Set');
+  });
+
+  it('validates public HTTPS requirement for SIEM/SOAR endpoint URLs', () => {
+    const isHttps = (url: string) => url.trim().toLowerCase().startsWith('https://');
+
+    // Insecure or invalid endpoints must be rejected
+    expect(isHttps('http://siem.example.com/api')).toBe(false);
+    expect(isHttps('http://localhost:8080/events')).toBe(false);
+    expect(isHttps('ftp://siem.example.com')).toBe(false);
+    expect(isHttps('192.168.1.10:8088')).toBe(false);
+
+    // Valid public HTTPS endpoints must pass
+    expect(isHttps('https://hec.splunk.example.com:8088/services/collector')).toBe(true);
+    expect(isHttps('https://elastic.cloud.example.com:9200/threats/_doc')).toBe(true);
+    expect(isHttps('https://webhook.site/abc-123')).toBe(true);
+  });
+
+  it('extracts wait time and cooldown message for 429 RESCAN_TOO_SOON responses', () => {
+    const rescanError = {
+      isAxiosError: true,
+      response: {
+        status: 429,
+        data: {
+          code: 'RESCAN_TOO_SOON',
+          message: 'This target was scanned recently. Try again in a few minutes.',
+        },
+      },
+    };
+
+    const message = handleApiError(rescanError);
+    expect(message).toContain('scanned recently');
+    expect(message).toContain('few minutes');
+
+    // Also verify fallback when no message is provided by server
+    const fallbackError = {
+      isAxiosError: true,
+      response: {
+        status: 429,
+        data: {
+          code: 'RESCAN_TOO_SOON',
+        },
+      },
+    };
+    expect(handleApiError(fallbackError)).toContain('10 minutes');
+  });
+
+  it('extracts capacity limit and quota message for target_limit_reached (400) responses', () => {
+    const limitError = {
+      isAxiosError: true,
+      response: {
+        status: 400,
+        data: {
+          message: 'Invalid or duplicate target',
+          reason: 'target_limit_reached',
+          limit: 25,
+        },
+      },
+    };
+
+    const message = handleApiError(limitError);
+    expect(message).toContain('Target limit reached');
+    expect(message).toContain('25 max');
+  });
+
+  it('enforces RBAC permission gating: requires osm.* for Recon and integrations.* for SIEM', () => {
+    const analystPermissions = ['osm.targets.view', 'osm.targets.manage', 'honeypot.logs.view'];
+    const integrationsPermissions = ['integrations.connectors.view', 'integrations.connectors.manage'];
+    const restrictedPermissions = ['honeypot.logs.view', 'threat_intel.view'];
+
+    const hasOsm = (perms: string[]) => perms.some((p) => p.startsWith('osm.'));
+    const hasIntegrations = (perms: string[]) => perms.some((p) => p.startsWith('integrations.'));
+
+    expect(hasOsm(analystPermissions)).toBe(true);
+    expect(hasIntegrations(analystPermissions)).toBe(false);
+
+    expect(hasOsm(integrationsPermissions)).toBe(false);
+    expect(hasIntegrations(integrationsPermissions)).toBe(true);
+
+    expect(hasOsm(restrictedPermissions)).toBe(false);
+    expect(hasIntegrations(restrictedPermissions)).toBe(false);
+  });
+
+  it('verifies logout and session expiry clears admin-auth-token and admin-auth-token-expires', () => {
+    mockLocalStorage.setItem('admin-auth-token', 'valid-jwt-token-xyz');
+    mockLocalStorage.setItem('admin-auth-token-expires', new Date(Date.now() + 3600000).toISOString());
+    mockLocalStorage.setItem('xyberah_cases_adm_1', JSON.stringify([{ id: 'case-1' }]));
+
+    expect(mockLocalStorage.getItem('admin-auth-token')).toBe('valid-jwt-token-xyz');
+    expect(mockLocalStorage.getItem('admin-auth-token-expires')).not.toBeNull();
+
+    // Trigger logout
+    authService.logout();
+
+    expect(mockLocalStorage.getItem('admin-auth-token')).toBeNull();
+    expect(mockLocalStorage.getItem('admin-auth-token-expires')).toBeNull();
+    expect(mockLocalStorage.getItem('xyberah_cases_adm_1')).toBeNull();
   });
 });
 

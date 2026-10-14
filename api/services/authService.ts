@@ -1,5 +1,5 @@
 import api from '../client';
-import { API_ENDPOINTS } from '../../config/config';
+import { API_ENDPOINTS, AUTH_CONFIG } from '../../config/config';
 import { clearAllUserBrowserData } from '../../src/utils/userStorage';
 
 export interface LoginCredentials {
@@ -123,7 +123,9 @@ export const authService = {
      */
     logout(): void {
         clearAllUserBrowserData();
-        localStorage.removeItem('admin-auth-token');
-        sessionStorage.removeItem('admin-auth-token');
+        localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+        localStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);
+        sessionStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+        sessionStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);
     },
 };

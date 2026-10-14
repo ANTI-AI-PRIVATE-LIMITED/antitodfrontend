@@ -674,7 +674,14 @@ export default function ViewRouter({
     case 'recon':
       renderedView = (
         <LegacyWrapper>
-          {permissionsLoaded && !hasOsmAccess ? (
+          {!permissionsLoaded ? (
+            <div className="min-h-[500px] flex items-center justify-center p-6 text-neutral-400">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+                <span className="text-xs font-mono">Verifying permissions…</span>
+              </div>
+            </div>
+          ) : !hasOsmAccess ? (
             <div className="min-h-[500px] flex items-center justify-center p-6">
               <div className="max-w-md w-full p-8 rounded-2xl border border-neutral-800 bg-[#0c0d10] text-center shadow-2xl">
                 <div className="w-12 h-12 mx-auto rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
@@ -699,7 +706,14 @@ export default function ViewRouter({
     case 'integrations':
       renderedView = (
         <LegacyWrapper>
-          {permissionsLoaded && !hasIntegrationsAccess ? (
+          {!permissionsLoaded ? (
+            <div className="min-h-[500px] flex items-center justify-center p-6 text-neutral-400">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+                <span className="text-xs font-mono">Verifying permissions…</span>
+              </div>
+            </div>
+          ) : !hasIntegrationsAccess ? (
             <div className="min-h-[500px] flex items-center justify-center p-6">
               <div className="max-w-md w-full p-8 rounded-2xl border border-neutral-800 bg-[#0c0d10] text-center shadow-2xl">
                 <div className="w-12 h-12 mx-auto rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4">

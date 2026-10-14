@@ -35,7 +35,7 @@ export default function AppRouter() {
         window.history.replaceState(
           { view: 'dashboard' },
           '',
-          dashboardPath,
+          dashboardPath + window.location.search,
         );
       }
     }

@@ -9,8 +9,10 @@ export interface LoginCredentials {
 
 export interface AuthGroup {
     GroupId: string;
-    Name: string;
-    Description: string;
+    Name?: string;
+    Description?: string;
+    GroupName?: string;
+    GroupID?: string;
 }
 
 /** Password step succeeded — OTP email sent; no session token yet. */

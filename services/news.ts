@@ -140,13 +140,16 @@ const parseXmlFeed = (xmlText: string, sourceName: string): ThreatNewsItem[] => 
             
             const timestamp = new Date(pubDateStr).getTime();
             
+            const pubIso = Number.isNaN(timestamp)
+                ? new Date().toISOString()
+                : new Date(timestamp).toISOString();
+            
             items.push({
                 title,
                 link,
                 source: sourceName,
-                published: Number.isNaN(timestamp)
-                    ? new Date().toISOString()
-                    : new Date(timestamp).toISOString(),
+                date: pubIso,
+                published: pubIso,
                 timestamp: Number.isNaN(timestamp) ? Date.now() : timestamp,
                 description: cleanDesc,
                 category: determineCategory(title, cleanDesc)

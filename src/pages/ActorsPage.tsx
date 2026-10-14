@@ -393,7 +393,7 @@ export default function ActorsPage() {
       'antitode-threat-actors',
       'Threat Actors',
       filtered,
-      { query },
+      { query: search },
     );
   };
 

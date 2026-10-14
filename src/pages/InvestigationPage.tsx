@@ -458,11 +458,8 @@ export default function InvestigationPage() {
       }
 
       if (
-        state.severityFilter ===
-        'ALL' ||
-        ['critical', 'high', 'medium', 'low'].includes(
-          state.severityFilter,
-        )
+        state.severityFilter === 'ALL' ||
+        (state.severityFilter && ['critical', 'high', 'medium', 'low'].includes(state.severityFilter))
       ) {
         if (
           typeof state.severityFilter !==

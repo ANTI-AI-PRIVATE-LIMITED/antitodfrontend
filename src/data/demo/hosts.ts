@@ -1,4 +1,4 @@
-import type { AnalyzedHost } from '../../types';
+import type { AnalyzedHost } from '../../../types';
 
 export const DEMO_HOSTS: AnalyzedHost[] = [
   { ip: '185.15.20.10', totalScore: 95, riskLevel: 'CRITICAL', country: 'RU', city: 'Moscow', asn: 'AS4842', hostname: 'malicious-host.xyz', isMalicious: true, isTor: false, tags: ['c2', 'malware'], signals: [{ source: 'malpedia', score: 90, description: 'Known C2 server', timestamp: Date.now() }], lastSeen: Date.now() - 3600000, timesSeen: 45 },
@@ -26,5 +26,4 @@ export const DEMO_HOSTS: AnalyzedHost[] = [
   { ip: '192.168.100.26', totalScore: 60, riskLevel: 'HIGH', country: 'DE', city: 'Unknown', asn: 'AS1026', hostname: 'host-26.net', isMalicious: true, isTor: false, tags: [], signals: [], lastSeen: Date.now() - 2600000, timesSeen: 52 },
   { ip: '192.168.100.27', totalScore: 85, riskLevel: 'CRITICAL', country: 'RU', city: 'Unknown', asn: 'AS1027', hostname: 'host-27.net', isMalicious: true, isTor: false, tags: [], signals: [], lastSeen: Date.now() - 2700000, timesSeen: 54 },
   { ip: '192.168.100.28', totalScore: 10, riskLevel: 'LOW', country: 'CN', city: 'Unknown', asn: 'AS1028', hostname: 'host-28.net', isMalicious: false, isTor: false, tags: [], signals: [], lastSeen: Date.now() - 2800000, timesSeen: 56 },
-  { ip: '192.168.100.29', totalScore: 35, riskLevel: 'MEDIUM', country: 'US', city: 'Unknown', asn: 'AS1029', hostname: 'host-29.net', isMalicious: false, isTor: false, tags: [], signals: [], lastSeen: Date.now() - 2900000, timesSeen: 58 },
-];
+] as unknown as AnalyzedHost[];

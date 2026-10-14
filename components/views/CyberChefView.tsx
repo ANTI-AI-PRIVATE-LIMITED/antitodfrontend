@@ -9,7 +9,7 @@ import {
     Wand2, Calculator, Regex, Mail, MapPin, FileSearch,
     ImageIcon, Archive, Clock, FileKey, Info, Camera,
     Variable, ArrowDownAZ, Filter, MoveVertical, ListTree, GitCompare, AlignLeft,
-    Code2, Brackets, Wand, ListFilter, Languages, CaseLower, CaseUpper, ScissorsLineItems,
+    Code2, Brackets, Wand, ListFilter, Languages, CaseLower, CaseUpper,
     Pause, X, Sparkles, Wand2 as WandIcon, ExternalLink
 } from 'lucide-react';
 import { generateGeminiContent } from '../../services/geminiService';

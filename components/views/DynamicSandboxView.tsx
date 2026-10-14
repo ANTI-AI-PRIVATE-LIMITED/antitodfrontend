@@ -4,8 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Upload, FileCode, Activity, Server, AlertTriangle, Shield, CheckCircle, Clock, File as FileIcon, Search, Box, Zap, Cpu, Network, Lock, Layers, ShieldAlert, Hash, Bot, Sparkles, X, Send, User, Loader2, Terminal, Image, Info, Globe, Siren } from 'lucide-react';
 import { OtxSandboxReport } from '../../types';
 import { submitFileToSandbox, getSandboxAnalysis, calculateFileHash } from '../../services/otxSandbox';
-import { Chat } from "@google/genai";
-import { formatSandboxContext, createThreatChat } from '../../services/aiConverter';
+import { formatSandboxContext, createThreatChat, ThreatChatSession } from '../../services/aiConverter';
 
 interface Message {
     id: string;
@@ -29,7 +28,7 @@ export const DynamicSandboxView: React.FC = () => {
 
     // AI Chat State
     const [showAiModal, setShowAiModal] = useState(false);
-    const [chatSession, setChatSession] = useState<Chat | null>(null);
+    const [chatSession, setChatSession] = useState<ThreatChatSession | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isAiLoading, setIsAiLoading] = useState(false);

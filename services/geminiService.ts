@@ -52,10 +52,14 @@ export const generateGeminiContent = async (
   return text;
 };
 
+export interface ThreatChatSession {
+  sendMessageStream: ({ message }: { message: string }) => AsyncGenerator<{ text: string }, void, unknown>;
+}
+
 /**
  * Creates a threat chat session that routes through the backend proxy.
  */
-export const createThreatChat = (context: string) => {
+export const createThreatChat = (context: string): ThreatChatSession => {
   const history: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
   const systemInstruction = {

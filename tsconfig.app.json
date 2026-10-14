@@ -13,5 +13,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src", "components", "api", "contexts", "config", "examples", "hooks", "services", "utils", "types.ts", "constants.ts"]
+  "include": ["src", "components", "api", "contexts", "config", "examples", "hooks", "services", "utils", "types.ts", "constants.ts"],
+  "exclude": ["src/__tests__"]
 }

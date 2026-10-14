@@ -193,7 +193,7 @@ export default function NewsPage() {
       'antitode-news-report',
       'Threat Intelligence News',
       filtered,
-      { search, selectedCategory },
+      { search, activeFilters },
     );
   };
 

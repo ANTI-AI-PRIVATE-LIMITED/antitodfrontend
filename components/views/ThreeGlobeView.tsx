@@ -189,18 +189,18 @@ export const ThreeGlobeView = forwardRef<ThreeGlobeViewHandle, ThreeGlobeViewPro
                     atmosphereColor="#38bdf8"
                     atmosphereAltitude={0.18}
                     arcsData={arcs}
-                    arcStartLat={d => (d as ThreeGlobeArc).startLat}
-                    arcStartLng={d => (d as ThreeGlobeArc).startLng}
-                    arcEndLat={d => (d as ThreeGlobeArc).endLat}
-                    arcEndLng={d => (d as ThreeGlobeArc).endLng}
-                    arcColor={d => [(d as ThreeGlobeArc).color, (d as ThreeGlobeArc).color]}
+                    arcStartLat={(d: any) => (d as ThreeGlobeArc).startLat}
+                    arcStartLng={(d: any) => (d as ThreeGlobeArc).startLng}
+                    arcEndLat={(d: any) => (d as ThreeGlobeArc).endLat}
+                    arcEndLng={(d: any) => (d as ThreeGlobeArc).endLng}
+                    arcColor={(d: any) => [(d as ThreeGlobeArc).color, (d as ThreeGlobeArc).color]}
                     arcAltitude={0.25}
-                    arcStroke={d => (d as ThreeGlobeArc).risk === 'CRITICAL' ? 1.8 : 1.2}
+                    arcStroke={(d: any) => (d as ThreeGlobeArc).risk === 'CRITICAL' ? 1.8 : 1.2}
                     arcDashLength={0.4}
                     arcDashGap={0.2}
-                    arcDashInitialGap={d => ((d as ThreeGlobeArc).order % 10) * 0.1}
+                    arcDashInitialGap={(d: any) => ((d as ThreeGlobeArc).order % 10) * 0.1}
                     arcDashAnimateTime={2200}
-                    arcLabel={d => {
+                    arcLabel={(d: any) => {
                         const arc = d as ThreeGlobeArc;
                         return `
                             <div style="background: rgba(10,12,16,0.92); border: 1px solid ${arc.color}; padding: 6px 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #fff; box-shadow: 0 0 15px rgba(0,0,0,0.8); pointer-events: none;">
@@ -212,25 +212,25 @@ export const ThreeGlobeView = forwardRef<ThreeGlobeViewHandle, ThreeGlobeViewPro
                         `;
                     }}
                     ringsData={rings}
-                    ringLat={d => (d as ThreeGlobeRing).lat}
-                    ringLng={d => (d as ThreeGlobeRing).lng}
-                    ringColor={d => {
+                    ringLat={(d: any) => (d as ThreeGlobeRing).lat}
+                    ringLng={(d: any) => (d as ThreeGlobeRing).lng}
+                    ringColor={(d: any) => {
                         const ring = d as ThreeGlobeRing;
                         return (t: number) => {
                             const alpha = Math.max(0, 1 - t) * 0.85;
                             return getRgba(ring.color, alpha);
                         };
                     }}
-                    ringMaxRadius={d => (d as ThreeGlobeRing).maxR ?? 4.5}
-                    ringPropagationSpeed={d => (d as ThreeGlobeRing).speed ?? 2.5}
-                    ringRepeatPeriod={d => (d as ThreeGlobeRing).repeat ?? 1200}
+                    ringMaxRadius={(d: any) => (d as ThreeGlobeRing).maxR ?? 4.5}
+                    ringPropagationSpeed={(d: any) => (d as ThreeGlobeRing).speed ?? 2.5}
+                    ringRepeatPeriod={(d: any) => (d as ThreeGlobeRing).repeat ?? 1200}
                     pointsData={points}
-                    pointLat={d => (d as ThreeGlobePoint).lat}
-                    pointLng={d => (d as ThreeGlobePoint).lng}
-                    pointColor={d => (d as ThreeGlobePoint).color}
-                    pointRadius={d => (d as ThreeGlobePoint).radius}
-                    pointAltitude={d => (d as ThreeGlobePoint).altitude ?? 0.015}
-                    pointLabel={d => {
+                    pointLat={(d: any) => (d as ThreeGlobePoint).lat}
+                    pointLng={(d: any) => (d as ThreeGlobePoint).lng}
+                    pointColor={(d: any) => (d as ThreeGlobePoint).color}
+                    pointRadius={(d: any) => (d as ThreeGlobePoint).radius}
+                    pointAltitude={(d: any) => (d as ThreeGlobePoint).altitude ?? 0.015}
+                    pointLabel={(d: any) => {
                         const pt = d as ThreeGlobePoint;
                         if (!pt.label) return '';
                         return `
@@ -240,11 +240,11 @@ export const ThreeGlobeView = forwardRef<ThreeGlobeViewHandle, ThreeGlobeViewPro
                         `;
                     }}
                     labelsData={labels}
-                    labelLat={d => (d as ThreeGlobeLabel).lat}
-                    labelLng={d => (d as ThreeGlobeLabel).lng}
-                    labelText={d => (d as ThreeGlobeLabel).text}
-                    labelColor={d => (d as ThreeGlobeLabel).color}
-                    labelSize={d => (d as ThreeGlobeLabel).size}
+                    labelLat={(d: any) => (d as ThreeGlobeLabel).lat}
+                    labelLng={(d: any) => (d as ThreeGlobeLabel).lng}
+                    labelText={(d: any) => (d as ThreeGlobeLabel).text}
+                    labelColor={(d: any) => (d as ThreeGlobeLabel).color}
+                    labelSize={(d: any) => (d as ThreeGlobeLabel).size}
                     labelDotRadius={0.35}
                     labelAltitude={0.03}
                     enablePointerInteraction={allowInteraction}

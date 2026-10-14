@@ -245,6 +245,11 @@ export const NetworkTopologyView: React.FC = () => {
     const [paletteSearch, setPaletteSearch] = useState('');
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'info' | 'error' } | null>(null);
 
+    const showToast = (message: string, type: 'success' | 'info' | 'error' = 'info') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
+
     const [customStencils, setCustomStencils] = useState<any[]>([]);
     const [savedDiagrams, setSavedDiagrams] = useState<any[]>([]);
     const [showStencilCreator, setShowStencilCreator] = useState(false);

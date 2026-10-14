@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setAdmin(DEMO_ADMIN_PROFILE);
       localStorage.setItem('xyberah_active_admin_id', DEMO_ADMIN_PROFILE.AdminID);
       localStorage.setItem('xyberah_current_admin', JSON.stringify(DEMO_ADMIN_PROFILE));
-      setGroups([{ GroupID: 'demo', GroupName: 'Demo Visitors (Read Only)' }]);
+      setGroups([{ GroupId: 'demo', GroupName: 'Demo Visitors (Read Only)', Name: 'Demo Visitors (Read Only)' }]);
       setPermissions(DEMO_READONLY_PERMISSIONS);
       setPermissionsLoaded(true);
       return;

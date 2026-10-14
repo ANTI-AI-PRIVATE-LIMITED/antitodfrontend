@@ -1,5 +1,5 @@
 /** Set via `.env` — see `.env.example`. No production default (required for API calls). */
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
+export const BACKEND_URL = (import.meta as any).env?.VITE_BACKEND_URL ?? '';
 
 export const API_ENDPOINTS = {
     // Third-party provider proxies (server-side key injection; keys are not bundled in browser)

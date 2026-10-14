@@ -1,16 +1,12 @@
 /** Set via `.env` — see `.env.example`. No production default (required for API calls). */
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
-/** ipdata.co — optional; geo enrichment is skipped when unset. */
-export const IPDATA_API_KEY = import.meta.env.VITE_IPDATA_API_KEY ?? '';
-
-/** ransomware.live — optional; live victim feed is skipped when unset. */
-export const RANSOMWARE_LIVE_API_KEY = import.meta.env.VITE_RANSOMWARE_LIVE_API_KEY ?? '';
-
-/** Google Gemini — optional; AI features are disabled when unset. */
-export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? '';
-
 export const API_ENDPOINTS = {
+    // Third-party provider proxies (server-side key injection; keys are not bundled in browser)
+    PROXY_IPDATA: '/AdminRoutes/proxy/ipdata',
+    PROXY_RANSOMWARE_LIVE: '/AdminRoutes/proxy/ransomware-live',
+    PROXY_GEMINI: '/AdminRoutes/proxy/gemini',
+
     // Admin endpoints
     ADMIN_LOGIN: '/AdminRoutes/adminLogin',
     ADMIN_VERIFY_OTP: '/AdminRoutes/adminVerifyOtp',
@@ -24,6 +20,8 @@ export const API_ENDPOINTS = {
     REACTIVATE_SHIPPER: '/AdminRoutes/reactivateShipper',
     DELETE_SERVER: '/AdminRoutes/servers/:serverId',
     DELETE_SHIPPER: '/AdminRoutes/shippers/:shipperId',
+    ADMIN_FORGOT_PASSWORD: '/AdminRoutes/forgotPassword',
+    ADMIN_RESET_PASSWORD: '/AdminRoutes/resetPassword',
 
     // RBAC
     RBAC_PERMISSIONS: '/AdminRoutes/rbac/permissions',
@@ -35,6 +33,8 @@ export const API_ENDPOINTS = {
 
     // Billing & Plan
     BILLING_USAGE: '/AdminRoutes/billing/usage',
+    BILLING_PLANS: '/AdminRoutes/billing/plans',
+    BILLING_HISTORY: '/AdminRoutes/billing/history',
 
     // V1 HoneyPot endpoints (legacy)
     INGEST_LOGS_V1: '/HoneyPotRoutes/ingestHoneyPotLogs',
@@ -117,6 +117,28 @@ export const API_ENDPOINTS = {
     AGENT_METRICS: '/AdminRoutes/agents/:agentId/metrics',
     AGENT_DOCKER_INFO: '/AdminRoutes/agents/:agentId/docker-info',
     PORTAINER_HEALTH: '/AdminRoutes/portainer/health',
+
+    // ── Native ASM Scan Routes (/AsmScanRoutes/*) ──────────────────────────
+    ASM_BOOTSTRAP: '/AsmScanRoutes/bootstrap',
+    ASM_ACTIVE_WORKSPACE: '/AsmScanRoutes/active-workspace',
+    ASM_WORKSPACES: '/AsmScanRoutes/workspaces',
+    ASM_TARGETS: '/AsmScanRoutes/targets',
+    ASM_TARGETS_BULK: '/AsmScanRoutes/targets/bulk',
+    ASM_TARGET_SUBMIT_ASSESS: '/AsmScanRoutes/targets/submit-and-assess',
+    ASM_TARGET_RISK: '/AsmScanRoutes/targets/:id/risk',
+    ASM_TARGET_RESCAN: '/AsmScanRoutes/targets/:id/re-scan',
+    ASM_ASSETS: '/AsmScanRoutes/assets',
+    ASM_VULNERABILITIES: '/AsmScanRoutes/vulnerabilities',
+    ASM_STATISTICS: '/AsmScanRoutes/statistics',
+    ASM_WORKERS: '/AsmScanRoutes/workers',
+
+    // ── SIEM & SOAR Integrations Routes (/IntegrationsRoutes/*) ────────────
+    INTEGRATIONS_CONNECTORS: '/IntegrationsRoutes/connectors',
+    INTEGRATIONS_CONNECTOR: '/IntegrationsRoutes/connectors/:id',
+    INTEGRATIONS_PUSH: '/IntegrationsRoutes/connectors/:id/push',
+    INTEGRATIONS_FEED: '/IntegrationsRoutes/feed',
+    INTEGRATIONS_SOAR_ALERTS: '/IntegrationsRoutes/soar/alerts',
+    INTEGRATIONS_HEALTH: '/IntegrationsRoutes/health',
 } as const;
 
 export const AUTH_CONFIG = {

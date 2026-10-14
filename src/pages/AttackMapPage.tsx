@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, Suspense } from 'react';
 import {
     useMemo,
     type CSSProperties,
@@ -16,12 +16,21 @@ import {
     ShieldAlert,
     Target,
     Wifi,
+    Map as MapIcon,
+    Globe,
+    Loader2,
 } from 'lucide-react';
 
 import type { LogEventV2 } from '../../api/services';
 
 import { dataProvider } from '../services/dataProvider';
 import { useAppData } from '../contexts/AppDataContext';
+import { isPublicDemo } from '../utils/demoMode';
+import { DEFAULT_HQ, COUNTRY_COORDS } from '../../components/views/AttackMapView';
+import type { ThreeGlobeArc, ThreeGlobeRing, ThreeGlobePoint, ThreeGlobeLabel } from '../../components/views/ThreeGlobeView';
+
+const ThreeGlobeView = React.lazy(() => import('../../components/views/ThreeGlobeView'));
+import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 
 interface AttackMapPageProps {
@@ -136,9 +145,24 @@ export default function AttackMapPage({
     onNavigate,
 }: AttackMapPageProps) {
     const [MOCK_EVENTS, set_MOCK_EVENTS] = React.useState<any[]>([]);
-    React.useEffect(() => {
-        dataProvider.getAttackEvents().then(set_MOCK_EVENTS);
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
+    const fetchEvents = React.useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const evts = await dataProvider.getAttackEvents();
+            set_MOCK_EVENTS(evts || []);
+        } catch (err) {
+            console.error('Failed to load attack map events:', err);
+            set_MOCK_EVENTS([]);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
+
+    React.useEffect(() => {
+        void fetchEvents();
+    }, [fetchEvents]);
 
     const events = useMemo(() => {
         return [...MOCK_EVENTS].sort(
@@ -301,6 +325,84 @@ export default function AttackMapPage({
     const telemetryAvailable =
         eventCount > 0;
 
+    const [mapMode, setMapMode] = useState<'2d' | '3d'>('2d');
+
+    const globeData = useMemo(() => {
+        const arcs: ThreeGlobeArc[] = [];
+        const points: ThreeGlobePoint[] = [
+            {
+                id: 'hq-collection',
+                lat: DEFAULT_HQ[1],
+                lng: DEFAULT_HQ[0],
+                color: '#38bdf8',
+                radius: 0.65,
+                altitude: 0.02,
+                label: 'COLLECTION INFRASTRUCTURE'
+            }
+        ];
+        const rings: ThreeGlobeRing[] = [
+            {
+                id: 'hq-pulse',
+                lat: DEFAULT_HQ[1],
+                lng: DEFAULT_HQ[0],
+                color: '#38bdf8',
+                maxR: 3.8,
+                speed: 2.0,
+                repeat: 1400
+            }
+        ];
+
+        plottedCountries.forEach((c, idx) => {
+            const coords = COUNTRY_COORDS[c.countryCode?.toUpperCase()];
+            if (coords) {
+                const color = severityColor(c.severity || 'low');
+                const sevUpper = (c.severity?.toUpperCase() || 'MEDIUM') as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+                arcs.push({
+                    id: `arc-${c.countryCode}-${idx}`,
+                    startLat: coords[1],
+                    startLng: coords[0],
+                    endLat: DEFAULT_HQ[1],
+                    endLng: DEFAULT_HQ[0],
+                    color,
+                    risk: sevUpper === 'CRITICAL' || sevUpper === 'HIGH' || sevUpper === 'MEDIUM' || sevUpper === 'LOW' ? sevUpper : 'HIGH',
+                    country: c.country,
+                    order: idx
+                });
+                points.push({
+                    id: `pt-${c.countryCode}`,
+                    lat: coords[1],
+                    lng: coords[0],
+                    color,
+                    radius: c.severity === 'critical' ? 0.6 : 0.45,
+                    altitude: 0.015,
+                    label: `${c.country} (${c.count} events)`
+                });
+                rings.push({
+                    id: `ring-${c.countryCode}`,
+                    lat: coords[1],
+                    lng: coords[0],
+                    color,
+                    maxR: 3.5,
+                    speed: 1.8,
+                    repeat: 1600
+                });
+            }
+        });
+
+        const labels: ThreeGlobeLabel[] = [
+            {
+                id: 'hq-label',
+                lat: DEFAULT_HQ[1],
+                lng: DEFAULT_HQ[0],
+                text: 'COLLECTION HQ',
+                color: '#38bdf8',
+                size: 1.1
+            }
+        ];
+
+        return { arcs, points, rings, labels };
+    }, [plottedCountries]);
+
     const severityTotal = Math.max(
         eventCount,
         1,
@@ -337,6 +439,42 @@ export default function AttackMapPage({
 
     const latestEvent =
         events[0] ?? null;
+
+    if (!isLoading && MOCK_EVENTS.length === 0 && !isPublicDemo()) {
+        return (
+            <div className="at-attack-map-page-v2">
+                <PageHeader
+                    breadcrumbs={[
+                        { label: 'Operations' },
+                        { label: 'Attack Map' },
+                    ]}
+                    title="Live Threat Map"
+                    description="Geospatial distribution of honeypot sensor alerts and active attack vectors."
+                    actions={
+                        <button
+                            type="button"
+                            className="at-btn at-btn-secondary at-btn-sm"
+                            onClick={() => void fetchEvents()}
+                            disabled={isLoading}
+                        >
+                            <RefreshCw size={13} className={isLoading ? 'at-spin' : ''} />
+                            Refresh
+                        </button>
+                    }
+                />
+                <div style={{ padding: '24px' }}>
+                    <EmptyState
+                        title="No Inbound Attacks Detected"
+                        description="Global attack paths and originating ASNs will plot dynamically once malicious connections hit your honeypot nodes."
+                        actionLabel="Connect Your First Honeypot"
+                        onAction={() => onNavigate('infrastructure')}
+                        secondaryLabel="Explore SOC Documentation"
+                        onSecondaryAction={() => onNavigate('help')}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="at-attack-map-page-v2">
@@ -498,6 +636,29 @@ export default function AttackMapPage({
                                 <div className="at-map-toolbar-actions">
                                     <button
                                         type="button"
+                                        title={mapMode === '3d' ? "Switch to 2D Map" : "Switch to 3D Globe"}
+                                        onClick={() => setMapMode(m => m === '3d' ? '2d' : '3d')}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            padding: '4px 8px',
+                                            fontSize: '11px',
+                                            fontWeight: 'bold',
+                                            fontFamily: 'monospace',
+                                            background: mapMode === '3d' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                            border: '1px solid ' + (mapMode === '3d' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(255, 255, 255, 0.1)'),
+                                            color: mapMode === '3d' ? '#38bdf8' : '#aaa',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {mapMode === '3d' ? <MapIcon size={14} /> : <Globe size={14} />}
+                                        <span>{mapMode === '3d' ? '2D MAP' : '3D GLOBE'}</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
                                         title="Refresh telemetry"
                                         onClick={() =>
                                             onNavigate(
@@ -526,78 +687,99 @@ export default function AttackMapPage({
                                 </div>
                             </div>
 
-                            <div className="at-map-canvas-v2">
+                            <div className="at-map-canvas-v2" style={{ position: 'relative', flex: 1, minHeight: '660px' }}>
+                                {mapMode === '3d' ? (
+                                    <div style={{ position: 'absolute', inset: 0, zIndex: 5 }}>
+                                        <Suspense fallback={
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-cyan-400 gap-3">
+                                                <Loader2 className="animate-spin" size={32}/>
+                                                <span className="font-mono text-xs tracking-widest uppercase">INITIALIZING 3D GLOBE...</span>
+                                            </div>
+                                        }>
+                                            <ThreeGlobeView
+                                                arcs={globeData.arcs}
+                                                rings={globeData.rings}
+                                                points={globeData.points}
+                                                labels={globeData.labels}
+                                                isPaused={false}
+                                                allowInteraction={true}
+                                            />
+                                        </Suspense>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="at-map-grid-lines" />
 
-                                <div className="at-map-grid-lines" />
+                                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.25, backgroundImage: 'url(/world-map.svg)', backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'invert(1)', pointerEvents: 'none', zIndex: 0 }} />
 
-                                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.25, backgroundImage: 'url(/world-map.svg)', backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'invert(1)', pointerEvents: 'none', zIndex: 0 }} />
+                                        <div className="at-map-route route-one" />
+                                        <div className="at-map-route route-two" />
+                                        <div className="at-map-route route-three" />
 
-                                <div className="at-map-route route-one" />
-                                <div className="at-map-route route-two" />
-                                <div className="at-map-route route-three" />
+                                        <div className="at-map-hq">
+                                            <span className="at-map-hq-ring" />
 
-                                <div className="at-map-hq">
-                                    <span className="at-map-hq-ring" />
+                                            <span className="at-map-hq-core">
+                                                <Crosshair
+                                                    size={16}
+                                                />
+                                            </span>
 
-                                    <span className="at-map-hq-core">
-                                        <Crosshair
-                                            size={16}
-                                        />
-                                    </span>
+                                            <span>
+                                                COLLECTION
+                                                <br />
+                                                INFRASTRUCTURE
+                                            </span>
+                                        </div>
 
-                                    <span>
-                                        COLLECTION
-                                        <br />
-                                        INFRASTRUCTURE
-                                    </span>
-                                </div>
+                                        {plottedCountries.map(
+                                            (country) => {
+                                                const nodeStyle = {
+                                                    left: `${country.layout.left}%`,
+                                                    top: `${country.layout.top}%`,
+                                                    '--map-node-color':
+                                                        severityColor(
+                                                            country.severity || 'low',
+                                                        ),
+                                                } as CSSProperties;
 
-                                {plottedCountries.map(
-                                    (country) => {
-                                        const nodeStyle = {
-                                            left: `${country.layout.left}%`,
-                                            top: `${country.layout.top}%`,
-                                            '--map-node-color':
-                                                severityColor(
-                                                    country.severity,
-                                                ),
-                                        } as CSSProperties;
+                                                return (
+                                                    <button
+                                                        key={
+                                                            country.countryCode
+                                                        }
+                                                        type="button"
+                                                        className={`at-map-country-node ${country.severity}`}
+                                                        style={
+                                                            nodeStyle
+                                                        }
+                                                        title={`${country.country} · ${country.count} ${country.count ===
+                                                                1
+                                                                ? 'event'
+                                                                : 'events'
+                                                            }`}
+                                                        onClick={() =>
+                                                            onNavigate(
+                                                                'honeypot_logs',
+                                                            )
+                                                        }
+                                                    >
+                                                        <span className="at-map-node-pulse" />
 
-                                        return (
-                                            <button
-                                                key={
-                                                    country.countryCode
-                                                }
-                                                type="button"
-                                                className={`at-map-country-node ${country.severity}`}
-                                                style={
-                                                    nodeStyle
-                                                }
-                                                title={`${country.country} · ${country.count} ${country.count ===
-                                                        1
-                                                        ? 'event'
-                                                        : 'events'
-                                                    }`}
-                                                onClick={() =>
-                                                    onNavigate(
-                                                        'honeypot_logs',
-                                                    )
-                                                }
-                                            >
-                                                <span className="at-map-node-pulse" />
+                                                        <span className="at-map-node-core">
+                                                            {country.count}
+                                                        </span>
 
-                                                <span className="at-map-node-core">
-                                                    {country.count}
-                                                </span>
-
-                                                <span className="at-map-node-code">
-                                                    {
-                                                        country.countryCode
-                                                    }
-                                                </span>
-                                            </button>
-                                        );
-                                    },
+                                                        <span className="at-map-node-code">
+                                                            {
+                                                                country.countryCode
+                                                            }
+                                                        </span>
+                                                    </button>
+                                                );
+                                            },
+                                        )}
+                                    </>
                                 )}
 
                                 {!telemetryAvailable && (

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { userStorage } from '../../src/utils/userStorage';
 import { CertStreamObserver, generateTyposquats, checkDomainStatus, loadModel, scoreSimilarity } from '../../services/brandMonitor';
 import { performRdapLookup, performCrtLookup, WhoisResult } from '../../services/netTools';
 import { fetchOtxWhois } from '../../services/otx';
@@ -93,7 +94,7 @@ export const BrandMonitorView: React.FC = () => {
     // Reputation Monitor State
     const [monitoredAssets, setMonitoredAssets] = useState<MonitoredAsset[]>(() => {
         try {
-            const saved = localStorage.getItem('xyberah_brand_assets');
+            const saved = userStorage.getItem('xyberah_brand_assets');
             return saved ? JSON.parse(saved) : [];
         } catch (e) { return []; }
     });
@@ -116,7 +117,7 @@ export const BrandMonitorView: React.FC = () => {
 
     // Save Assets
     useEffect(() => {
-        localStorage.setItem('xyberah_brand_assets', JSON.stringify(monitoredAssets));
+        userStorage.setItem('xyberah_brand_assets', JSON.stringify(monitoredAssets));
     }, [monitoredAssets]);
 
     // --- Live Stream Logic ---

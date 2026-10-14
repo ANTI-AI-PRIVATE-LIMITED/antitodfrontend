@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { BOTTOM_ITEMS, NAV_GROUPS, VISIBLE_NAV_GROUPS, canonicalViewId, isPreview, isVisible, type NavGroup, type NavItem } from '../../data/navigation';
 import { routeForView } from '../../data/routes';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface SidebarProps {
   activeView: string;
@@ -166,25 +167,33 @@ export default function Sidebar({ activeView, collapsed, onToggle, onNavigate, o
   const hoverCloseTimer = useRef<number | null>(null);
   const hoverSuppressedUntil = useRef(0);
   const activeCanonical = canonicalViewId(activeView);
+  const { permissions, permissionsLoaded } = useAuth();
+
+  const itemAllowed = (item: NavItem) => {
+    if (!item.permissionPrefix) return true;
+    if (!permissionsLoaded) return true;
+    return permissions.some((p) => p.startsWith(item.permissionPrefix!));
+  };
 
   const visuallyExpanded = !collapsed || (autoPeek && hoverPeek);
 
   const filteredGroups = useMemo(() => {
     const value = menuSearch.trim().toLowerCase();
-    if (!value) return VISIBLE_NAV_GROUPS;
 
     return VISIBLE_NAV_GROUPS
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => `${item.label} ${item.desc}`.toLowerCase().includes(value)),
+        items: group.items
+          .filter(itemAllowed)
+          .filter((item) => (value ? `${item.label} ${item.desc}`.toLowerCase().includes(value) : true)),
       }))
       .filter((group) => group.items.length > 0);
-  }, [menuSearch]);
+  }, [menuSearch, permissions, permissionsLoaded]);
 
   const favoriteItems = useMemo(() => {
-    const all = NAV_GROUPS.flatMap((group) => group.items).filter(isVisible);
+    const all = NAV_GROUPS.flatMap((group) => group.items).filter(isVisible).filter(itemAllowed);
     return favorites.map((id) => all.find((item) => item.id === id)).filter(Boolean) as NavItem[];
-  }, [favorites]);
+  }, [favorites, permissions, permissionsLoaded]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(collapsedGroups));

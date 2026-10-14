@@ -29,6 +29,8 @@ import {
 
 import { dataProvider } from '../services/dataProvider';
 import { useAppData } from '../contexts/AppDataContext';
+import { isPublicDemo } from '../utils/demoMode';
+import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 
 /* -------------------------------------------------------------------------- */
@@ -1035,6 +1037,31 @@ export default function IocPage() {
   /* ------------------------------------------------------------------------ */
   /*                                  Render                                  */
   /* ------------------------------------------------------------------------ */
+
+  if (iocs.length === 0 && !isPublicDemo()) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden bg-[#0a0a0a]">
+        <PageHeader
+          breadcrumbs={[
+            { label: 'Intelligence' },
+            { label: 'IOC' },
+          ]}
+          title="Indicators of Compromise"
+          description="Manage and analyze IPs, domains, hashes, and URLs."
+        />
+        <div style={{ padding: '24px' }}>
+          <EmptyState
+            title="No Threat Indicators Found"
+            description="Indicators of Compromise (IPs, hashes, domains, and URLs) extracted from attacker traffic will populate here automatically."
+            actionLabel="Connect Your First Honeypot"
+            onAction={() => onNavigate('infrastructure')}
+            secondaryLabel="Explore SOC Documentation"
+            onSecondaryAction={() => onNavigate('help')}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[#0a0a0a]">

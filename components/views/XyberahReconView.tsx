@@ -5,6 +5,7 @@ import {
   BarChart2,
   Briefcase,
   Bug,
+  Cable,
   Calendar,
   CheckCircle2,
   Cpu,
@@ -60,10 +61,14 @@ import {
   IssuesTimelinePoint,
   AssetGroupTab,
   AsmWorker,
+  AsmRiskAssessment,
 } from '../../api/services/openasmClient';
 import { DashboardAssetLocationsMap } from '../recon/DashboardAssetLocationsMap';
 import { InventoryAllServicesTable, InventoryGroupedTable } from '../recon/InventoryServiceTables';
 import { VulnerabilityDetailModal, vulnSeverityBadgeClass } from '../recon/VulnerabilityDetailModal';
+import { TargetRiskModal } from '../recon/TargetRiskModal';
+import { IntegrationsView } from './IntegrationsView';
+import { useAuth } from '../../contexts/AuthContext';
 
 const INVENTORY_SUBTAB_LABELS: Record<AssetGroupTab, string> = {
   all: 'All Services',
@@ -275,7 +280,7 @@ function workerSeenOnline(lastSeenAt: string | undefined): boolean {
   return Date.now() - t < 180_000;
 }
 
-type TabId = 'dashboard' | 'targets' | 'assets' | 'vulnerabilities' | 'workers' | 'workspaces';
+type TabId = 'dashboard' | 'targets' | 'assets' | 'vulnerabilities' | 'workers' | 'workspaces' | 'connectors';
 
 const TAB_CONFIG: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
@@ -287,6 +292,19 @@ const TAB_CONFIG: { id: TabId; label: string; icon: React.ElementType }[] = [
 ];
 
 export const XyberahReconView: React.FC = () => {
+  const { permissions, can, permissionsLoaded } = useAuth();
+  const hasOsmAccess = permissions.some((p) => p.startsWith('osm.'));
+  const hasIntegrationsAccess = permissions.some((p) => p.startsWith('integrations.'));
+  const canManageTargets = can('osm.targets.manage');
+
+  const visibleTabs = useMemo(() => {
+    const tabs = [...TAB_CONFIG];
+    if (hasIntegrationsAccess) {
+      tabs.push({ id: 'connectors', label: 'SIEM Connectors', icon: Cable });
+    }
+    return tabs;
+  }, [hasIntegrationsAccess]);
+
   const parseRouteState = () => {
     const pathMatch = window.location.pathname.match(/\/targets\/([^/?#]+)/);
     const search = new URLSearchParams(window.location.search);
@@ -302,6 +320,12 @@ export const XyberahReconView: React.FC = () => {
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [assessImmediately, setAssessImmediately] = useState(false);
+  const [riskModalOpen, setRiskModalOpen] = useState(false);
+  const [riskModalTarget, setRiskModalTarget] = useState<AsmTarget | null>(null);
+  const [riskModalAssessment, setRiskModalAssessment] = useState<AsmRiskAssessment | null>(null);
+  const [riskModalLoading, setRiskModalLoading] = useState(false);
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
@@ -517,6 +541,24 @@ export const XyberahReconView: React.FC = () => {
     };
   }, []);
 
+  const handleOpenRiskModal = useCallback(async (t: AsmTarget) => {
+    setRiskModalTarget(t);
+    setRiskModalOpen(true);
+    setRiskModalLoading(true);
+    setRiskModalAssessment((t.assessment as AsmRiskAssessment | null) || null);
+    try {
+      const res = await openasm.getTargetRisk(t.id, selectedWorkspaceId);
+      setRiskModalAssessment(res.assessment || null);
+      if (res.target) {
+        setRiskModalTarget(res.target);
+      }
+    } catch (err) {
+      console.error('Failed to load target risk', err);
+    } finally {
+      setRiskModalLoading(false);
+    }
+  }, [selectedWorkspaceId]);
+
   const setTargetRoute = useCallback((targetId: string | null, tab?: 'inventory' | 'vulnerabilities', animation?: boolean) => {
     const nextTab = tab ?? targetDetailTab;
     const url = new URL(window.location.href);
@@ -543,8 +585,20 @@ export const XyberahReconView: React.FC = () => {
     const e = error as OpenAsmApiError;
     const status = e?.response?.status;
     const data = e?.response?.data;
+    if (status === 402 || data?.code === 'PLAN_INACTIVE') {
+      return 'Plan Inactive: Your subscription does not have active attack surface scanning. Please upgrade your plan to run scans.';
+    }
+    if (status === 429 || data?.code === 'RESCAN_TOO_SOON') {
+      return (typeof data?.message === 'string' ? data.message : null) || 'This target was scanned recently. Scans are limited to once per 10 minutes. Please wait before rescanning.';
+    }
+    if (status === 400 && (data?.reason === 'target_limit_reached' || data?.limit)) {
+      return `Target limit reached (${data?.limit || 25} max). Your account has reached the maximum target cap. Delete existing targets or upgrade your plan.`;
+    }
+    if (status === 403) {
+      return (typeof data?.message === 'string' ? data.message : null) || 'Access denied: Missing required permission for this action.';
+    }
     if (status === 502 || status === 503) {
-      return 'Open-ASM upstream unavailable. Please retry.';
+      return 'Scanner service upstream unavailable. Please retry shortly.';
     }
     if (status === 400 && data?.issues?.length) {
       return data.issues.map((i) => `${i.field ?? 'field'}: ${i.message ?? 'invalid value'}`).join(' | ');
@@ -1257,12 +1311,24 @@ export const XyberahReconView: React.FC = () => {
     setError(null);
     setDiscoveryModalError(null);
     try {
-      await openasm.createTarget({ value, type: targetType }, selectedWorkspaceId);
-      setTargetValue('');
-      await loadTargets(selectedWorkspaceId);
-      setNotice('Target created successfully.');
-      setDiscoveryModalError(null);
-      setDiscoveryModalOpen(false);
+      if (assessImmediately) {
+        const res = await openasm.submitAndAssess({ value, type: targetType }, selectedWorkspaceId);
+        setTargetValue('');
+        await loadTargets(selectedWorkspaceId);
+        setNotice('Target created and scan queued.');
+        setDiscoveryModalError(null);
+        setDiscoveryModalOpen(false);
+        if (res.target) {
+          void handleOpenRiskModal(res.target);
+        }
+      } else {
+        await openasm.createTarget({ value, type: targetType }, selectedWorkspaceId);
+        setTargetValue('');
+        await loadTargets(selectedWorkspaceId);
+        setNotice('Target created successfully.');
+        setDiscoveryModalError(null);
+        setDiscoveryModalOpen(false);
+      }
     } catch (e) {
       setDiscoveryModalError(formatApiError(e));
     } finally {
@@ -1596,6 +1662,25 @@ export const XyberahReconView: React.FC = () => {
     }
     return `${normalizedBase}${normalizedPath}`;
   };
+
+  if (permissionsLoaded && !hasOsmAccess) {
+    return (
+      <div className="h-full flex items-center justify-center p-6 bg-cyber-grid">
+        <div className="max-w-md w-full rounded-2xl border border-red-500/30 bg-[#0d131f] p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
+            <Lock size={28} />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2 font-cyber">Access Denied</h2>
+          <p className="text-sm text-neutral-400 mb-6">
+            You do not have the required Attack Surface Management (<code className="text-red-400 font-mono">osm.*</code>) permissions to view this screen.
+          </p>
+          <div className="text-xs text-neutral-500 font-mono border-t border-neutral-800 pt-4">
+            Contact your organization administrator to request access.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-cyber-grid relative">
@@ -2026,7 +2111,12 @@ export const XyberahReconView: React.FC = () => {
                         </div>
                       )}
                       <form onSubmit={handleAddTarget} className="space-y-3 border-b border-[#222] pb-5">
-                        <p className="text-xs font-mono text-[#AAA]">Add single target</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-mono text-[#AAA]">Add single target</p>
+                          <span className="text-[11px] font-mono text-neutral-400">
+                            Account limit: <strong className="text-white">{targets.length}</strong> / 25
+                          </span>
+                        </div>
                         <input
                           type="text"
                           value={targetValue}
@@ -2049,15 +2139,28 @@ export const XyberahReconView: React.FC = () => {
                             disabled={submitting || !targetValue.trim()}
                             className="rounded-xl bg-neutral-600 px-4 py-2 text-sm font-bold text-white hover:bg-neutral-500 disabled:opacity-50"
                           >
-                            Add target
+                            {submitting ? 'Adding...' : 'Add target'}
                           </button>
                         </div>
+                        <label className="flex items-center gap-2 cursor-pointer pt-1 text-xs text-neutral-300">
+                          <input
+                            type="checkbox"
+                            checked={assessImmediately}
+                            onChange={(e) => setAssessImmediately(e.target.checked)}
+                            className="rounded border-[#333] bg-neutral-900 text-sky-500 focus:ring-0"
+                          />
+                          <span>Queue vulnerability scan & risk assessment immediately</span>
+                        </label>
                       </form>
                       <form onSubmit={handleBulkCreateTargets} className="mt-5 space-y-3">
-                        <p className="text-xs font-mono text-[#AAA]">
-                          Bulk (one per line, optional <span className="text-[#888]">value,type</span>). Domain values strip{' '}
-                          <span className="text-[#888]">https://</span>, paths, and ports.
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-mono text-[#AAA]">
+                            Bulk (one per line, optional <span className="text-[#888]">value,type</span>).
+                          </p>
+                          <span className="text-[11px] font-mono text-neutral-400">
+                            Max 25 total
+                          </span>
+                        </div>
                         <textarea
                           value={bulkTargetsText}
                           onChange={(e) => setBulkTargetsText(e.target.value)}
@@ -2070,7 +2173,7 @@ export const XyberahReconView: React.FC = () => {
                           disabled={submitting || !bulkTargetsText.trim()}
                           className="w-full rounded-xl bg-neutral-700 py-2.5 text-sm font-bold text-white hover:bg-neutral-600 disabled:opacity-50"
                         >
-                          Submit bulk targets
+                          {submitting ? 'Submitting...' : 'Submit bulk targets'}
                         </button>
                       </form>
                     </div>
@@ -2084,9 +2187,10 @@ export const XyberahReconView: React.FC = () => {
                         <th className="p-3 pl-4">Target</th>
                         <th className="p-3">Type</th>
                         <th className="p-3">Services</th>
+                        <th className="p-3">Risk Assessment</th>
                         <th className="p-3">Last discovery</th>
                         <th className="p-3">Scan status</th>
-                        <th className="p-3 pr-4 text-right"> </th>
+                        <th className="p-3 pr-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="text-neutral-200">
@@ -2103,19 +2207,22 @@ export const XyberahReconView: React.FC = () => {
                               <div className="h-5 w-24 animate-pulse rounded bg-[#151515]/70" />
                             </td>
                             <td className="p-3">
+                              <div className="h-6 w-24 animate-pulse rounded-full bg-[#151515]/70" />
+                            </td>
+                            <td className="p-3">
                               <div className="h-5 w-28 animate-pulse rounded bg-[#151515]/70" />
                             </td>
                             <td className="p-3">
                               <div className="h-8 w-28 animate-pulse rounded-full bg-[#151515]/70" />
                             </td>
                             <td className="p-3 pr-4 text-right">
-                              <div className="ml-auto h-8 w-20 animate-pulse rounded-lg bg-[#151515]/70" />
+                              <div className="ml-auto h-8 w-24 animate-pulse rounded-lg bg-[#151515]/70" />
                             </td>
                           </tr>
                         ))
                       ) : targets.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-10 text-center text-sm text-[#888]">
+                          <td colSpan={7} className="p-10 text-center text-sm text-[#888]">
                             No targets found.
                           </td>
                         </tr>
@@ -2135,6 +2242,7 @@ export const XyberahReconView: React.FC = () => {
                               <AlertTriangle size={14} className="shrink-0 text-[#888]" />
                             );
                           const n = Number(t.totalAssetServices ?? 0);
+                          const assessment = t.assessment as AsmRiskAssessment | undefined;
                           return (
                             <tr key={t.id} className="border-t border-[#222]/80 transition-colors hover:bg-white/[0.04]">
                               <td className="p-3 pl-4 align-middle font-semibold text-white">{t.value}</td>
@@ -2146,6 +2254,43 @@ export const XyberahReconView: React.FC = () => {
                               <td className="p-3 align-middle">
                                 <span className="font-semibold tabular-nums text-white">{n}</span>
                                 <span className="text-[13px] font-normal text-[#888]"> services</span>
+                              </td>
+                              <td className="p-3 align-middle">
+                                {assessment?.threatScore != null ? (
+                                  (() => {
+                                    const score = assessment.threatScore;
+                                    const lvl = (assessment.riskLevel || 'LOW').toUpperCase();
+                                    const badgeClass =
+                                      lvl === 'CRITICAL'
+                                        ? 'border-red-500/40 text-red-300 bg-red-950/40 hover:bg-red-900/50'
+                                        : lvl === 'HIGH'
+                                        ? 'border-orange-500/40 text-orange-300 bg-orange-950/40 hover:bg-orange-900/50'
+                                        : lvl === 'MEDIUM'
+                                        ? 'border-amber-500/40 text-amber-300 bg-amber-950/40 hover:bg-amber-900/50'
+                                        : 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/50';
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => void handleOpenRiskModal(t)}
+                                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-mono font-bold transition ${badgeClass}`}
+                                        title="Click to view full risk assessment"
+                                      >
+                                        <span>{score}/100</span>
+                                        <span className="text-[10px] font-semibold tracking-wider opacity-80">{lvl}</span>
+                                      </button>
+                                    );
+                                  })()
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleOpenRiskModal(t)}
+                                    className="inline-flex items-center gap-1 rounded-md border border-neutral-700/60 bg-neutral-900/40 px-2 py-1 text-xs text-neutral-400 hover:border-neutral-500 hover:text-white"
+                                    title="View or assess target risk"
+                                  >
+                                    <ShieldAlert size={12} className="text-neutral-500" />
+                                    <span>Assess</span>
+                                  </button>
+                                )}
                               </td>
                               <td className="p-3 align-middle text-[13px] text-[#AAA]">
                                 {formatRelativeAgo(typeof t.lastDiscoveredAt === 'string' ? t.lastDiscoveredAt : undefined)}
@@ -2159,13 +2304,23 @@ export const XyberahReconView: React.FC = () => {
                                 </span>
                               </td>
                               <td className="p-3 pr-4 text-right align-middle">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenTargetDetail(String(t.id))}
-                                  className="rounded-lg border border-neutral-600 bg-[#151515]/80 px-3 py-1.5 text-xs font-medium text-white hover:border-neutral-500 hover:bg-[#1C1C1C]"
-                                >
-                                  Details
-                                </button>
+                                <div className="inline-flex items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleOpenRiskModal(t)}
+                                    className="rounded-lg border border-red-500/30 bg-red-950/20 px-2.5 py-1.5 text-xs font-medium text-red-200 hover:border-red-500/50 hover:bg-red-950/40"
+                                    title="View threat score and risk breakdown"
+                                  >
+                                    Risk
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenTargetDetail(String(t.id))}
+                                    className="rounded-lg border border-neutral-600 bg-[#151515]/80 px-2.5 py-1.5 text-xs font-medium text-white hover:border-neutral-500 hover:bg-[#1C1C1C]"
+                                  >
+                                    Details
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -2216,14 +2371,24 @@ export const XyberahReconView: React.FC = () => {
                         </button>
                         <div className="flex items-center gap-2">
                           {targetDetail ? (
-                            <button
-                              type="button"
-                              onClick={() => setTargetSettingsOpen(true)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-600 bg-[#111] px-3 py-2 text-xs font-medium text-neutral-200 hover:bg-[#151515]"
-                            >
-                              <Settings2 size={14} />
-                              Target settings
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void handleOpenRiskModal(targetDetail)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-950/30 px-3 py-2 text-xs font-medium text-red-200 hover:bg-red-900/40"
+                              >
+                                <ShieldAlert size={14} />
+                                Risk Assessment
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setTargetSettingsOpen(true)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-600 bg-[#111] px-3 py-2 text-xs font-medium text-neutral-200 hover:bg-[#151515]"
+                              >
+                                <Settings2 size={14} />
+                                Target settings
+                              </button>
+                            </>
                           ) : null}
                           <button
                             type="button"
@@ -3596,6 +3761,10 @@ export const XyberahReconView: React.FC = () => {
               </div>
             )}
 
+            {activeTab === 'connectors' && (
+              <IntegrationsView />
+            )}
+
           </>
         )}
         <VulnerabilityDetailModal
@@ -3609,6 +3778,22 @@ export const XyberahReconView: React.FC = () => {
           resolveMediaUrl={resolveAssetMediaUrl}
           onDismiss={selectedWorkspaceId ? handleVulnModalDismiss : undefined}
           dismissing={vulnModalDismissLoading}
+        />
+        <TargetRiskModal
+          open={riskModalOpen}
+          target={riskModalTarget}
+          assessment={riskModalAssessment}
+          loading={riskModalLoading}
+          onClose={() => {
+            setRiskModalOpen(false);
+            setRiskModalTarget(null);
+            setRiskModalAssessment(null);
+          }}
+          onRescanSuccess={() => {
+            if (selectedWorkspaceId) {
+              void loadTargets(selectedWorkspaceId);
+            }
+          }}
         />
         {screenshotModalUrl && (
           <div

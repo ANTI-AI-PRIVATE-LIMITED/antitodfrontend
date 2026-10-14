@@ -6,3 +6,5 @@ export * from './iocService';
 export * from './agentService';
 export * from './openasmClient';
 export * from './rbacService';
+export * from './billingService';
+export * from './integrationsService';

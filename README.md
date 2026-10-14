@@ -52,11 +52,17 @@ The original implementation is retained for:
 
 The original service layer, API client, types, hooks, and view components remain in the project rather than being replaced with generated mock functionality.
 
-## Environment
+## Environment & Security Architecture
 
-Copy `.env.example` to `.env.local` and provide the environment values required by the original API/services.
+Copy `.env.example` to `.env` and specify `VITE_BACKEND_URL`.
 
-The frontend expects the original backend routes described in `API_INTEGRATION.md` and `RENGINE_API_DOCUMENTATION.md`.
+### Third-Party API Keys & Backend Proxies
+To prevent credential harvesting and protect against quota abuse, third-party provider keys are **never compiled into public client JavaScript**:
+- **Gemini AI**: Routed through `/AdminRoutes/proxy/gemini`. The backend server injects `GEMINI_API_KEY`.
+- **IPData Geo Enrichment**: Routed through `/AdminRoutes/proxy/ipdata/:ip`. The backend server injects `IPDATA_API_KEY`, with local MaxMind MMDB fallback.
+- **Ransomware.live Feed**: Routed through `/AdminRoutes/proxy/ransomware-live`. The backend server injects `RANSOMWARE_LIVE_API_KEY`, with public open-source RansomWatch fallback.
+
+The frontend bundle ships only with `VITE_BACKEND_URL` and delegates third-party calls to authenticated backend proxy routes.
 
 ## Development
 

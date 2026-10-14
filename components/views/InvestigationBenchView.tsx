@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { userStorage } from '../../src/utils/userStorage';
 import { 
     Search, Plus, Trash2, Globe, Box, Loader2, RefreshCw, Radar, 
     FileText, Hash, Server, Link, Mail, Briefcase, Clock, 
@@ -21,7 +22,7 @@ import { mmdbService } from '../../services/mmdb';
 import { calculateFileHash, submitFileToSandbox } from '../../services/otxSandbox';
 // Fixed Error: performRdapLookup was used but not imported
 import { performRdapLookup } from '../../services/netTools';
-import { IPDATA_API_KEY } from '../../config/config';
+import { BACKEND_URL, API_ENDPOINTS } from '../../config/config';
 import PageHeader from '../../src/components/layout/PageHeader';
 
 interface CaseNote {
@@ -70,21 +71,21 @@ export const InvestigationBenchView: React.FC<InvestigationBenchViewProps> = ({
     maliciousHashItems
 }) => {
     const [viewMode, setViewMode] = useState<'CASE_LIST' | 'WORKBENCH'>(() => {
-        return (localStorage.getItem('xyberah_bench_view_mode') as any) || 'CASE_LIST';
+        return (userStorage.getItem('xyberah_bench_view_mode') as any) || 'CASE_LIST';
     });
     const [activeTab, setActiveTab] = useState<'ARTIFACTS' | 'TIMELINE' | 'COLLAB'>(() => {
-        return (localStorage.getItem('xyberah_bench_active_tab') as any) || 'ARTIFACTS';
+        return (userStorage.getItem('xyberah_bench_active_tab') as any) || 'ARTIFACTS';
     });
     
     const [cases, setCases] = useState<InvestigationCase[]>(() => {
         try {
-            const saved = localStorage.getItem('xyberah_cases');
+            const saved = userStorage.getItem('xyberah_cases');
             return saved ? JSON.parse(saved) : [];
         } catch { return []; }
     });
     
     const [activeCaseId, setActiveCaseId] = useState<string | null>(() => {
-        return localStorage.getItem('xyberah_bench_active_case_id') || null;
+        return userStorage.getItem('xyberah_bench_active_case_id') || null;
     });
     const [enrichingArtifacts, setEnrichingArtifacts] = useState<Set<string>>(new Set());
     
@@ -115,16 +116,16 @@ export const InvestigationBenchView: React.FC<InvestigationBenchViewProps> = ({
     const [showNewCaseModal, setShowNewCaseModal] = useState(false);
 
     useEffect(() => {
-        localStorage.setItem('xyberah_cases', JSON.stringify(cases));
+        userStorage.setItem('xyberah_cases', JSON.stringify(cases));
     }, [cases]);
 
     useEffect(() => {
-        localStorage.setItem('xyberah_bench_view_mode', viewMode);
-        localStorage.setItem('xyberah_bench_active_tab', activeTab);
+        userStorage.setItem('xyberah_bench_view_mode', viewMode);
+        userStorage.setItem('xyberah_bench_active_tab', activeTab);
         if (activeCaseId) {
-            localStorage.setItem('xyberah_bench_active_case_id', activeCaseId);
+            userStorage.setItem('xyberah_bench_active_case_id', activeCaseId);
         } else {
-            localStorage.removeItem('xyberah_bench_active_case_id');
+            userStorage.removeItem('xyberah_bench_active_case_id');
         }
         setSelectedArtifactIds(new Set());
     }, [viewMode, activeTab, activeCaseId]);
@@ -216,11 +217,15 @@ export const InvestigationBenchView: React.FC<InvestigationBenchViewProps> = ({
     };
 
     const fetchSpecificIpData = async (ip: string) => {
-        if (!IPDATA_API_KEY) return null;
         try {
-            const res = await fetch(`https://api.ipdata.co/${ip}?api-key=${IPDATA_API_KEY}`);
+            const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin-auth-token') : null;
+            const res = await fetch(`${BACKEND_URL}${API_ENDPOINTS.PROXY_IPDATA}/${encodeURIComponent(ip)}`, {
+                headers: token ? { authtoken: token } : {},
+            });
             if (res.ok) return await res.json();
-        } catch (e) { console.error("IPData fetch error", e); }
+        } catch (e) {
+            console.warn("IPData proxy fetch error", e);
+        }
         return null;
     };
 

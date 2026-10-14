@@ -94,9 +94,32 @@ export const authService = {
     },
 
     /**
+     * Request password reset email (rate-limited, sends link to unlock or reset).
+     */
+    async forgotPassword(adminEmail: string): Promise<{ message: string }> {
+        const response = await api.post<{ message: string }>(
+            API_ENDPOINTS.ADMIN_FORGOT_PASSWORD,
+            { AdminEmail: adminEmail }
+        );
+        return response.data;
+    },
+
+    /**
+     * Reset password using token from reset email.
+     */
+    async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+        const response = await api.post<{ message: string }>(
+            API_ENDPOINTS.ADMIN_RESET_PASSWORD,
+            { token, newPassword }
+        );
+        return response.data;
+    },
+
+    /**
      * Logout client-side trigger.
      */
     logout(): void {
-        console.log('[AuthService] Logout called');
+        localStorage.removeItem('admin-auth-token');
+        sessionStorage.removeItem('admin-auth-token');
     },
 };

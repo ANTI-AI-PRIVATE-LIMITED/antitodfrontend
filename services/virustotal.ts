@@ -3,7 +3,8 @@ import { fetchJsonWithCors } from './http';
 
 const VT_BASE = 'https://www.virustotal.com/api/v3';
 
-export const getVtKey = () => localStorage.getItem('user_vt_api_key');
+import { userStorage } from '../src/utils/userStorage';
+export const getVtKey = () => userStorage.getItem('user_vt_api_key');
 
 export interface VtAnalysisStats {
     malicious: number;

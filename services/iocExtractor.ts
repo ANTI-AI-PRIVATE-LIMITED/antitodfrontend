@@ -1,5 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import { GEMINI_API_KEY } from "../config/config";
+import { generateGeminiContent } from './geminiService';
 import { fetchWithCors } from './http';
 
 // Robust Regex Definitions
@@ -136,13 +135,10 @@ export const extractIocsFromText = (text: string): ExtractedArtifact[] => {
 
 // Fixed: Using recommended model and formatting contents as a single object for multi-part requests.
 const extractIocsWithAi = async (file: File): Promise<ExtractedArtifact[]> => {
-     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
      const base64 = await fileToBase64(file);
      const data = base64.split(',')[1]; 
      const mimeType = file.type || 'application/pdf';
 
-     // Fixed: Using gemini-3-flash-preview as recommended for text extraction tasks.
-     const model = 'gemini-3-flash-preview';
      const prompt = `Analyze this document and extract technical Indicators of Compromise (IOCs).
      Look for: IP Addresses, Domains, URLs, File Hashes (MD5, SHA1, SHA256), and Email Addresses.
      Handle defanged indicators (e.g. example[.]com).
@@ -154,25 +150,22 @@ const extractIocsWithAi = async (file: File): Promise<ExtractedArtifact[]> => {
      Exclude benign vendor domains (microsoft.com, google.com) unless explicitly malicious.`;
 
      try {
-         const response = await ai.models.generateContent({
-             model,
-             // Fixed: Guideline adherence - passing a single object with parts for multi-part content.
+         const text = await generateGeminiContent({
              contents: {
                  parts: [
                      { text: prompt },
                      { inlineData: { mimeType, data } }
                  ]
              },
-             config: { responseMimeType: 'application/json' }
+             generationConfig: { responseMimeType: 'application/json' }
          });
          
-         const text = response.text;
          if (text) {
              const json = JSON.parse(text);
              return Array.isArray(json) ? json : [];
          }
      } catch(e) {
-         console.error("AI Extraction failed", e);
+         console.warn("AI Extraction via backend proxy unavailable, falling back to regex parser", e);
      }
      return [];
 };

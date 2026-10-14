@@ -4,6 +4,7 @@ import {
   Box,
   Briefcase,
   Bug,
+  Cable,
   CloudCog,
   Crosshair,
   FileText,
@@ -53,6 +54,8 @@ export interface NavItem {
   desc: string;
   /** @default 'live' */
   status?: ViewStatus;
+  /** Prefix of required permission (e.g. 'osm.' or 'integrations.') */
+  permissionPrefix?: string;
 }
 
 export interface NavGroup {
@@ -139,7 +142,8 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Reconnaissance',
     items: [
-      { id: 'recon', icon: Target, label: 'Xyberah Recon', desc: 'Attack surface reconnaissance — workspaces, targets, assets, vulnerabilities, and workers.', status: 'preview' },
+      { id: 'recon', icon: Target, label: 'Xyberah Recon', desc: 'Attack surface reconnaissance — workspaces, targets, assets, vulnerabilities, and workers.', status: 'live', permissionPrefix: 'osm.' },
+      { id: 'integrations', icon: Cable, label: 'SIEM Connectors', desc: 'Real-time event pipelines & push/pull threat intelligence feeds.', status: 'live', permissionPrefix: 'integrations.' },
     ],
   },
   {

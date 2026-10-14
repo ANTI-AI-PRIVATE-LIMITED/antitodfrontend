@@ -70,7 +70,8 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
           tfjs: ['@tensorflow/tfjs', '@tensorflow-models/mobilenet'],
           lucide: ['lucide-react'],
-          charts: ['recharts', 'd3']
+          charts: ['recharts', 'd3'],
+          globe: ['react-globe.gl', 'three']
         }
       }
     }

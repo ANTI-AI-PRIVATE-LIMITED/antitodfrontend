@@ -12,8 +12,7 @@ import {
     Code2, Brackets, Wand, ListFilter, Languages, CaseLower, CaseUpper, ScissorsLineItems,
     Pause, X, Sparkles, Wand2 as WandIcon, ExternalLink
 } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
-import { GEMINI_API_KEY } from '../../config/config';
+import { generateGeminiContent } from '../../services/geminiService';
 
 // --- TYPES ---
 
@@ -551,12 +550,7 @@ export const CyberChefView: React.FC<CyberChefViewProps> = ({
         setIsCookingAi(true);
 
         try {
-            const ai = new GoogleGenAI({
-                apiKey: GEMINI_API_KEY,
-            });
-
-            const response = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
+            const text = await generateGeminiContent({
                 contents: `
 Analyze the following data for common cybersecurity obfuscation,
 encoding, or compression patterns.
@@ -575,14 +569,12 @@ Each object:
 Data:
 ${input.substring(0, 4000)}
                 `,
-                config: {
+                generationConfig: {
                     responseMimeType: 'application/json',
                 },
             });
 
-            const suggestedSteps = JSON.parse(
-                response.text
-            );
+            const suggestedSteps = text ? JSON.parse(text) : [];
 
             if (Array.isArray(suggestedSteps)) {
                 const newSteps: RecipeStep[] =

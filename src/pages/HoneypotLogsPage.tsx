@@ -2,8 +2,11 @@ import {
   useEffect,
   useMemo,
   useState,
+  useCallback,
   type KeyboardEvent,
 } from 'react';
+import { isPublicDemo } from '../utils/demoMode';
+import EmptyState from '../components/common/EmptyState';
 
 import {
   Activity,
@@ -225,20 +228,40 @@ export default function HoneypotLogsPage({
   onNavigate,
 }: HoneypotLogsProps) {
   const [events, setEvents] = useState<LogEventV2[]>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
-  const total = events.length;
-  const limit = 100;
-  const offset = 0;
-  const refresh = () => {};
-  const setPage = (page: number) => {};
+  const [isLoadingEvents, setIsLoadingEvents] = useState<boolean>(false);
+  const [total, setTotal] = useState<number>(0);
+  const [offset, setOffset] = useState<number>(0);
+  const limit = 50;
+
+  const fetchLogs = useCallback(async (currentOffset = offset) => {
+    setIsLoadingEvents(true);
+    try {
+      const resp = await dataProvider.getLogEventsPaged({
+        limit,
+        offset: currentOffset,
+      });
+      setEvents(resp?.events || []);
+      setTotal(resp?.total ?? resp?.events?.length ?? 0);
+    } catch (err) {
+      console.error('Failed to load honeypot logs:', err);
+      setEvents([]);
+      setTotal(0);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [offset, limit]);
 
   useEffect(() => {
-    setIsLoadingEvents(true);
-    dataProvider.getAttackEvents().then(e => {
-      setEvents(e);
-      setIsLoadingEvents(false);
-    });
-  }, []);
+    void fetchLogs(offset);
+  }, [offset, fetchLogs]);
+
+  const refresh = async () => {
+    await fetchLogs(offset);
+  };
+
+  const setPage = (newPageOffset: number) => {
+    setOffset(newPageOffset);
+  };
 
   const [search, setSearch] = useState('');
   const [sevFilter, setSevFilter] =
@@ -473,6 +496,42 @@ export default function HoneypotLogsPage({
       selectedEvent.threat_score,
     )
     : null;
+
+  if (!isLoadingEvents && events.length === 0 && !isPublicDemo()) {
+    return (
+      <div className="at-honeypot-page-v2">
+        <PageHeader
+          breadcrumbs={[
+            { label: 'Operations' },
+            { label: 'Honeypot Logs' },
+          ]}
+          title="Honeypot Logs"
+          description="Live attack telemetry and adversary command sessions."
+          actions={
+            <button
+              type="button"
+              className="at-btn at-btn-secondary at-btn-sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw size={13} className={isRefreshing ? 'at-spin' : ''} />
+              {isRefreshing ? 'Refreshing' : 'Refresh'}
+            </button>
+          }
+        />
+        <div style={{ padding: '24px' }}>
+          <EmptyState
+            title="No Honeypot Events Logged Yet"
+            description="Your honeypot network is ready. Once a sensor node is deployed and exposed to traffic, connection logs, commands, and attacker probes will stream here in real time."
+            actionLabel="Connect Your First Honeypot"
+            onAction={() => onNavigate('infrastructure')}
+            secondaryLabel="Explore SOC Documentation"
+            onSecondaryAction={() => onNavigate('help')}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="at-honeypot-page-v2">

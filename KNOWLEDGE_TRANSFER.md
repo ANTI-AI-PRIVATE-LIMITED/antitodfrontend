@@ -1054,11 +1054,10 @@ Frontend fix — already completed.
 ### Frontend `.env` (what the backend URL is read from)
 
 ```env
-VITE_BACKEND_URL=http://localhost:3000    # Backend base URL
-VITE_IPDATA_API_KEY=                      # Optional: geo enrichment
-VITE_RANSOMWARE_LIVE_API_KEY=             # Optional: ransomware feed
-VITE_GEMINI_API_KEY=                      # Optional: AI features
+VITE_BACKEND_URL=https://api.xyberah.com   # Backend API base URL
 ```
+
+> **Security Note (Task 94):** Third-party provider keys (`GEMINI_API_KEY`, `IPDATA_API_KEY`, `RANSOMWARE_LIVE_API_KEY`) have been removed from the frontend bundle. They are stored exclusively server-side in the backend environment and called via authenticated `/AdminRoutes/proxy/*` endpoints (`/proxy/gemini`, `/proxy/ipdata/:ip`, `/proxy/ransomware-live`).
 
 ### Backend `.env.example` (what the backend needs)
 

@@ -1,6 +1,6 @@
 
 import { IpDataResponse, ExtendedSecurityInfo, DnsBlockResult, ShodanData } from '../types';
-import { IPDATA_API_KEY } from '../config/config';
+import { BACKEND_URL, API_ENDPOINTS } from '../config/config';
 import { Buffer } from 'buffer';
 
 if (typeof window !== 'undefined' && !(window as any).Buffer) {
@@ -188,19 +188,21 @@ export const enrichIP = async (ip: string): Promise<IpDataResponse | null> => {
         return null;
     }
 
-    if (!IPDATA_API_KEY) return null;
-    const url = `${BASE_URL}/${ip}?api-key=${IPDATA_API_KEY}`;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin-auth-token') : null;
+    const proxyUrl = `${BACKEND_URL}${API_ENDPOINTS.PROXY_IPDATA}/${encodeURIComponent(ip)}`;
 
-    const [ipDataResponse, shodanData] = await Promise.all([
-        fetch(url),
+    const [proxyRes, shodanData] = await Promise.all([
+        fetch(proxyUrl, {
+            headers: token ? { authtoken: token } : {},
+        }).catch(() => null),
         fetchShodanInternetDb(ip)
     ]);
 
-    if (!ipDataResponse.ok) {
+    if (!proxyRes || !proxyRes.ok) {
         return null;
     }
 
-    const data = await ipDataResponse.json();
+    const data = await proxyRes.json();
 
     return {
         ip: data.ip,

@@ -8971,6 +8971,8 @@
 
 .at-map-canvas-panel {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .at-map-panel-toolbar {
@@ -9077,6 +9079,9 @@
 .at-map-canvas-v2 {
   position: relative;
   min-height: 590px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background:
     radial-gradient(

@@ -1,5 +1,6 @@
 
 import React, { useState, useRef } from 'react';
+import { userStorage } from '../src/utils/userStorage';
 import { X, Monitor, Moon, Sun, Terminal, Zap, Save, Trash2, Shield, Lock, CloudSnow, Flame, Upload, FilePlus, Loader2, ScrollText, Copy, Filter, Image, PlusCircle, CheckCircle, AlertOctagon, Bug } from 'lucide-react';
 import { AppSettings, AppTheme, LogEntry, MalpediaActor, CveEntry, SystemLogEntry, WhitelistEntry } from '../types';
 import { parseNvdCve } from '../services/cve';
@@ -47,7 +48,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     
     // VirusTotal Key State
     const [vtApiKey, setVtApiKey] = useState('');
-    const [savedVtKey, setSavedVtKey] = useState<boolean>(!!localStorage.getItem('user_vt_api_key'));
+    const [savedVtKey, setSavedVtKey] = useState<boolean>(!!userStorage.getItem('user_vt_api_key'));
 
     // Whitelist State
     const [newWhitelistVal, setNewWhitelistVal] = useState('');
@@ -69,7 +70,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     const handleSaveVtKey = () => {
         if (vtApiKey.trim()) {
-            localStorage.setItem('user_vt_api_key', vtApiKey.trim());
+            userStorage.setItem('user_vt_api_key', vtApiKey.trim());
             setSavedVtKey(true);
             setVtApiKey('');
             onNotify('VirusTotal API Key saved securely.', 'success');
@@ -77,7 +78,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     };
 
     const handleRemoveVtKey = () => {
-        localStorage.removeItem('user_vt_api_key');
+        userStorage.removeItem('user_vt_api_key');
         setSavedVtKey(false);
         onNotify('VirusTotal API Key removed.', 'info');
     };

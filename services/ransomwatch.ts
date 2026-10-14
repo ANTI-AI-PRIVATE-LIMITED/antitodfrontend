@@ -1,23 +1,12 @@
 
 import { RansomWatchPost, RansomWatchGroup } from '../types';
-import { RANSOMWARE_LIVE_API_KEY } from '../config/config';
+import { BACKEND_URL, API_ENDPOINTS } from '../config/config';
 import { fetchJsonWithCors } from './http';
 import { DEMO_MODE } from '../src/services/dataProvider';
 import { DEMO_RANSOMWARE_POSTS, DEMO_RANSOMWARE_GROUPS } from '../src/data/demo/ransomware';
 
 const POSTS_URL = 'https://raw.githubusercontent.com/joshhighet/ransomwatch/main/posts.json';
 const GROUPS_URL = 'https://raw.githubusercontent.com/joshhighet/ransomwatch/main/groups.json';
-
-const API_TARGET = 'https://api-pro.ransomware.live/victims/recent?order=discovered';
-
-// For Ransomware.live, we need to pass headers. 
-// Public proxies (CORSProxy, ThingProxy) often strip custom headers like X-API-KEY.
-// We only use Direct (if CORS allows) and Vercel Proxy (which forwards headers).
-// `/api/proxy` exists on some deployed setups; Vite dev has no such route (would 404).
-const SECURE_PROXIES = [
-    (url: string) => url,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-];
 
 const mapLiveVictims = (json: any): RansomWatchPost[] => {
     const items = json.victims || (Array.isArray(json) ? json : []);
@@ -36,39 +25,22 @@ const mapLiveVictims = (json: any): RansomWatchPost[] => {
 };
 
 const fetchRansomwareLive = async (): Promise<RansomWatchPost[]> => {
-    if (!RANSOMWARE_LIVE_API_KEY) return [];
-    // Attempt Proxy Rotation including Direct
-    for (const proxyGen of SECURE_PROXIES) {
-        try {
-            const proxyUrl = proxyGen(API_TARGET);
-            
-            const res = await fetch(proxyUrl, {
-                headers: {
-                    'accept': 'application/json',
-                    'X-API-KEY': RANSOMWARE_LIVE_API_KEY
-                }
-            });
+    try {
+        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin-auth-token') : null;
+        const res = await fetch(`${BACKEND_URL}${API_ENDPOINTS.PROXY_RANSOMWARE_LIVE}`, {
+            headers: {
+                accept: 'application/json',
+                ...(token ? { authtoken: token } : {}),
+            },
+        });
 
-            if (res.ok) {
-                // Verify content type to avoid parsing HTML error pages from proxies
-                const contentType = res.headers.get('content-type');
-                const text = await res.text();
-
-                if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
-                    try {
-                        const json = JSON.parse(text);
-                        return mapLiveVictims(json);
-                    } catch (e) {
-                        // Invalid JSON
-                    }
-                }
-            }
-        } catch (e) {
-            // Try next proxy
+        if (res.ok) {
+            const json = await res.json();
+            return mapLiveVictims(json);
         }
+    } catch {
+        // Fallback to open RansomWatch feed
     }
-
-    console.warn("All Ransomware.live fetch attempts failed.");
     return [];
 };
 

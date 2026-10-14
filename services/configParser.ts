@@ -1,5 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import { GEMINI_API_KEY } from "../config/config";
+import { generateGeminiContent } from "./geminiService";
 
 export interface ParsedTopology {
     nodes?: Array<{
@@ -29,9 +28,6 @@ export interface ParsedTopology {
  * between devices.
  */
 export const parseNetworkConfig = async (configText: string, previousAnswers?: string): Promise<ParsedTopology> => {
-    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    const model = 'gemini-3-flash-preview';
-
     let prompt = `
     Act as a Principal Network Architect and Enterprise Security Engineer. 
     Analyze the provided technical configuration data which may contain dumps from multiple devices (Firewalls, Routers, Switches, Proxies).
@@ -67,16 +63,13 @@ export const parseNetworkConfig = async (configText: string, previousAnswers?: s
     }
 
     try {
-        const response = await ai.models.generateContent({
-            model,
+        const text = await generateGeminiContent({
             contents: prompt,
-            config: {
+            generationConfig: {
                 responseMimeType: "application/json",
                 temperature: 0.1,
             }
         });
-
-        const text = response.text;
         if (!text) throw new Error("AI engine failed to produce architectural mapping.");
         
         const jsonStr = text.replace(/```json|```/gi, '').trim();

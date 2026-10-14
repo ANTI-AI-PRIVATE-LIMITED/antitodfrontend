@@ -16,8 +16,9 @@
  * - When a legacy module is fully migrated, remove its import and case here.
  */
 
-import { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import type { ReactNode } from 'react';
+import { Lock, ShieldAlert } from 'lucide-react';
 
 import type {
   AnalyzedHost,
@@ -91,8 +92,10 @@ import { ThreatCanvasView } from '../../components/views/ThreatCanvasView';
 import { NetworkTopologyView } from '../../components/views/NetworkTopologyView';
 import { InfrastructureView } from '../../components/views/InfrastructureView';
 import { XyberahReconView } from '../../components/views/XyberahReconView';
+import { IntegrationsView } from '../../components/views/IntegrationsView';
 import { ExploitView } from '../../components/views/ExploitView';
 import { AccessControlView } from '../../components/views/AccessControlView';
+import { useAuth } from '../../contexts/AuthContext';
 
 /* -------------------------------------------------------------------------- */
 /*                                  Types                                     */
@@ -268,6 +271,9 @@ export default function ViewRouter({
   const [initialIntelQuery, setInitialIntelQuery] = useState<string | null>(
     null,
   );
+  const { permissions, permissionsLoaded } = useAuth();
+  const hasOsmAccess = permissions.some((p) => p.startsWith('osm.'));
+  const hasIntegrationsAccess = permissions.some((p) => p.startsWith('integrations.'));
 
   /*
    * The analysis hook remains centralized here because both migrated and
@@ -655,7 +661,49 @@ export default function ViewRouter({
     case 'recon':
       renderedView = (
         <LegacyWrapper>
-          <XyberahReconView />
+          {permissionsLoaded && !hasOsmAccess ? (
+            <div className="min-h-[500px] flex items-center justify-center p-6">
+              <div className="max-w-md w-full p-8 rounded-2xl border border-neutral-800 bg-[#0c0d10] text-center shadow-2xl">
+                <div className="w-12 h-12 mx-auto rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
+                  <ShieldAlert size={22} />
+                </div>
+                <h2 className="text-lg font-bold text-white mb-2">Access Restricted</h2>
+                <p className="text-xs text-neutral-400 mb-6">
+                  You do not have the required permissions (<code className="text-neutral-300 font-mono">osm.*</code>) to view Attack Surface Management and Reconnaissance.
+                </p>
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400 font-mono">
+                  Required: osm.module.access or osm.targets.view
+                </div>
+              </div>
+            </div>
+          ) : (
+            <XyberahReconView />
+          )}
+        </LegacyWrapper>
+      );
+      break;
+
+    case 'integrations':
+      renderedView = (
+        <LegacyWrapper>
+          {permissionsLoaded && !hasIntegrationsAccess ? (
+            <div className="min-h-[500px] flex items-center justify-center p-6">
+              <div className="max-w-md w-full p-8 rounded-2xl border border-neutral-800 bg-[#0c0d10] text-center shadow-2xl">
+                <div className="w-12 h-12 mx-auto rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
+                  <Lock size={22} />
+                </div>
+                <h2 className="text-lg font-bold text-white mb-2">Access Restricted</h2>
+                <p className="text-xs text-neutral-400 mb-6">
+                  You do not have the required permissions (<code className="text-neutral-300 font-mono">integrations.*</code>) to view SIEM and SOAR Connectors.
+                </p>
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400 font-mono">
+                  Required: integrations.module.access or integrations.connectors.view
+                </div>
+              </div>
+            </div>
+          ) : (
+            <IntegrationsView />
+          )}
         </LegacyWrapper>
       );
       break;

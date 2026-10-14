@@ -21,6 +21,7 @@ import {
     AgentMetrics, RegisterAgentResponse, DeployStackResponse,
     AgentInstallScriptResponse, DeleteAgentHardResponse,
 } from '../../api/services/agentService';
+import { handleApiError } from '../../api/client';
 
 // ── Utility helpers ────────────────────────────────────────────────────────
 
@@ -449,7 +450,24 @@ const RegisterServerModal: React.FC<{
             });
             onSuccess();
         } catch (e: any) {
-            setError(e?.response?.data?.message ?? 'Failed to register server');
+            const status = e?.response?.status;
+            const data = e?.response?.data;
+            if (status === 409) {
+                setError(`Server ID "${form.ServerId.trim()}" is already taken. Please choose another Server ID.`);
+            } else if (status === 403 || data?.code === 'PLAN_LIMIT_REACHED') {
+                const used = data?.used;
+                const limit = data?.limit;
+                setError(
+                    data?.message ||
+                    (typeof used === 'number' && typeof limit === 'number'
+                        ? `Server limit reached (${used} of ${limit} servers used). Upgrade to Pro for 10 servers.`
+                        : 'Server limit reached on your plan. Please upgrade to Pro to add more servers.')
+                );
+            } else if (status === 402 || data?.code === 'PLAN_INACTIVE') {
+                setError('Your subscription is inactive. Please renew your plan to register servers.');
+            } else {
+                setError(handleApiError(e));
+            }
         } finally { setLoading(false); }
     };
 
@@ -488,8 +506,29 @@ const RegisterServerModal: React.FC<{
                         </div>
                     ))}
                     {error && (
-                        <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
-                            <AlertTriangle size={13}/>{error}
+                        <div className="flex flex-col gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded p-3">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle size={14} className="shrink-0 mt-0.5"/>
+                                <span className="flex-1 font-mono">{error}</span>
+                            </div>
+                            {(error.includes('Server limit reached') || error.includes('Upgrade to Pro')) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        window.dispatchEvent(
+                                            new CustomEvent('open-plan-upgrade', {
+                                                detail: {
+                                                    code: 'PLAN_LIMIT_REACHED',
+                                                    message: 'You have reached the server limit on your current plan. Upgrade to Pro for 10 servers.',
+                                                },
+                                            })
+                                        );
+                                    }}
+                                    className="self-start text-[11px] font-bold text-orange-400 hover:text-orange-300 underline font-mono flex items-center gap-1 mt-1"
+                                >
+                                    Upgrade to Pro Plan (10 Servers) →
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

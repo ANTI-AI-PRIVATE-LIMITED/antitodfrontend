@@ -7,6 +7,7 @@ import {
 
 import {
     ArrowUpRight,
+    Check,
     CheckCircle2,
     ChevronRight,
     CircleX,
@@ -15,6 +16,7 @@ import {
     Globe2,
     Hash,
     Network,
+    RefreshCw,
     Search,
     ShieldAlert,
     ShieldCheck,
@@ -25,6 +27,8 @@ import {
 import type { AnalyzedHost } from '../../types';
 
 import { dataProvider } from '../services/dataProvider';
+import { isPublicDemo } from '../utils/demoMode';
+import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 
 /* -------------------------------------------------------------------------- */
@@ -103,11 +107,23 @@ export default function AnalysisPage({
     onNavigate,
 }: AnalysisPageProps) {
     const [MOCK_HOSTS, setMockHosts] = useState<AnalyzedHost[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    const fetchHosts = async () => {
+        setIsLoading(true);
+        try {
+            const hosts = await dataProvider.getHosts();
+            setMockHosts(hosts || []);
+        } catch (err) {
+            console.error('Failed to load analyzed hosts:', err);
+            setMockHosts([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        (dataProvider as any).getHosts().then((hosts: AnalyzedHost[]) => {
-            setMockHosts(hosts);
-        });
+        void fetchHosts();
     }, []);
 
     /* ------------------------------------------------------------------------ */
@@ -274,6 +290,42 @@ export default function AnalysisPage({
     /* ------------------------------------------------------------------------ */
     /*                                  Render                                  */
     /* ------------------------------------------------------------------------ */
+
+    if (!isLoading && MOCK_HOSTS.length === 0 && !isPublicDemo()) {
+        return (
+            <div className="at-analysis-page">
+                <PageHeader
+                    breadcrumbs={[
+                        { label: 'Investigate' },
+                        { label: 'Analysis' },
+                    ]}
+                    title="Host Analysis"
+                    description="Scored host intelligence, behavioral profiles, and RBL status."
+                    actions={
+                        <button
+                            type="button"
+                            className="at-btn at-btn-secondary at-btn-sm"
+                            onClick={() => void fetchHosts()}
+                            disabled={isLoading}
+                        >
+                            <RefreshCw size={13} className={isLoading ? 'at-spin' : ''} />
+                            Refresh
+                        </button>
+                    }
+                />
+                <div style={{ padding: '24px' }}>
+                    <EmptyState
+                        title="No Attacking Hosts Detected"
+                        description="External IP addresses probing your infrastructure will be analyzed, reverse-resolved, scored, and fingerprinted here."
+                        actionLabel="Connect Your First Honeypot"
+                        onAction={() => onNavigate('infrastructure')}
+                        secondaryLabel="Explore SOC Documentation"
+                        onSecondaryAction={() => onNavigate('help')}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="at-analysis-page">

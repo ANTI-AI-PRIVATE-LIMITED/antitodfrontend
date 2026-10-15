@@ -172,23 +172,26 @@ export default function DashboardPage({
   const [cveFeedItems, setCveFeedItems] = useState<CveFeedItem[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [activityTimeline, setActivityTimeline] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchDashboardData = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setIsLoading(true);
     try {
-      const [m, h, n, c, e] = await Promise.all([
+      const [m, h, n, c, e, tl] = await Promise.all([
         dataProvider.getDashboardMetrics(),
         dataProvider.getHosts(),
         dataProvider.getNews(),
         dataProvider.getCveFeeds(),
         dataProvider.getAttackEvents(),
+        dataProvider.getActivityTimeline({ granularity: 'hour' }),
       ]);
       setMetrics(m);
       setResults(h || []);
       setNewsItems(n || []);
       setCveFeedItems(c || []);
       setEvents(e || []);
+      setActivityTimeline(tl || null);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {
@@ -250,6 +253,19 @@ export default function DashboardPage({
 
   const timeline = useMemo<TimelineBucket[]>(
     () => {
+      if (activityTimeline?.buckets && activityTimeline.buckets.length > 0) {
+        return activityTimeline.buckets.map((b: any) => {
+          const timeStr = b.time ? (b.time.length > 5 ? b.time.slice(11, 16) : b.time) : '00:00';
+          return {
+            hour: timeStr,
+            critical: b.critical ?? 0,
+            high: b.high ?? (b.total_events > 0 ? b.total_events : 0),
+            medium: b.medium ?? 0,
+            low: b.low ?? 0,
+          };
+        });
+      }
+
       const buckets = new Map<
         string,
         TimelineBucket
@@ -1041,10 +1057,61 @@ export default function DashboardPage({
               </div>
 
               <div className="at-chart-wrap at-chart-wrap-large">
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
+                {totalEvents === 0 && !isPublicDemo() ? (
+                  <div
+                    style={{
+                      height: '100%',
+                      minHeight: '260px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      padding: '32px 20px',
+                    }}
+                  >
+                    <ShieldAlert
+                      size={36}
+                      style={{
+                        color: 'var(--at-text-tertiary, #64748b)',
+                        marginBottom: '12px',
+                        opacity: 0.85,
+                      }}
+                    />
+                    <div
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        color: 'var(--at-text-primary, #f8fafc)',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      No Honeypot Activity Yet
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        color: 'var(--at-text-secondary, #94a3b8)',
+                        maxWidth: '380px',
+                        marginBottom: '16px',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Once your honeypots begin receiving traffic, hourly attack distribution and threat severity spikes will appear here.
+                    </div>
+                    <button
+                      type="button"
+                      className="at-btn at-btn-primary at-btn-sm"
+                      onClick={() => onNavigate('infrastructure')}
+                    >
+                      Connect Your First Honeypot
+                    </button>
+                  </div>
+                ) : (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                  >
                   <AreaChart
                     data={timeline}
                     margin={{
@@ -1178,7 +1245,8 @@ export default function DashboardPage({
                       strokeWidth={1.5}
                     />
                   </AreaChart>
-                </ResponsiveContainer>
+                  </ResponsiveContainer>
+                )}
               </div>
             </article>
 

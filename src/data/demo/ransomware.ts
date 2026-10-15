@@ -1,4 +1,4 @@
-import { RansomWatchPost, RansomWatchGroup } from '../../types';
+import { RansomWatchPost, RansomWatchGroup } from '../../../types';
 
 export const DEMO_RANSOMWARE_POSTS: RansomWatchPost[] = [
     {
@@ -39,19 +39,19 @@ export const DEMO_RANSOMWARE_POSTS: RansomWatchPost[] = [
 export const DEMO_RANSOMWARE_GROUPS: RansomWatchGroup[] = [
     {
         name: "LockBit 3.0",
-        locations: ["http://lockbitxxxxxx.onion"],
+        locations: [{ slug: "lockbit", available: true, fqdn: "http://lockbitxxxxxx.onion", version: 3 }],
         profile: ["http://lockbitxxxxxx.onion"],
         meta: "Highly active RaaS"
     },
     {
         name: "ALPHV",
-        locations: ["http://alphvxxxxxx.onion"],
+        locations: [{ slug: "alphv", available: true, fqdn: "http://alphvxxxxxx.onion", version: 2 }],
         profile: ["http://alphvxxxxxx.onion"],
         meta: "Also known as BlackCat"
     },
     {
         name: "Clop",
-        locations: ["http://clopxxxxxx.onion"],
+        locations: [{ slug: "clop", available: true, fqdn: "http://clopxxxxxx.onion", version: 1 }],
         profile: ["http://clopxxxxxx.onion"],
         meta: "Exploits zero-days"
     }

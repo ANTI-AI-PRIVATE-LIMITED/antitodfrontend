@@ -1,6 +1,8 @@
 
 
+import DOMPurify from 'dompurify';
 import { ThreatNewsItem, NewsCategory } from '../types';
+import { toProxyUrl } from './proxy';
 
 const CACHE_KEY = 'xyberah_news_cache_v3';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -41,17 +43,59 @@ const determineCategory = (title: string, desc: string): NewsCategory => {
     return 'General';
 };
 
-// Sanitizer to remove HTML tags but keep text content safe
-const sanitizeText = (html: string): string => {
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-    // Remove all script tags first
-    const scripts = tempDiv.getElementsByTagName('script');
-    for (let i = scripts.length - 1; i >= 0; i--) {
-        scripts[i].parentNode?.removeChild(scripts[i]);
-    }
-    const text = tempDiv.textContent || tempDiv.innerText || "";
-    return text.substring(0, 250) + (text.length > 250 ? '...' : '');
+// Task 102: Safe sanitizer using DOMPurify and text-only parsing (never innerHTML) to strip HTML/scripts and return plain text
+export const sanitizeText = (html: string): string => {
+    if (!html) return "";
+    try {
+        let purifyInstance: any = null;
+        if (typeof (DOMPurify as any)?.sanitize === 'function') {
+            purifyInstance = DOMPurify;
+        } else if (typeof DOMPurify === 'function') {
+            const win = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? (globalThis as any).window : null);
+            if (win && (win.document || win.DOMParser)) {
+                try {
+                    purifyInstance = (DOMPurify as any)(win);
+                } catch {}
+            }
+        }
+
+        if (purifyInstance && typeof purifyInstance.sanitize === 'function') {
+            const cleanHtml = purifyInstance.sanitize(html, {
+                ALLOWED_TAGS: [], // strip all tags, return text only
+                ALLOWED_ATTR: []
+            });
+            const text = typeof cleanHtml === 'string' ? cleanHtml : (cleanHtml as any)?.textContent || "";
+            const clean = text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+            if (clean) {
+                return clean.substring(0, 250) + (clean.length > 250 ? '...' : '');
+            }
+        }
+    } catch {}
+
+    // Fallback: DOMParser text-only parse
+    try {
+        if (typeof DOMParser !== 'undefined') {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const dangerousElements = doc.querySelectorAll('script, style, iframe, object, embed, link, meta');
+            dangerousElements.forEach(el => el.remove());
+            const text = doc.body?.textContent || "";
+            const clean = text.replace(/\s+/g, ' ').trim();
+            if (clean) {
+                return clean.substring(0, 250) + (clean.length > 250 ? '...' : '');
+            }
+        }
+    } catch {}
+
+    // Universal fallback: text-only regex stripping
+    const stripped = html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return stripped.substring(0, 250) + (stripped.length > 250 ? '...' : '');
 };
 
 // Strategy 1: RSS2JSON (Reliable JSON, avoids CORS/MIME issues)
@@ -91,15 +135,15 @@ const fetchRss2Json = async (url: string): Promise<ThreatNewsItem[] | null> => {
     }
 };
 
-// Strategy 2: AllOrigins JSON Wrapper (Fallback)
-const fetchAllOrigins = async (url: string, sourceName: string): Promise<ThreatNewsItem[] | null> => {
+// Strategy 2: Backend Proxy XML/RSS Fetch (Task 101)
+const fetchProxyRss = async (url: string, sourceName: string): Promise<ThreatNewsItem[] | null> => {
     try {
-        const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        const res = await fetch(apiUrl);
+        const proxyEndpoint = toProxyUrl(url);
+        const res = await fetch(proxyEndpoint);
         if (!res.ok) return null;
-        const data = await res.json();
-        if (!data.contents) return null;
-        return parseXmlFeed(data.contents, sourceName);
+        const xmlText = await res.text();
+        if (!xmlText || !xmlText.trim().startsWith('<')) return null;
+        return parseXmlFeed(xmlText, sourceName);
     } catch (e) {
         return null;
     }
@@ -126,13 +170,16 @@ const parseXmlFeed = (xmlText: string, sourceName: string): ThreatNewsItem[] => 
             
             const timestamp = new Date(pubDateStr).getTime();
             
+            const pubIso = Number.isNaN(timestamp)
+                ? new Date().toISOString()
+                : new Date(timestamp).toISOString();
+            
             items.push({
                 title,
                 link,
                 source: sourceName,
-                published: Number.isNaN(timestamp)
-                    ? new Date().toISOString()
-                    : new Date(timestamp).toISOString(),
+                date: pubIso,
+                published: pubIso,
                 timestamp: Number.isNaN(timestamp) ? Date.now() : timestamp,
                 description: cleanDesc,
                 category: determineCategory(title, cleanDesc)
@@ -167,9 +214,9 @@ export const fetchThreatNews = async (): Promise<ThreatNewsItem[]> => {
         // Try Strategy 1 first
         let items = await fetchRss2Json(feed.url);
         
-        // Fallback to Strategy 2
+        // Fallback to Strategy 2 (Backend allowlisted proxy)
         if (!items) {
-            items = await fetchAllOrigins(feed.url, feed.name);
+            items = await fetchProxyRss(feed.url, feed.name);
         }
 
         if (items) {

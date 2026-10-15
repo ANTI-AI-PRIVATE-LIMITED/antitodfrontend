@@ -9,10 +9,11 @@ import {
     Wand2, Calculator, Regex, Mail, MapPin, FileSearch,
     ImageIcon, Archive, Clock, FileKey, Info, Camera,
     Variable, ArrowDownAZ, Filter, MoveVertical, ListTree, GitCompare, AlignLeft,
-    Code2, Brackets, Wand, ListFilter, Languages, CaseLower, CaseUpper, ScissorsLineItems,
+    Code2, Brackets, Wand, ListFilter, Languages, CaseLower, CaseUpper,
     Pause, X, Sparkles, Wand2 as WandIcon, ExternalLink
 } from 'lucide-react';
 import { generateGeminiContent } from '../../services/geminiService';
+import { userStorage } from '../../src/utils/userStorage';
 
 // --- TYPES ---
 
@@ -440,12 +441,12 @@ export const CyberChefView: React.FC<CyberChefViewProps> = ({
     onNavigateToIntel,
 }) => {
     const [input, setInput] = useState(
-        () => localStorage.getItem('cyberchef_input') || ''
+        () => userStorage.getItem('cyberchef_input') || ''
     );
 
     const [recipe, setRecipe] = useState<RecipeStep[]>(() => {
         try {
-            const saved = localStorage.getItem('cyberchef_recipe');
+            const saved = userStorage.getItem('cyberchef_recipe');
             return saved ? JSON.parse(saved) : [];
         } catch {
             return [];
@@ -462,8 +463,8 @@ export const CyberChefView: React.FC<CyberChefViewProps> = ({
     const [activeCategory, setActiveCategory] = useState<OpCategory | 'All'>('All');
 
     useEffect(() => {
-        localStorage.setItem('cyberchef_input', input);
-        localStorage.setItem(
+        userStorage.setItem('cyberchef_input', input);
+        userStorage.setItem(
             'cyberchef_recipe',
             JSON.stringify(recipe)
         );

@@ -22,7 +22,8 @@ import { mmdbService } from '../../services/mmdb';
 import { calculateFileHash, submitFileToSandbox } from '../../services/otxSandbox';
 // Fixed Error: performRdapLookup was used but not imported
 import { performRdapLookup } from '../../services/netTools';
-import { BACKEND_URL, API_ENDPOINTS } from '../../config/config';
+import { API_ENDPOINTS } from '../../config/config';
+import api from '../../api/client';
 import PageHeader from '../../src/components/layout/PageHeader';
 
 interface CaseNote {
@@ -218,13 +219,19 @@ export const InvestigationBenchView: React.FC<InvestigationBenchViewProps> = ({
 
     const fetchSpecificIpData = async (ip: string) => {
         try {
-            const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin-auth-token') : null;
-            const res = await fetch(`${BACKEND_URL}${API_ENDPOINTS.PROXY_IPDATA}/${encodeURIComponent(ip)}`, {
-                headers: token ? { authtoken: token } : {},
-            });
-            if (res.ok) return await res.json();
-        } catch (e) {
-            console.warn("IPData proxy fetch error", e);
+            const res = await api.get<any>(`${API_ENDPOINTS.PROXY_IPDATA}/${encodeURIComponent(ip)}`);
+            return res.data;
+        } catch (e: any) {
+            const status = e.response?.status;
+            if (status === 502) {
+                console.warn(`[InvestigationBench] 502 PROVIDER_ERROR: Upstream IPData unreachable for ${ip}`);
+            } else if (status === 503) {
+                console.warn(`[InvestigationBench] 503 PROVIDER_NOT_CONFIGURED: IPDATA_API_KEY not configured on backend`);
+            } else if (status === 429) {
+                console.warn(`[InvestigationBench] 429 PROXY_RATE_LIMITED: IPData proxy rate limit exceeded`);
+            } else {
+                console.warn("IPData proxy fetch error", e);
+            }
         }
         return null;
     };
@@ -694,6 +701,10 @@ export const InvestigationBenchView: React.FC<InvestigationBenchViewProps> = ({
                 </div>
             </div>
         );
+    }
+
+    if (!activeCase) {
+        return null;
     }
 
     return (

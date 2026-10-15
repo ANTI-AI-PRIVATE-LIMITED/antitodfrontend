@@ -21,7 +21,7 @@ import {
     Loader2,
 } from 'lucide-react';
 
-import type { LogEventV2 } from '../../api/services';
+import type { LogEventV2, ThreatMapV3Response } from '../../api/services';
 
 import { dataProvider } from '../services/dataProvider';
 import { useAppData } from '../contexts/AppDataContext';
@@ -145,16 +145,22 @@ export default function AttackMapPage({
     onNavigate,
 }: AttackMapPageProps) {
     const [MOCK_EVENTS, set_MOCK_EVENTS] = React.useState<any[]>([]);
+    const [threatMapData, setThreatMapData] = React.useState<ThreatMapV3Response | null>(null);
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
     const fetchEvents = React.useCallback(async () => {
         setIsLoading(true);
         try {
-            const evts = await dataProvider.getAttackEvents();
+            const [evts, tMap] = await Promise.all([
+                dataProvider.getAttackEvents(),
+                dataProvider.getThreatMap(),
+            ]);
             set_MOCK_EVENTS(evts || []);
+            setThreatMapData(tMap || null);
         } catch (err) {
             console.error('Failed to load attack map events:', err);
             set_MOCK_EVENTS([]);
+            setThreatMapData(null);
         } finally {
             setIsLoading(false);
         }
@@ -325,7 +331,27 @@ export default function AttackMapPage({
     const telemetryAvailable =
         eventCount > 0;
 
-    const [mapMode, setMapMode] = useState<'2d' | '3d'>('2d');
+    const [mapMode, setMapMode] = useState<'2d' | '3d'>(() => {
+        try {
+            const saved = localStorage.getItem('antitode-threat-map-mode');
+            if (saved === '2d' || saved === '3d') return saved;
+        } catch {
+            // ignore
+        }
+        return '3d';
+    });
+
+    const handleToggleMapMode = () => {
+        setMapMode(prev => {
+            const next = prev === '3d' ? '2d' : '3d';
+            try {
+                localStorage.setItem('antitode-threat-map-mode', next);
+            } catch {
+                // ignore
+            }
+            return next;
+        });
+    };
 
     const globeData = useMemo(() => {
         const arcs: ThreeGlobeArc[] = [];
@@ -389,6 +415,51 @@ export default function AttackMapPage({
             }
         });
 
+        // Add live threat map points from V3 threat-map endpoint
+        if (threatMapData?.points && threatMapData.points.length > 0) {
+            const targetLat = threatMapData.targets?.[0]?.geo_lat ?? DEFAULT_HQ[1];
+            const targetLng = threatMapData.targets?.[0]?.geo_lon ?? DEFAULT_HQ[0];
+
+            threatMapData.points.forEach((p, idx) => {
+                if (typeof p.geo_lat === 'number' && typeof p.geo_lon === 'number' && (p.geo_lat !== 0 || p.geo_lon !== 0)) {
+                    const color = severityColor((p.risk_level?.toLowerCase() || 'medium') as any);
+                    const riskUpper = (p.risk_level?.toUpperCase() || 'MEDIUM') as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+                    arcs.push({
+                        id: `arc-threat-${p.src_ip}-${idx}`,
+                        startLat: p.geo_lat,
+                        startLng: p.geo_lon,
+                        endLat: targetLat,
+                        endLng: targetLng,
+                        color,
+                        risk: riskUpper,
+                        country: p.geo_country || 'Unknown',
+                        order: idx + 100,
+                    });
+
+                    points.push({
+                        id: `pt-threat-${p.src_ip}`,
+                        lat: p.geo_lat,
+                        lng: p.geo_lon,
+                        color,
+                        radius: p.risk_level === 'critical' ? 0.65 : 0.45,
+                        altitude: 0.015,
+                        label: `${p.src_ip} (${p.geo_country || 'Host'}) - ${p.total_events} events`,
+                    });
+
+                    rings.push({
+                        id: `ring-threat-${p.src_ip}`,
+                        lat: p.geo_lat,
+                        lng: p.geo_lon,
+                        color,
+                        maxR: 3.5,
+                        speed: 1.8,
+                        repeat: 1600,
+                    });
+                }
+            });
+        }
+
         const labels: ThreeGlobeLabel[] = [
             {
                 id: 'hq-label',
@@ -440,7 +511,9 @@ export default function AttackMapPage({
     const latestEvent =
         events[0] ?? null;
 
-    if (!isLoading && MOCK_EVENTS.length === 0 && !isPublicDemo()) {
+    const hasData = MOCK_EVENTS.length > 0 || (threatMapData?.points && threatMapData.points.length > 0);
+
+    if (!isLoading && !hasData && !isPublicDemo()) {
         return (
             <div className="at-attack-map-page-v2">
                 <PageHeader
@@ -637,7 +710,7 @@ export default function AttackMapPage({
                                     <button
                                         type="button"
                                         title={mapMode === '3d' ? "Switch to 2D Map" : "Switch to 3D Globe"}
-                                        onClick={() => setMapMode(m => m === '3d' ? '2d' : '3d')}
+                                        onClick={handleToggleMapMode}
                                         style={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
@@ -687,7 +760,7 @@ export default function AttackMapPage({
                                 </div>
                             </div>
 
-                            <div className="at-map-canvas-v2" style={{ position: 'relative', flex: 1, minHeight: '660px' }}>
+                            <div className="at-map-canvas-v2" style={{ position: 'relative', flex: 1, minHeight: '520px', height: '520px', overflow: 'hidden' }}>
                                 {mapMode === '3d' ? (
                                     <div style={{ position: 'absolute', inset: 0, zIndex: 5 }}>
                                         <Suspense fallback={
@@ -703,6 +776,9 @@ export default function AttackMapPage({
                                                 labels={globeData.labels}
                                                 isPaused={false}
                                                 allowInteraction={true}
+                                                initialAltitude={2.45}
+                                                initialLat={18}
+                                                initialLng={-30}
                                             />
                                         </Suspense>
                                     </div>

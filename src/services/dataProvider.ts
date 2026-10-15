@@ -206,14 +206,31 @@ export const dataProvider = {
         ],
       };
     }
-    return honeypotServiceV3.getStats();
+    try {
+      return await honeypotServiceV3.getStats();
+    } catch (err) {
+      console.warn('[dataProvider] Failed to fetch live stats:', err);
+      return { total_hosts: 0, total_events: 0, hosts_by_risk: [], top_countries: [] };
+    }
   },
 
   /**
    * Aggregate activity timeline for charts.
    */
   getActivityTimeline: async (params?: GetActivityTimelineV3Params): Promise<ActivityTimelineV3Response> => {
-    return honeypotServiceV3.getActivityTimeline(params);
+    if (isPublicDemo()) {
+      return {
+        granularity: params?.granularity || 'hour',
+        total_events: DEMO_EVENTS.length,
+        buckets: [],
+      };
+    }
+    try {
+      return await honeypotServiceV3.getActivityTimeline(params);
+    } catch (err) {
+      console.warn('[dataProvider] Failed to fetch live activity timeline:', err);
+      return { granularity: params?.granularity || 'hour', total_events: 0, buckets: [] };
+    }
   },
 
   /**
@@ -279,7 +296,33 @@ export const dataProvider = {
    * Threat map geographic attack arcs and points.
    */
   getThreatMap: async (params?: ThreatMapV3Params): Promise<ThreatMapV3Response> => {
-    return honeypotServiceV3.getThreatMap(params);
+    if (isPublicDemo()) {
+      return {
+        search: null,
+        total: DEMO_EVENTS.length,
+        returned_points: DEMO_EVENTS.length,
+        points: DEMO_EVENTS.map((e, idx) => ({
+          src_ip: e.src_ip || '192.0.2.1',
+          geo_lat: 30 + (idx % 20),
+          geo_lon: 100 + (idx % 30),
+          geo_country: e.country || 'Demo Country',
+          threat_score: e.threat_score || 50,
+          risk_level: (e.severity || 'medium') as any,
+          total_events: 1,
+          honeypots_targeted: [e.honeypot || 'honeypot-1'],
+          last_seen: e.timestamp || new Date().toISOString(),
+        })),
+        targets: [
+          { honeypot: 'honeypot-1', geo_lat: 37.7749, geo_lon: -122.4194 }
+        ],
+      };
+    }
+    try {
+      return await honeypotServiceV3.getThreatMap(params);
+    } catch (err) {
+      console.warn('[dataProvider] Failed to fetch live threat map:', err);
+      return { search: null, total: 0, returned_points: 0, points: [], targets: [] };
+    }
   },
 
   /* ========================================================================
@@ -315,14 +358,44 @@ export const dataProvider = {
         success: true,
       };
     }
-    return honeypotServiceV2.getLogEvents(params);
+    try {
+      return await honeypotServiceV2.getLogEvents(params);
+    } catch (err) {
+      console.warn('[dataProvider] Failed to fetch live log events:', err);
+      return {
+        events: [],
+        total: 0,
+        limit: params?.limit || 50,
+        offset: params?.offset || 0,
+        success: false,
+      };
+    }
   },
 
   /**
    * Log statistics aggregated across honeypots and servers.
    */
   getLogsEventStats: async (params?: LogStatsV2Params): Promise<LogStatsV2Response> => {
-    return honeypotServiceV2.getLogStats(params);
+    try {
+      return await honeypotServiceV2.getLogStats(params);
+    } catch (err) {
+      console.warn('[dataProvider] Failed to fetch live log stats:', err);
+      return {
+        success: false,
+        time_range: params?.time_range || '24h',
+        start_time: '',
+        end_time: '',
+        total_events: 0,
+        unique_source_ips: 0,
+        unique_targets: 0,
+        top_honeypots: [],
+        top_event_types: [],
+        top_attacking_ips: [],
+        geographic_distribution: [],
+        high_threat_entities: 0,
+        new_attackers_24h: 0,
+      };
+    }
   },
 
   /* ========================================================================

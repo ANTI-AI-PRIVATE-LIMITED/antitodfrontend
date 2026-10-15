@@ -1361,7 +1361,12 @@ export const XyberahReconView: React.FC = () => {
       const result = await openasm.createTargetsBulk({ targets }, selectedWorkspaceId);
       await loadTargets(selectedWorkspaceId);
       setBulkTargetsText('');
-      setNotice(`Discovery requested. created=${result.createdCount ?? 0}, skipped=${result.skippedCount ?? 0}`);
+      const limitSkipped = result.skipped?.find((s) => s.reason === 'target_limit_reached');
+      if (limitSkipped) {
+        setNotice(`Added ${result.createdCount ?? 0} targets. ${result.skippedCount ?? 0} skipped (Target limit reached: ${limitSkipped.limit || 25} max).`);
+      } else {
+        setNotice(`Targets processed: ${result.createdCount ?? 0} added, ${result.skippedCount ?? 0} skipped.`);
+      }
       setDiscoveryModalError(null);
       setDiscoveryModalOpen(false);
     } catch (e) {
@@ -2940,7 +2945,7 @@ export const XyberahReconView: React.FC = () => {
                                           <a
                                             href={url}
                                             target="_blank"
-                                            rel="noreferrer"
+                                            rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1 break-all text-sky-400 hover:text-sky-300"
                                           >
                                             {url}
@@ -3515,7 +3520,7 @@ export const XyberahReconView: React.FC = () => {
                                   <a
                                     href={url}
                                     target="_blank"
-                                    rel="noreferrer"
+                                    rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 break-all text-sky-400 hover:text-sky-300"
                                   >
                                     {url}

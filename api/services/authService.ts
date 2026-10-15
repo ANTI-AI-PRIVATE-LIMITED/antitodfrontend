@@ -1,5 +1,6 @@
 import api from '../client';
-import { API_ENDPOINTS } from '../../config/config';
+import { API_ENDPOINTS, AUTH_CONFIG } from '../../config/config';
+import { clearAllUserBrowserData } from '../../src/utils/userStorage';
 
 export interface LoginCredentials {
     AdminEmail: string;
@@ -8,8 +9,10 @@ export interface LoginCredentials {
 
 export interface AuthGroup {
     GroupId: string;
-    Name: string;
-    Description: string;
+    Name?: string;
+    Description?: string;
+    GroupName?: string;
+    GroupID?: string;
 }
 
 /** Password step succeeded — OTP email sent; no session token yet. */
@@ -116,10 +119,44 @@ export const authService = {
     },
 
     /**
+     * Resend verification email for unverified account (Task 100).
+     */
+    async resendVerification(adminEmail: string): Promise<{ message: string }> {
+        const response = await api.post<{ message: string }>(
+            API_ENDPOINTS.ADMIN_RESEND_VERIFICATION,
+            { AdminEmail: adminEmail }
+        );
+        return response.data;
+    },
+
+    /**
+     * Public self-serve signup (Task 100).
+     */
+    async signup(payload: {
+        AccountName: string;
+        AdminEmail: string;
+        AdminPassword: string;
+        Plan?: string;
+    }): Promise<{
+        message: string;
+        account?: { AccountId: string; Name: string; Plan: string };
+        admin?: { AdminID: string; AdminEmail: string } | null;
+    }> {
+        const response = await api.post(
+            API_ENDPOINTS.ADMIN_SIGNUP,
+            payload
+        );
+        return response.data;
+    },
+
+    /**
      * Logout client-side trigger.
      */
     logout(): void {
-        localStorage.removeItem('admin-auth-token');
-        sessionStorage.removeItem('admin-auth-token');
+        clearAllUserBrowserData();
+        localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+        localStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);
+        sessionStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+        sessionStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);
     },
 };

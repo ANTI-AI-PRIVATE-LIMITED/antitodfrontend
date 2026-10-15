@@ -117,11 +117,11 @@ export interface AnalyzedHost {
     lastSeen: string;
     timeline: Record<string, number>;
     isMalwareBazaar?: boolean;
-    isFeodo?: boolean;
-    isThreatFox?: boolean;
-    isIpsum?: boolean;
-    isUrlHaus?: boolean;
-    isC2Intel?: boolean;
+    isFeodo?: boolean | string | null;
+    isThreatFox?: boolean | string | null;
+    isIpsum?: boolean | string | null;
+    isUrlHaus?: boolean | string | null;
+    isC2Intel?: boolean | string | null;
     dnsHostname?: string | null;
     extendedSecurity?: ExtendedSecurityInfo;
     rblStatus?: 'LISTED' | 'CLEAN' | 'CHECKING' | 'FAILED';
@@ -143,6 +143,7 @@ export interface AnalyzedHost {
     asn?: string;
     org?: string;
     eventCount?: number;
+    total_commands?: number | null;
     isBlacklisted?: boolean;
     ports?: any[];
 }
@@ -265,9 +266,9 @@ export interface MalpediaActor {
     value: string;
     description: string;
     uuid: string;
-    threatScore: number;
+    threatScore?: number;
     sophistication: 'Low' | 'Medium' | 'High' | 'Critical';
-    scoreBreakdown: { activityScore: number; capabilityScore: number; impactScore: number };
+    scoreBreakdown?: { activityScore: number; capabilityScore: number; impactScore: number };
     meta: { country?: string; refs: string[]; synonyms: string[] };
     mitreIds?: string[];
     malwareFamilies?: string[];
@@ -275,6 +276,9 @@ export interface MalpediaActor {
     mitreAttackId?: string;
     ttpDetails?: { id: string; name: string; tactic: string; description?: string }[];
     ttps?: any[];
+    synonyms?: string[];
+    mitre_id?: string;
+    mitre_url?: string;
 }
 
 export interface MalpediaEntry {
@@ -373,9 +377,9 @@ export interface MalwareBazaarEntry {
     signature: string;
     clamav: string;
     vtpercent: string;
-    imphash: string;
-    ssdeep: string;
-    tlsh: string;
+    imphash?: string;
+    ssdeep?: string;
+    tlsh?: string;
 }
 
 export interface FeodoTrackerEntry {
@@ -415,8 +419,8 @@ export interface ThreatFoxEntry {
     last_seen_utc: string | null;
     confidence_level: number;
     reference: string | null;
-    tags: string[] | null;
-    reporter: string;
+    tags?: string[] | null;
+    reporter?: string;
 }
 
 export interface RansomWatchPost {
@@ -434,6 +438,7 @@ export interface RansomWatchPost {
 export interface RansomWatchGroup {
     name: string;
     locations: { slug: string; available: boolean; fqdn: string; version: number }[];
+    profile?: string[];
     meta: string | null;
 }
 

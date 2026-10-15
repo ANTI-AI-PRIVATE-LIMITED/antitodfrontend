@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Trash2, Sparkles, StopCircle, Loader2, Terminal, Zap } from 'lucide-react';
 import { AnalyzedHost, MalpediaActor, CveEntry } from '../../types';
-import { createThreatChat } from '../../services/aiConverter';
-import { Chat } from "@google/genai";
+import { createThreatChat, ThreatChatSession } from '../../services/aiConverter';
 
 interface ChatViewProps {
     results: AnalyzedHost[];
@@ -20,7 +19,7 @@ interface Message {
 
 // Fixed "Cannot find namespace 'React'" error by adding React to imports
 export const ChatView: React.FC<ChatViewProps> = ({ results, actors, cveData }) => {
-    const [chatSession, setChatSession] = useState<Chat | null>(null);
+    const [chatSession, setChatSession] = useState<ThreatChatSession | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);

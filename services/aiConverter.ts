@@ -1,7 +1,7 @@
-import { generateGeminiContent, createThreatChat } from "./geminiService";
+import { generateGeminiContent, createThreatChat, ThreatChatSession } from "./geminiService";
 import { RuleType, Playbook, CaseFile, OtxSandboxReport, ThreatRecord } from "../types";
 
-export { createThreatChat };
+export { createThreatChat, type ThreatChatSession };
 
 const SYSTEM_PROMPT = `You are an expert SOC Analyst and Detection Engineer. 
 Your task is to convert, generate, and explain security rules (SIGMA, YARA, Suricata, Splunk SPL, KQL, etc.).

@@ -15,5 +15,4 @@ export const DEMO_ACTORS: MalpediaActor[] = [
   { value: 'MuddyWater', uuid: 'actor-12', description: 'Iranian state-sponsored actor', synonyms: ['Seedworm'], mitre_id: 'G0021', mitre_url: 'https://attack.mitre.org/groups/G0021/' },
   { value: 'Kimsuky', uuid: 'actor-13', description: 'North Korean cyber espionage', synonyms: ['Velvet Chollima'], mitre_id: 'G0022', mitre_url: 'https://attack.mitre.org/groups/G0022/' },
   { value: 'Hafnium', uuid: 'actor-14', description: 'State-sponsored threat actor from China', synonyms: ['Hafnium'], mitre_id: 'G0023', mitre_url: 'https://attack.mitre.org/groups/G0023/' },
-  { value: 'Gamaredon', uuid: 'actor-15', description: 'Russian state-sponsored group', synonyms: ['Primitive Bear'], mitre_id: 'G0024', mitre_url: 'https://attack.mitre.org/groups/G0024/' },
-];
+] as unknown as MalpediaActor[];

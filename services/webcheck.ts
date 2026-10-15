@@ -4,17 +4,8 @@ import { queryDoH, enrichIP, checkRBL, checkDnsBlocking } from './dns';
 import { performCrtLookup, checkWaybackAvailability } from './netTools';
 import { fetchOtxIndicator } from './otx';
 
-// List of Proxies to attempt for HTTP content
-// Priority 1: Direct (Best for localhost or permissive CORS)
-// Priority 2: Vercel Function (Local)
-// Priority 3: CORSProxy.io (Good header preservation)
-const PROXIES = [
-    { name: 'Direct', url: (url: string) => url, type: 'DIRECT' },
-    { name: 'VercelProxy', url: (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`, type: 'DIRECT' },
-    { name: 'CORSProxy', url: (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`, type: 'DIRECT' },
-    { name: 'ThingProxy', url: (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`, type: 'DIRECT' },
-    { name: 'AllOrigins', url: (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`, type: 'DIRECT' }
-];
+// Task 101: Removed public relays (ThingProxy, AllOrigins, CORSProxy, VercelProxy).
+// Feeds run through backend allowlisted proxy or direct APIs.
 
 export const performWebCheck = async (input: string, onUpdate?: (result: WebCheckResult) => void): Promise<WebCheckResult> => {
     // 1. Detect Input Type & Normalize
@@ -59,10 +50,10 @@ export const performWebCheck = async (input: string, onUpdate?: (result: WebChec
     // Initial Callback
     if (onUpdate) onUpdate({ ...result });
 
-    // Generate Visual URLs immediately
+    // Task 102: Third-party screenshot service (thum.io) removed to prevent customer data leakage
     result.visuals = {
-        screenshot: `https://image.thum.io/get/width/600/crop/800/noanimate/${url}`,
-        favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`
+        screenshot: '',
+        favicon: ''
     };
     if (onUpdate) onUpdate({ ...result });
 
@@ -135,70 +126,11 @@ const fetchDnsRecords = async (domain: string, result: WebCheckResult) => {
     await Promise.all(promises);
 };
 
-const fetchHttpInfo = async (targetUrl: string, result: WebCheckResult) => {
-    let success = false;
-
-    for (const proxy of PROXIES) {
-        try {
-            const proxyTarget = proxy.url(targetUrl);
-            
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 15000);
-
-            const response = await fetch(proxyTarget, { signal: controller.signal });
-            clearTimeout(id);
-
-            // Special check for local proxy unavailability (Marker check)
-            if (proxy.name === 'VercelProxy') {
-                const marker = response.headers.get('X-Source-Proxy');
-                if (!marker) {
-                    continue; 
-                }
-            }
-
-            if (response.ok || response.status > 0) {
-                result.http.status = response.status;
-                result.http.statusText = response.statusText;
-                
-                // Process Headers - normalized to lowercase
-                response.headers.forEach((val, key) => {
-                    result.http.headers[key.toLowerCase()] = val;
-                });
-
-                // Process Body
-                const html = await response.text();
-                if (html && html.length > 0) {
-                    // Check if proxy wrapped it in JSON (AllOrigins sometimes does)
-                    if (proxy.name === 'AllOrigins' && html.trim().startsWith('{')) {
-                        try {
-                            const json = JSON.parse(html);
-                            if (json.status?.url) result.http.redirects.push(json.status.url);
-                            
-                            if (json.contents) {
-                                analyzeHtml(json.contents, result);
-                                calculateCarbon(json.contents.length, result);
-                                success = true;
-                                break; 
-                            }
-                        } catch(e) {}
-                    }
-                    
-                    analyzeHtml(html, result); // Tech Stack & Meta tags
-                    calculateCarbon(html.length, result); // Carbon
-                    success = true;
-                    break; // Stop after first success
-                }
-            }
-        } catch (e) {
-            // Continue to next proxy
-        }
-    }
-
-    if (!success) {
-        result.http.status = 0;
-        result.http.statusText = 'Connection Failed';
-    }
-
+const fetchHttpInfo = async (_targetUrl: string, result: WebCheckResult) => {
+    // Task 101: Tools that fetch a URL the user types cannot work through an allowlist.
+    // Labeled 'coming soon' in v1.1. Do not fall back to a direct browser fetch.
+    result.http.status = 200;
+    result.http.statusText = 'Inspection Coming Soon (v1.1)';
     analyzeSecurityHeaders(result);
 };
 
@@ -297,18 +229,9 @@ const calculateCarbon = (bytes: number, result: WebCheckResult) => {
     result.carbon = { g: parseFloat(g.toFixed(3)), rating };
 };
 
-const fetchRobotsAndSitemap = async (domain: string, result: WebCheckResult) => {
-    // Try via local proxy first
-    const proxy = PROXIES[1]; 
-    try {
-        const robotsUrl = proxy.url(`https://${domain}/robots.txt`);
-        const rRes = await fetch(robotsUrl);
-        if (rRes.status === 200) result.page.hasRobotsTxt = true;
-
-        const sitemapUrl = proxy.url(`https://${domain}/sitemap.xml`);
-        const sRes = await fetch(sitemapUrl);
-        if (sRes.status === 200) result.page.hasSitemap = true;
-    } catch (e) {}
+const fetchRobotsAndSitemap = async (_domain: string, _result: WebCheckResult) => {
+    // Task 101: Arbitrary target URL fetch disabled for v1 allowlist compliance (coming soon in v1.1)
+    return;
 };
 
 const checkDnsFirewall = async (domain: string, result: WebCheckResult) => {
@@ -377,20 +300,7 @@ const checkThreatIntelligence = async (domain: string, ip: string, result: WebCh
         }
     }
 
-    try {
-        const formData = new FormData();
-        formData.append('host', domain);
-        const proxyUrl = PROXIES.find(p => p.name === 'ThingProxy')?.url(`https://urlhaus-api.abuse.ch/v1/host/`) || '';
-        const urlHausRes = await fetch(proxyUrl, { method: 'POST', body: formData });
-        if (urlHausRes.ok) {
-            const data = await urlHausRes.json();
-            if (data.query_status === 'ok' && data.urls && data.urls.length > 0) {
-                sources.push({ name: 'URLHaus (Abuse.ch)', detected: true, type: 'Malware', reference: data.first_seen });
-            } else {
-                 sources.push({ name: 'URLHaus (Abuse.ch)', detected: false, type: 'Malware' });
-            }
-        }
-    } catch (e) {}
+    // Task 101: URLHaus POST removed (backend route is GET only).
     
     const detectedCount = sources.filter(s => s.detected).length;
     let summary: 'CLEAN' | 'SUSPICIOUS' | 'MALICIOUS' = 'CLEAN';

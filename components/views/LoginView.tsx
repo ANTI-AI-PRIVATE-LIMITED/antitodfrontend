@@ -17,7 +17,11 @@ import {
 } from "lucide-react";
 import { isPublicDemo, enterDemoMode } from "../../src/utils/demoMode";
 
-export const LoginView: React.FC = () => {
+interface LoginViewProps {
+  onNavigateToSignup?: () => void;
+}
+
+export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
   const { saveToken, isAuthenticated } = useAuth();
   const [step, setStep] = useState<"password" | "otp">("password");
   const [email, setEmail] = useState("");
@@ -32,6 +36,12 @@ export const LoginView: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMessage, setForgotMessage] = useState<string | null>(null);
   const [isForgotLoading, setIsForgotLoading] = useState(false);
+
+  // Unverified email screen state (Task 100)
+  const [isEmailUnverified, setIsEmailUnverified] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const [verificationCooldown, setVerificationCooldown] = useState(0);
 
   const isAccountLocked = error?.toLowerCase().includes("locked");
 
@@ -52,6 +62,31 @@ export const LoginView: React.FC = () => {
       setForgotMessage(handleApiError(err));
     } finally {
       setIsForgotLoading(false);
+    }
+  };
+
+  // Cooldown timer for resend verification
+  useEffect(() => {
+    if (verificationCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setVerificationCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [verificationCooldown]);
+
+  const handleResendVerification = async () => {
+    const target = email.trim();
+    if (!target || verificationCooldown > 0) return;
+    setIsResendingVerification(true);
+    setVerificationStatus(null);
+    try {
+      const res = await authService.resendVerification(target);
+      setVerificationStatus(res.message || "Verification email sent. Please check your inbox.");
+      setVerificationCooldown(60);
+    } catch (err) {
+      setVerificationStatus(handleApiError(err));
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -99,7 +134,21 @@ export const LoginView: React.FC = () => {
           window.location.href = "/";
         }, 300);
       }
-    } catch (err) {
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const code = err?.response?.data?.code;
+      const dataMessage = err?.response?.data?.message || err?.response?.data?.error;
+      const isUnverified =
+        status === 403 &&
+        (code === "EMAIL_NOT_VERIFIED" ||
+          (typeof dataMessage === "string" && dataMessage.toLowerCase().includes("email not verified")));
+
+      if (isUnverified) {
+        setIsEmailUnverified(true);
+        setError(null);
+        return;
+      }
+
       const errorMessage = handleApiError(err);
       setError(errorMessage);
       console.error("[Login] Password error:", errorMessage);
@@ -137,7 +186,29 @@ export const LoginView: React.FC = () => {
       setTimeout(() => {
         window.location.href = "/";
       }, 300);
-    } catch (err) {
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const code = err?.response?.data?.code;
+      const dataMessage = err?.response?.data?.message || err?.response?.data?.error;
+      const isRateLimitedOrTooMany =
+        status === 429 ||
+        code === "TOO_MANY_ATTEMPTS" ||
+        (typeof dataMessage === "string" &&
+          (dataMessage.toLowerCase().includes("too many") || dataMessage.toLowerCase().includes("locked")));
+
+      if (isRateLimitedOrTooMany) {
+        // Task 100: 429 after too many wrong OTP tries: send user back to password step
+        setStep("password");
+        setOtp("");
+        setAdminId(null);
+        setError(
+          typeof dataMessage === "string"
+            ? dataMessage
+            : "Too many incorrect OTP attempts. You have been returned to the password step for security."
+        );
+        return;
+      }
+
       const errorMessage = handleApiError(err);
       setError(errorMessage);
       console.error("[Login] OTP error:", errorMessage);
@@ -207,19 +278,89 @@ export const LoginView: React.FC = () => {
 
         {/* Login card */}
         <div className="bg-[#111]/60 backdrop-blur-md border border-neutral-800 rounded-2xl p-8 shadow-2xl animate-slide-in-up">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            {step === "password" ? (
-              <>
-                <Lock className="w-6 h-6 text-red-500" />
-                Admin Login
-              </>
-            ) : (
-              <>
-                <KeyRound className="w-6 h-6 text-red-500" />
-                Verify Identity
-              </>
-            )}
-          </h2>
+          {isEmailUnverified ? (
+            <div className="space-y-6 text-center animate-fade-in font-mono">
+              <div className="w-16 h-16 mx-auto bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center text-amber-400">
+                <Mail className="w-8 h-8 animate-pulse" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-white font-cyber tracking-wide">
+                  Confirm your email first
+                </h2>
+                <p className="text-xs text-neutral-400">
+                  Your email address requires confirmation before signing in. We sent a verification link to:
+                </p>
+                <p className="text-xs font-bold text-amber-400 bg-neutral-900/90 p-2.5 rounded-lg border border-neutral-800 break-all select-all">
+                  {email}
+                </p>
+                <p className="text-[11px] text-neutral-500 pt-1">
+                  Click the link in the email to activate your account and access live operations.
+                </p>
+              </div>
+
+              {verificationStatus && (
+                <div
+                  className={`p-3 rounded-lg text-xs border ${
+                    verificationStatus.toLowerCase().includes("sent")
+                      ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
+                      : "bg-red-950/40 border-red-500/40 text-red-300"
+                  }`}
+                >
+                  {verificationStatus}
+                </div>
+              )}
+
+              <div className="space-y-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResendingVerification || verificationCooldown > 0}
+                  className="w-full bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white text-xs font-bold py-3 px-4 rounded-lg border border-neutral-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                >
+                  {isResendingVerification ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                      <span>Sending verification email...</span>
+                    </>
+                  ) : verificationCooldown > 0 ? (
+                    <span>Resend available in {verificationCooldown}s</span>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-4 h-4 text-amber-400" />
+                      <span>Resend verification email</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEmailUnverified(false);
+                    setError(null);
+                    setVerificationStatus(null);
+                  }}
+                  className="w-full text-xs text-neutral-400 hover:text-white font-mono transition-colors py-1"
+                >
+                  ← Back to Login
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                {step === "password" ? (
+                  <>
+                    <Lock className="w-6 h-6 text-red-500" />
+                    Admin Login
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-6 h-6 text-red-500" />
+                    Verify Identity
+                  </>
+                )}
+              </h2>
 
           {error && (
             <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-lg space-y-2 animate-shake">
@@ -363,6 +504,23 @@ export const LoginView: React.FC = () => {
                     No Honeypot Needed
                   </span>
                 </button>
+
+                <div className="pt-3 text-center border-t border-neutral-800/80 mt-2 font-mono text-xs text-neutral-400">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onNavigateToSignup) {
+                        onNavigateToSignup();
+                      } else {
+                        window.location.href = '/signup';
+                      }
+                    }}
+                    className="text-red-400 hover:text-red-300 font-bold hover:underline"
+                  >
+                    Create an account →
+                  </button>
+                </div>
               </div>
             </form>
           ) : (
@@ -458,7 +616,9 @@ export const LoginView: React.FC = () => {
               Secure admin access only • MFA via email OTP
             </p>
           </div>
-        </div>
+        </>
+      )}
+    </div>
 
         {/* Footer */}
         <div className="mt-8 text-center">

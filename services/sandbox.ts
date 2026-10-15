@@ -1,6 +1,7 @@
 
 import { SandboxNetworkLog, DomMutationLog, DarkwebScreenshot, IpDataResponse } from '../types';
 import { checkRBL, enrichIP, checkDnsBlocking } from './dns';
+import { toProxyUrl } from './proxy';
 
 // Configuration interface
 interface SandboxConfig {
@@ -15,12 +16,9 @@ const CONTENT_CACHE = new Map<string, { blobUrl: string, timestamp: number, muta
 const CACHE_TTL = 1000 * 60 * 15; // 15 Minutes
 
 // --- PROXY STRATEGY ---
-// We use a racing strategy: fire requests to multiple proxies, take the first success.
+// Task 101: Unified backend allowlisted proxy route
 const FAST_PROXIES = [
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
-    (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`
+    (url: string) => toProxyUrl(url),
 ];
 
 // --- TOR BRIDGES ---

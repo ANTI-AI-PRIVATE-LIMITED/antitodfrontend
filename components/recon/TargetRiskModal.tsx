@@ -27,6 +27,7 @@ interface TargetRiskModalProps {
   loading: boolean;
   onClose: () => void;
   onTargetUpdated?: (updatedTarget: Target) => void;
+  onRescanSuccess?: () => void;
   onPlanUpgradeRequired?: () => void;
   canManageTargets?: boolean;
 }

@@ -1,6 +1,7 @@
 
 import { RansomWatchPost, RansomWatchGroup } from '../types';
-import { BACKEND_URL, API_ENDPOINTS } from '../config/config';
+import { API_ENDPOINTS } from '../config/config';
+import api from '../api/client';
 import { fetchJsonWithCors } from './http';
 import { DEMO_MODE } from '../src/services/dataProvider';
 import { DEMO_RANSOMWARE_POSTS, DEMO_RANSOMWARE_GROUPS } from '../src/data/demo/ransomware';
@@ -26,20 +27,21 @@ const mapLiveVictims = (json: any): RansomWatchPost[] => {
 
 const fetchRansomwareLive = async (): Promise<RansomWatchPost[]> => {
     try {
-        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin-auth-token') : null;
-        const res = await fetch(`${BACKEND_URL}${API_ENDPOINTS.PROXY_RANSOMWARE_LIVE}`, {
-            headers: {
-                accept: 'application/json',
-                ...(token ? { authtoken: token } : {}),
-            },
-        });
-
-        if (res.ok) {
-            const json = await res.json();
-            return mapLiveVictims(json);
+        const res = await api.get<any>(API_ENDPOINTS.PROXY_RANSOMWARE_LIVE);
+        if (res.data) {
+            return mapLiveVictims(res.data);
         }
-    } catch {
-        // Fallback to open RansomWatch feed
+    } catch (err: any) {
+        const status = err.response?.status;
+        if (status === 502) {
+            console.warn('[Ransomware.live Proxy] 502 PROVIDER_ERROR: Upstream Ransomware.live feed unreachable');
+        } else if (status === 503) {
+            console.warn('[Ransomware.live Proxy] 503 PROVIDER_NOT_CONFIGURED: RANSOMWARE_LIVE_API_KEY is not configured on backend');
+        } else if (status === 429) {
+            console.warn('[Ransomware.live Proxy] 429 PROXY_RATE_LIMITED: Ransomware.live proxy rate limit exceeded');
+        } else {
+            console.warn('[Ransomware.live Proxy] Error fetching live ransomware data:', err.message);
+        }
     }
     return [];
 };

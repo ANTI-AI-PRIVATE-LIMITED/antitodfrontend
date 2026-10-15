@@ -129,7 +129,7 @@ export const filterHost = (host: AnalyzedHost, filters: QueryFilter[], freeText:
     for (const f of filters) {
         const key = f.key;
         const val = f.value.toLowerCase();
-        let fieldVal: string | number | boolean | undefined;
+        let fieldVal: string | number | boolean | null | undefined;
 
         switch (key) {
             case 'ip': fieldVal = host.ip; break;
@@ -141,7 +141,7 @@ export const filterHost = (host: AnalyzedHost, filters: QueryFilter[], freeText:
             case 'sig': fieldVal = host.signatures.map(s => s.name).join(' ').toLowerCase(); break;
             case 'mitre': fieldVal = host.signatures.map(s => s.mitreTactic).join(' ').toLowerCase(); break;
             case 'days': fieldVal = host.activeDays; break;
-            case 'urlhaus': fieldVal = host.isUrlHaus; break;
+            case 'urlhaus': fieldVal = Boolean(host.isUrlHaus); break;
             // OTX Filters
             case 'malware': fieldVal = host.otxData?.malware_families.join(' ').toLowerCase() || ''; break;
             case 'adversary': fieldVal = host.otxData?.adversaries.join(' ').toLowerCase() || ''; break;
@@ -173,7 +173,7 @@ export const filterActor = (actor: MalpediaActor, filters: QueryFilter[], freeTe
         const textMatch = 
             actor.value.toLowerCase().includes(freeText) ||
             actor.description.toLowerCase().includes(freeText) ||
-            (actor.meta.country && actor.meta.country.toLowerCase().includes(freeText));
+            (actor.meta?.country && actor.meta.country.toLowerCase().includes(freeText));
         if (!textMatch) return false;
     }
 
@@ -184,9 +184,9 @@ export const filterActor = (actor: MalpediaActor, filters: QueryFilter[], freeTe
 
         switch (key) {
             case 'name': fieldVal = actor.value.toLowerCase(); break;
-            case 'country': fieldVal = actor.meta.country?.toLowerCase(); break;
+            case 'country': fieldVal = actor.meta?.country?.toLowerCase(); break;
             case 'score': fieldVal = actor.threatScore; break;
-            case 'sophistication': fieldVal = actor.sophistication.toLowerCase(); break;
+            case 'sophistication': fieldVal = actor.sophistication?.toLowerCase(); break;
             case 'source': fieldVal = actor.source?.toLowerCase(); break;
             case 'malware': fieldVal = actor.malwareFamilies?.join(' ').toLowerCase(); break;
             case 'mitre': fieldVal = actor.mitreIds?.join(' ').toLowerCase(); break;

@@ -330,12 +330,12 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
     const highHosts = results.filter(h => h.riskLevel === 'HIGH').length;
     
     const iocCounts = [
-        { label: 'URLHaus', value: urlHausItems.length, tone: 'neutral' },
-        { label: 'Feodo C2', value: feodoItems.length, tone: 'danger' },
-        { label: 'ThreatFox', value: threatFoxItems.length, tone: 'warning' },
-        { label: 'Bazaar', value: malwareBazaarItems.length, tone: 'neutral' },
-        { label: 'SSLBL', value: sslBlItems.length, tone: 'neutral' },
-        { label: 'JA3', value: ja3Items.length, tone: 'warning' }
+        { label: 'URLHaus', value: urlHausItems.length, tone: 'neutral', color: 'text-neutral-400' },
+        { label: 'Feodo C2', value: feodoItems.length, tone: 'danger', color: 'text-red-500' },
+        { label: 'ThreatFox', value: threatFoxItems.length, tone: 'warning', color: 'text-amber-500' },
+        { label: 'Bazaar', value: malwareBazaarItems.length, tone: 'neutral', color: 'text-neutral-400' },
+        { label: 'SSLBL', value: sslBlItems.length, tone: 'neutral', color: 'text-neutral-400' },
+        { label: 'JA3', value: ja3Items.length, tone: 'warning', color: 'text-amber-500' }
     ];
 
     const iocStats = useMemo(() => {
@@ -377,7 +377,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
 
     // Aggregate Latest IOCs for Ticker
     const latestIocs = useMemo(() => {
-        const items = [];
+        const items: any[] = [];
         feodoItems.slice(0, 10).forEach(i => items.push({ src: 'FEODO', val: `${i.ip_address}:${i.port}`, type: 'C2', threat: i.malware }));
         urlHausItems.slice(0, 10).forEach(i => items.push({ src: 'URLHAUS', val: i.url, type: 'URL', threat: i.threat }));
         threatFoxItems.slice(0, 10).forEach(i => items.push({ src: 'THREATFOX', val: i.ioc_value, type: i.ioc_type, threat: i.malware_printable }));

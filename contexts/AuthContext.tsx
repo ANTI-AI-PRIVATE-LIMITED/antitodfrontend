@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setAdmin(DEMO_ADMIN_PROFILE);
       localStorage.setItem('xyberah_active_admin_id', DEMO_ADMIN_PROFILE.AdminID);
       localStorage.setItem('xyberah_current_admin', JSON.stringify(DEMO_ADMIN_PROFILE));
-      setGroups([{ GroupID: 'demo', GroupName: 'Demo Visitors (Read Only)' }]);
+      setGroups([{ GroupId: 'demo', GroupName: 'Demo Visitors (Read Only)', Name: 'Demo Visitors (Read Only)' }]);
       setPermissions(DEMO_READONLY_PERMISSIONS);
       setPermissionsLoaded(true);
       return;
@@ -142,15 +142,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const stored = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
     if (stored) {
       if (isStoredSessionExpired()) {
-        localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-        localStorage.removeItem(AUTH_CONFIG.TOKEN_EXPIRES_KEY);
-        setToken(null);
+        removeToken();
       } else {
         setToken(stored);
       }
     }
     setInitialized(true);
-  }, []);
+  }, [removeToken]);
 
   useEffect(() => {
     if (!initialized) return;

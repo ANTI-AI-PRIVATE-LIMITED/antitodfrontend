@@ -35,7 +35,7 @@ class BinaryReader {
     view: DataView;
     offset: number;
 
-    constructor(buffer: ArrayBuffer, offset: number = 0) {
+    constructor(buffer: ArrayBufferLike, offset: number = 0) {
         this.view = new DataView(buffer);
         this.offset = offset;
     }
@@ -557,7 +557,7 @@ export const detectNetworkAnomalies = (packets: NetworkPacket[], streams: TcpStr
     const dnsPackets = packets.filter(p => p.protocol === 'DNS');
     dnsPackets.forEach(p => {
         const questions = p.details?.app?.dns?.questions || [];
-        questions.forEach(q => {
+        questions.forEach((q: any) => {
              // 3a. Length & Depth
              if (q.name.length > 50 && q.name.split('.').length > 4) { 
                  anomalies.push({
@@ -576,7 +576,7 @@ export const detectNetworkAnomalies = (packets: NetworkPacket[], streams: TcpStr
              let maxEntropy = 0;
              let suspiciousLabel = '';
 
-             labels.forEach(label => {
+             labels.forEach((label: string) => {
                  if (label.length > 12) { // Analyze labels with sufficient length
                      const encoder = new TextEncoder();
                      const entropy = calculateEntropy(encoder.encode(label));
@@ -602,7 +602,7 @@ export const detectNetworkAnomalies = (packets: NetworkPacket[], streams: TcpStr
         
         // 3c. Suspicious Answers (TXT / NULL)
         const answers = p.details?.app?.dns?.answers || [];
-        answers.forEach(a => {
+        answers.forEach((a: any) => {
             if (a.type === 'TXT' && a.data.length > 50) {
                  const encoder = new TextEncoder();
                  const txtEntropy = calculateEntropy(encoder.encode(a.data));
@@ -769,7 +769,7 @@ export const extractIocs = (packets: NetworkPacket[]): IocCollection => {
         
         // DNS
         if (pkt.details?.app?.dns?.questions) {
-            pkt.details.app.dns.questions.forEach(q => domains.add(q.name));
+            pkt.details.app.dns.questions.forEach((q: any) => domains.add(q.name));
         }
         // TLS SNI
         if (pkt.details?.app?.tls?.sni) {
@@ -826,7 +826,7 @@ export const correlateThreats = (iocs: IocCollection, actors: MalpediaActor[]): 
     // Simple correlation logic
     iocs.domains.forEach(domain => {
         actors.forEach(actor => {
-            if (actor.description.includes(domain) || actor.meta.refs?.some(ref => ref.includes(domain))) {
+            if (actor.description.includes(domain) || actor.meta?.refs?.some(ref => ref.includes(domain))) {
                 const key = `${actor.uuid}-${domain}`;
                 if (!uniqueMatches.has(key)) {
                     matches.push({ actor, trigger: domain, type: 'IOC', confidence: 'HIGH' });
@@ -1221,7 +1221,7 @@ export const analyzePcap = async (file: File, actors: MalpediaActor[] = []): Pro
         }
         // Also check DNS answers for IPs
         if (p.details?.app?.dns?.answers) {
-            p.details.app.dns.answers.forEach(a => {
+            p.details.app.dns.answers.forEach((a: any) => {
                 if (a.type === 'A') uniqueIps.add(a.data);
             });
         }
@@ -1299,7 +1299,7 @@ export const analyzePcap = async (file: File, actors: MalpediaActor[] = []): Pro
     packets.forEach(p => {
         if (p.details?.app?.tls?.ja3) {
             const ja3 = p.details.app.tls.ja3;
-            const hash = ja3.split('').reduce((a,b) => ((a << 5) - a) + b.charCodeAt(0)|0, 0).toString(16);
+            const hash = ja3.split('').reduce((a: number, b: string) => ((a << 5) - a) + b.charCodeAt(0)|0, 0).toString(16);
             
             if (!tlsFingerprintsMap.has(hash)) {
                 tlsFingerprintsMap.set(hash, { hash, string: ja3, count: 0, riskScore: 0 });

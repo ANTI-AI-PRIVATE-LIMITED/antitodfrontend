@@ -1,11 +1,12 @@
 /** Set via `.env` — see `.env.example`. No production default (required for API calls). */
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
+export const BACKEND_URL = (import.meta as any).env?.VITE_BACKEND_URL ?? '';
 
 export const API_ENDPOINTS = {
     // Third-party provider proxies (server-side key injection; keys are not bundled in browser)
     PROXY_IPDATA: '/AdminRoutes/proxy/ipdata',
     PROXY_RANSOMWARE_LIVE: '/AdminRoutes/proxy/ransomware-live',
     PROXY_GEMINI: '/AdminRoutes/proxy/gemini',
+    PROXY_FETCH: '/AdminRoutes/proxy/fetch',
 
     // Admin endpoints
     ADMIN_LOGIN: '/AdminRoutes/adminLogin',
@@ -22,6 +23,8 @@ export const API_ENDPOINTS = {
     DELETE_SHIPPER: '/AdminRoutes/shippers/:shipperId',
     ADMIN_FORGOT_PASSWORD: '/AdminRoutes/forgotPassword',
     ADMIN_RESET_PASSWORD: '/AdminRoutes/resetPassword',
+    ADMIN_RESEND_VERIFICATION: '/AdminRoutes/resendVerification',
+    ADMIN_SIGNUP: '/AdminRoutes/signup',
 
     // RBAC
     RBAC_PERMISSIONS: '/AdminRoutes/rbac/permissions',

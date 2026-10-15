@@ -6,6 +6,7 @@ import { DEMO_MODE } from './services/dataProvider';
 import { isPublicDemo } from './utils/demoMode';
 import { SettingsModal } from '../components/SettingsModal';
 import { PlanNoticeModal } from './components/modals/PlanNoticeModal';
+import { ApiEventToast } from './components/common/ApiEventToast';
 import {
     AppState,
     LogEntry,
@@ -1114,7 +1115,7 @@ export const App: React.FC = () => {
                 }
             }
 
-            if (analysisResults.length === 0) {
+            if (analysisResults.length === 0 && isPublicDemo()) {
                 try {
                     const response = await fetch(
                         '/data/base_logs.json',
@@ -1418,7 +1419,7 @@ export const App: React.FC = () => {
             return;
         }
 
-        if (DEMO_MODE) {
+        if (isPublicDemo()) {
             setNewsLastUpdated(new Date());
             return;
         }
@@ -2158,6 +2159,7 @@ export const App: React.FC = () => {
             )}
 
             <PlanNoticeModal />
+            <ApiEventToast onNavigate={navigate} />
             <CommandPalette
                 isOpen={searchOpen}
                 onClose={() =>

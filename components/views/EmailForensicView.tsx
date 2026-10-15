@@ -5,8 +5,7 @@ import { analyzeEmailContent } from '../../services/emailForensics';
 import { enrichIP, checkRBL, checkDomainSecurity, queryDoH, SecurityCheckResult } from '../../services/dns';
 import { performRdapLookup, WhoisResult } from '../../services/netTools';
 import { downloadFile } from '../../services/exporter';
-import { formatEmailContext, createThreatChat } from '../../services/aiConverter';
-import { Chat } from "@google/genai";
+import { formatEmailContext, createThreatChat, ThreatChatSession } from '../../services/aiConverter';
 
 interface Message {
     id: string;
@@ -48,7 +47,7 @@ export const EmailForensicView: React.FC<EmailForensicViewProps> = ({ savedResul
 
     // AI Chat State
     const [showAiModal, setShowAiModal] = useState(false);
-    const [chatSession, setChatSession] = useState<Chat | null>(null);
+    const [chatSession, setChatSession] = useState<ThreatChatSession | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isAiLoading, setIsAiLoading] = useState(false);

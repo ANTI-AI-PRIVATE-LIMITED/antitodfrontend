@@ -824,6 +824,14 @@ export default function AnalysisPage({
                     </div>
 
                     <div>
+                      <span>Commands</span>
+
+                      <strong>
+                        {selectedHost.total_commands != null ? selectedHost.total_commands : '—'}
+                      </strong>
+                    </div>
+
+                    <div>
                       <span>Country</span>
 
                       <strong>

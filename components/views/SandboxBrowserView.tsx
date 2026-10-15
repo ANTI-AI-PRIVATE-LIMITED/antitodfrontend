@@ -602,6 +602,16 @@ export const SandboxBrowserView: React.FC = () => {
                     category={activeTab.threatCategory}
                 />
 
+                <div className="bg-amber-950/40 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-300 font-mono">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle size={14} className="text-amber-400 shrink-0" />
+                        <span>Live sandbox browser for arbitrary domains is transitioning to dedicated AWS container egress (Coming Soon in v1.1).</span>
+                    </div>
+                    <span className="text-[10px] bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded font-bold">
+                        COMING SOON
+                    </span>
+                </div>
+
                 <div className="flex-1 relative bg-white overflow-hidden">
                     {activeTab.loading ? (
                         <SecureConnectionLoader isDarkweb={activeTab.isDarkweb} />
@@ -637,17 +647,20 @@ export const SandboxBrowserView: React.FC = () => {
                         <iframe 
                             src={iframeSrc}
                             className="w-full h-full border-none bg-white"
-                            sandbox="allow-forms allow-same-origin allow-scripts"
+                            sandbox="allow-forms allow-scripts"
                             referrerPolicy="no-referrer"
                             title="Sandbox"
                         />
                     ) : (
                         // Empty State
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111] text-neutral-600">
-                            <Shield size={64} className="mb-4 opacity-20"/>
-                            <h3 className="text-xl font-bold text-[#888] mb-2">Secure Browsing Environment</h3>
-                            <p className="text-sm text-center max-w-md">
-                                Enter a URL to browse safely. All content is proxied, sanitized, and stripped of malicious scripts before rendering.
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111] text-neutral-500 p-8 text-center">
+                            <Shield size={64} className="mb-4 opacity-20 text-amber-500"/>
+                            <div className="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold rounded-full mb-3">
+                                COMING SOON IN V1.1
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2 font-cyber">Isolated Sandbox Browser</h3>
+                            <p className="text-xs text-neutral-400 max-w-md font-mono leading-relaxed">
+                                Live arbitrary web page rendering is undergoing migration to dedicated AWS containerized egress nodes to comply with strict production allowlisting policies.
                             </p>
                         </div>
                     )}

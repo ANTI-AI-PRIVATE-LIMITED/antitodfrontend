@@ -147,9 +147,22 @@ export const AccessControlView: React.FC = () => {
     setError(null);
   };
 
+  const isWeakPassword = (pw: string) => {
+    if (pw.length < 12) return true;
+    if (!/[A-Z]/.test(pw)) return true;
+    if (!/[a-z]/.test(pw)) return true;
+    if (!/[0-9]/.test(pw)) return true;
+    if (!/[^A-Za-z0-9]/.test(pw)) return true;
+    return false;
+  };
+
   const submitCreateUser = async () => {
     if (!email.trim() || !password) {
       setError('Email and password are required.');
+      return;
+    }
+    if (isWeakPassword(password)) {
+      setError('Password does not meet requirements: at least 12 characters with upper case, lower case, number and symbol.');
       return;
     }
     setSaving(true);
@@ -173,6 +186,10 @@ export const AccessControlView: React.FC = () => {
 
   const submitEditUser = async () => {
     if (!editUser) return;
+    if (password && isWeakPassword(password)) {
+      setError('Password does not meet requirements: at least 12 characters with upper case, lower case, number and symbol.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -283,6 +300,11 @@ export const AccessControlView: React.FC = () => {
             <X size={16} />
           </button>
         </div>
+        {error && (
+          <div className="mx-5 mt-4 p-3 bg-red-950/60 border border-red-500/50 rounded-lg text-xs font-mono text-red-200 animate-shake">
+            {error}
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 custom-scrollbar">{children}</div>
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-800">{footer}</div>
       </div>
@@ -646,9 +668,12 @@ export const AccessControlView: React.FC = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-black/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-cyber-cyan/50 focus:outline-none"
+              placeholder="••••••••••••"
+              className="w-full bg-black/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-cyber-cyan/50 focus:outline-none font-mono"
             />
+            <p className="text-[11px] text-gray-400 font-mono pt-1">
+              Password rule: at least 12 characters with upper case, lower case, number and symbol.
+            </p>
           </label>
           <div className="space-y-2">
             <span className="text-[10px] uppercase tracking-wider text-gray-500">Groups</span>
@@ -704,8 +729,11 @@ export const AccessControlView: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Leave blank to keep current"
-              className="w-full bg-black/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-cyber-cyan/50 focus:outline-none"
+              className="w-full bg-black/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-cyber-cyan/50 focus:outline-none font-mono"
             />
+            <p className="text-[11px] text-gray-400 font-mono pt-1">
+              Password rule: at least 12 characters with upper case, lower case, number and symbol.
+            </p>
           </label>
           <div className="space-y-2">
             <span className="text-[10px] uppercase tracking-wider text-gray-500">Groups</span>

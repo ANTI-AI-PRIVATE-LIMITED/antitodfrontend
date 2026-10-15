@@ -1,5 +1,6 @@
 
 import { MalpediaEntry, MalpediaActor } from '../types';
+import { toProxyUrl } from './proxy';
 
 // Helper to calculate score based on description analysis
 const calculateThreatScore = (description: string, refs: string[], synonyms: string[]) => {
@@ -216,10 +217,9 @@ export const fetchRemoteMalpedia = async (): Promise<MalpediaActor[]> => {
     // Malpedia feed URL
     const targetUrl = 'https://malpedia.caad.fkie.fraunhofer.de/api/get/misp';
     
-    // Proxy rotation to bypass CORS
+    // Proxy order: Backend proxy (Task 101 & 102) - direct fetch workarounds removed
     const PROXIES = [
-        (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`, // Vercel
-        (url: string) => url, // Direct
+        (url: string) => toProxyUrl(url),
     ];
 
     for (const proxy of PROXIES) {

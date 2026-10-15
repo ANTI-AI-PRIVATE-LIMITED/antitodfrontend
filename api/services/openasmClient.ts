@@ -217,6 +217,8 @@ export interface VulnerabilityQueryParams {
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC' | 'asc' | 'desc';
   workspaceId?: string;
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 export interface AssetGroupCreateResponse {

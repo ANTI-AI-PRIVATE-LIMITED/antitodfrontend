@@ -100,6 +100,33 @@ api.interceptors.response.use(
       }
     }
 
+    // Handle 400 Bad Request / Target Limit Reached (ASM customer cap)
+    if (error.response && error.response.status === 400) {
+      const data = error.response.data as any;
+      const isTargetLimit =
+        data?.reason === "target_limit_reached" ||
+        (Array.isArray(data?.skipped) &&
+          data.skipped.some((s: any) => s.reason === "target_limit_reached"));
+      if (isTargetLimit) {
+        const limitVal =
+          data?.limit ||
+          data?.skipped?.find((s: any) => s.reason === "target_limit_reached")?.limit ||
+          25;
+        console.warn("[API] 400 Target limit reached:", limitVal);
+        window.dispatchEvent(
+          new CustomEvent("plan-limit-reached", {
+            detail: {
+              status: 400,
+              code: "TARGET_LIMIT_REACHED",
+              limit: limitVal,
+              message: `Target limit reached (${limitVal} max). Your account has reached the maximum target cap. Upgrade your plan to increase capacity.`,
+              upgradeUrl: "/settings",
+            },
+          })
+        );
+      }
+    }
+
     // Handle 402 Payment Required / Plan Inactive
     if (error.response && error.response.status === 402) {
       const data = error.response.data as any;
@@ -180,10 +207,10 @@ api.interceptors.response.use(
       );
     }
 
-    // Handle 429 Too Many Requests / Account Lockout
+    // Handle 429 Too Many Requests / Account Lockout / Rescan Cooldown
     if (error.response && error.response.status === 429) {
       const data = error.response.data as any;
-      console.warn("[API] 429 Rate limited / Account locked:", data);
+      console.warn("[API] 429 Rate limited / Account locked / Rescan cooldown:", data);
       window.dispatchEvent(
         new CustomEvent("rate-limited", {
           detail: {
@@ -192,7 +219,11 @@ api.interceptors.response.use(
             message:
               data?.code === "ACCOUNT_LOCKED"
                 ? data?.message || "Account temporarily locked. Reset your password to unlock or try again later."
-                : data?.message || "Too many requests. Please wait a moment before trying again.",
+                : data?.code === "PROXY_RATE_LIMITED"
+                ? data?.message || "Security proxy rate limit exceeded, wait and retry"
+                : data?.code === "RESCAN_TOO_SOON"
+                ? data?.message || "Target scanned recently. Scans are limited to once per 10 minutes. Please wait before rescanning."
+                : data?.message || "Too many requests, wait and retry",
           },
         })
       );
@@ -218,21 +249,51 @@ export interface ApiErrorDetail {
   upgradeUrl?: string;
 }
 
-// Helper function to handle API errors and extract rich descriptions
 export const handleApiError = (error: unknown): string => {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<{
-      message?: string;
-      error?: string | { message?: string };
-      code?: string;
-      limit?: number;
-      used?: number;
-      upgrade_url?: string;
-    }>;
+  const response = (error as any)?.response;
+  if (axios.isAxiosError(error) || response) {
+    const status = response?.status;
+    const data = response?.data;
 
-    if (axiosError.response) {
-      const status = axiosError.response.status;
-      const data = axiosError.response.data;
+      // 400 Target Limit Reached (ASM customer cap)
+      if (
+        status === 400 &&
+        (data?.reason === "target_limit_reached" ||
+          (Array.isArray((data as any)?.skipped) &&
+            (data as any).skipped.some((s: any) => s.reason === "target_limit_reached")))
+      ) {
+        const cap =
+          data?.limit ||
+          (data as any)?.skipped?.find((s: any) => s.reason === "target_limit_reached")?.limit ||
+          25;
+        return `Target limit reached (${cap} max). Your account has reached the maximum target cap. Delete existing targets or upgrade your plan.`;
+      }
+
+      // 400 Weak Password (Access Control & User Management)
+      if (
+        status === 400 &&
+        (data?.code === "WEAK_PASSWORD" ||
+          (typeof data?.message === "string" && data.message.includes("WEAK_PASSWORD")) ||
+          (typeof data?.error === "string" && data.error.includes("WEAK_PASSWORD")))
+      ) {
+        if (typeof data?.message === "string" && data.message.includes("12 characters")) {
+          return data.message;
+        }
+        return "Password does not meet complexity requirements: at least 12 characters with upper case, lower case, number and symbol.";
+      }
+
+      // 403 Email Not Verified (Login)
+      if (
+        status === 403 &&
+        (data?.code === "EMAIL_NOT_VERIFIED" ||
+          (typeof data?.message === "string" && data.message.toLowerCase().includes("email not verified")) ||
+          (typeof data?.error === "string" && data.error.toLowerCase().includes("email not verified")))
+      ) {
+        if (typeof data?.message === "string" && data.message.toLowerCase().includes("confirm your email first")) {
+          return data.message;
+        }
+        return "Please confirm your email first. A verification link was sent to your email address.";
+      }
 
       // 402 Plan Inactive
       if (status === 402 || data?.code === "PLAN_INACTIVE") {
@@ -264,11 +325,76 @@ export const handleApiError = (error: unknown): string => {
       }
 
       // 429 Account Locked
-      if (status === 429 && data?.code === "ACCOUNT_LOCKED") {
+      if (
+        status === 429 &&
+        (data?.code === "ACCOUNT_LOCKED" ||
+          (typeof data?.message === "string" && data.message.toLowerCase().includes("locked")))
+      ) {
         return (
           data?.message ||
-          "Account temporarily locked due to too many failed attempts. Please reset your password to unlock."
+          "Account temporarily locked due to too many failed attempts. Try again later or reset your password to unlock immediately."
         );
+      }
+
+      // 429 Rescan Cooldown
+      if (status === 429 && data?.code === "RESCAN_TOO_SOON") {
+        return (
+          data?.message ||
+          "This target was scanned recently. Scans are limited to once per 10 minutes. Please wait before rescanning."
+        );
+      }
+
+      // 403 Security Proxy Host Not Allowed (Task 101)
+      if (
+        status === 403 &&
+        (data?.code === "HOST_NOT_ALLOWED" ||
+          (typeof data?.message === "string" && data.message.includes("HOST_NOT_ALLOWED")))
+      ) {
+        return (
+          data?.message ||
+          "Target host is not in the security proxy allowlist (403 HOST_NOT_ALLOWED)."
+        );
+      }
+
+      // 413 Payload Too Large (5MB limit) (Task 101)
+      if (
+        status === 413 ||
+        data?.code === "TOO_LARGE" ||
+        (typeof data?.message === "string" && data.message.toLowerCase().includes("too large"))
+      ) {
+        return (
+          data?.message ||
+          "Response payload exceeds the 5MB proxy size limit (413 TOO_LARGE)."
+        );
+      }
+
+      // 502 Upstream Error (Task 101)
+      if (
+        status === 502 ||
+        data?.code === "UPSTREAM_ERROR" ||
+        (typeof data?.message === "string" && data.message.includes("UPSTREAM_ERROR"))
+      ) {
+        return (
+          data?.message ||
+          "Upstream intelligence provider is temporarily unreachable (502 UPSTREAM_ERROR)."
+        );
+      }
+
+      // 429 Proxy Rate Limit (Task 101)
+      if (
+        status === 429 &&
+        (data?.code === "PROXY_RATE_LIMITED" ||
+          (typeof data?.message === "string" && data.message.includes("PROXY_RATE_LIMITED")))
+      ) {
+        return (
+          data?.message ||
+          "Security proxy rate limit exceeded. Please wait a moment and retry (429 PROXY_RATE_LIMITED)."
+        );
+      }
+
+      // 429 Generic Rate Limit
+      if (status === 429) {
+        return data?.message || "Too many requests, wait and retry";
       }
 
       if (data) {
@@ -276,10 +402,9 @@ export const handleApiError = (error: unknown): string => {
         if (typeof data.error === "object" && data.error?.message) return data.error.message;
         if (data.message) return data.message;
       }
-    }
 
-    if (axiosError.message) {
-      return axiosError.message;
+    if ((error as any)?.message) {
+      return (error as any).message;
     }
   }
 

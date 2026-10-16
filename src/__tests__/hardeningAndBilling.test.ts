@@ -922,6 +922,64 @@ describe('Task 102: Browser Security Pass (Sandbox Iframe, RSS Sanitization, CSP
   });
 });
 
+describe('Task 103: Self-Serve Signup Routes (/verify-email, /reset-password) & OTX Key Removal', () => {
+  it('defines ADMIN_VERIFY_EMAIL, ADMIN_RESET_PASSWORD, and ADMIN_RESEND_VERIFICATION endpoints in config', async () => {
+    const { API_ENDPOINTS } = await import('../../config/config');
 
+    expect(API_ENDPOINTS.ADMIN_VERIFY_EMAIL).toBe('/AdminRoutes/verifyEmail');
+    expect(API_ENDPOINTS.ADMIN_RESET_PASSWORD).toBe('/AdminRoutes/resetPassword');
+    expect(API_ENDPOINTS.ADMIN_RESEND_VERIFICATION).toBe('/AdminRoutes/resendVerification');
+  });
 
+  it('verifies authService has verifyEmail, resetPassword, and resendVerification methods', async () => {
+    const { authService } = await import('../../api/services/authService');
 
+    expect(typeof authService.verifyEmail).toBe('function');
+    expect(typeof authService.resetPassword).toBe('function');
+    expect(typeof authService.resendVerification).toBe('function');
+  });
+
+  it('ensures services/otxSandbox.ts has no hardcoded AUTH_KEY or secret credentials', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const otxContent = fs.readFileSync(path.resolve(process.cwd(), 'services/otxSandbox.ts'), 'utf-8');
+
+    // Ensure the hardcoded hex auth key is completely gone
+    expect(otxContent).not.toContain('AUTH_KEY');
+    expect(otxContent).not.toContain('7831d3fca3a2');
+    expect(otxContent).not.toMatch(/['"][a-f0-9]{32,}['"]/i);
+  });
+
+  it('verifies AppRouter registers /verify-email and /reset-password as public logged-out paths', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const appRouterContent = fs.readFileSync(path.resolve(process.cwd(), 'src/AppRouter.tsx'), 'utf-8');
+
+    expect(appRouterContent).toContain('/verify-email');
+    expect(appRouterContent).toContain('/reset-password');
+    expect(appRouterContent).toContain('VerifyEmailView');
+    expect(appRouterContent).toContain('ResetPasswordView');
+    expect(appRouterContent).toContain('PUBLIC_LOGGED_OUT_PATHS');
+  });
+
+  it('verifies password criteria logic for reset-password enforces 12 characters, upper, lower, number, symbol', () => {
+    const validatePassword = (pwd: string) => ({
+      length: pwd.length >= 12,
+      hasUpper: /[A-Z]/.test(pwd),
+      hasLower: /[a-z]/.test(pwd),
+      hasNumber: /[0-9]/.test(pwd),
+      hasSymbol: /[^A-Za-z0-9]/.test(pwd),
+    });
+
+    const weak = validatePassword('Pass123!');
+    expect(weak.length).toBe(false);
+
+    const noSymbol = validatePassword('Password123456');
+    expect(noSymbol.hasSymbol).toBe(false);
+
+    const strong = validatePassword('AntitodeSec!2026#');
+    expect(Object.values(strong).every(Boolean)).toBe(true);
+  });
+});

@@ -26,3 +26,5 @@ dist-ssr
 # Competing lockfiles (use package-lock.json)
 bun.lock
 bun.lockb
+
+*.tsbuildinfo

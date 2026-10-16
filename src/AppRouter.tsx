@@ -3,7 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { App } from './App';
 import { LoginView } from '../components/views/LoginView';
 import { SignupView } from '../components/views/SignupView';
+import { VerifyEmailView } from '../components/views/VerifyEmailView';
+import { ResetPasswordView } from '../components/views/ResetPasswordView';
 import { routeForView } from './data/routes';
+
+const PUBLIC_LOGGED_OUT_PATHS = ['/login', '/signup', '/verify-email', '/reset-password'];
 
 export default function AppRouter() {
   const { isAuthenticated, initialized } = useAuth();
@@ -23,7 +27,7 @@ export default function AppRouter() {
     const pathname = window.location.pathname;
 
     if (!isAuthenticated) {
-      if (pathname !== '/login' && pathname !== '/signup') {
+      if (!PUBLIC_LOGGED_OUT_PATHS.includes(pathname)) {
         window.history.replaceState(
           { view: 'login' },
           '',
@@ -37,9 +41,9 @@ export default function AppRouter() {
     /*
      * Authentication has completed.
      * The workspace itself owns route resolution, so AppRouter only
-     * needs to move an authenticated user away from the login screen.
+     * needs to move an authenticated user away from public logged-out screens.
      */
-    if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
+    if (PUBLIC_LOGGED_OUT_PATHS.includes(pathname) || pathname === '/') {
       const dashboardPath = routeForView('dashboard');
 
       if (window.location.pathname !== dashboardPath) {
@@ -85,6 +89,28 @@ export default function AppRouter() {
       );
     }
 
+    if (currentPath === '/verify-email') {
+      return (
+        <VerifyEmailView
+          onNavigateToLogin={() => {
+            window.history.pushState({ view: 'login' }, '', '/login');
+            setCurrentPath('/login');
+          }}
+        />
+      );
+    }
+
+    if (currentPath === '/reset-password') {
+      return (
+        <ResetPasswordView
+          onNavigateToLogin={() => {
+            window.history.pushState({ view: 'login' }, '', '/login');
+            setCurrentPath('/login');
+          }}
+        />
+      );
+    }
+
     return (
       <LoginView
         onNavigateToSignup={() => {
@@ -96,4 +122,4 @@ export default function AppRouter() {
   }
 
   return <App />;
-}
+}

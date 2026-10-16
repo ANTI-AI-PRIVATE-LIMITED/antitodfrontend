@@ -119,6 +119,17 @@ export const authService = {
     },
 
     /**
+     * Verify email with token from confirmation email.
+     */
+    async verifyEmail(token: string): Promise<{ message: string }> {
+        const response = await api.post<{ message: string }>(
+            API_ENDPOINTS.ADMIN_VERIFY_EMAIL,
+            { token }
+        );
+        return response.data;
+    },
+
+    /**
      * Resend verification email for unverified account (Task 100).
      */
     async resendVerification(adminEmail: string): Promise<{ message: string }> {

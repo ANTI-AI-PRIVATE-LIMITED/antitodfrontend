@@ -8,22 +8,16 @@ import {
   Globe,
   HardDrive,
   HelpCircle,
-  Layers,
   LayoutDashboard,
-  Mail,
   MonitorPlay,
-  Network,
   Newspaper,
-  PencilLine,
   Search,
   Settings,
-  Share2,
   Shield,
   ShieldAlert,
   Skull,
   Target,
   Users,
-  Zap,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -88,16 +82,6 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'Forensics',
     items: [
       { id: 'analysis', icon: FileText, label: 'Log Analysis', desc: 'Parse, normalize, and score raw server logs.' },
-      { id: 'network', icon: Network, label: 'Network Forensics', desc: 'Analyze PCAP files, TCP streams, and packet headers.' },
-      { id: 'email_forensic', icon: Mail, label: 'Email Forensic', desc: 'Analyze email headers, hops, and authentication.' },
-    ],
-  },
-  {
-    title: 'Modeling',
-    items: [
-      { id: 'topology', icon: Share2, label: 'Network Topology', desc: 'Security-focused network builder with attack path simulation.' },
-      { id: 'threat_canvas', icon: PencilLine, label: 'Threat Canvas', desc: 'Interactive STRIDE threat modeling with AI analysis.' },
-      { id: 'navigator', icon: Layers, label: 'MITRE Navigator', desc: 'Map coverage against MITRE ATT&CK framework.' },
     ],
   },
   {
@@ -114,7 +98,6 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Tools',
     items: [
-      { id: 'cyberchef', icon: Zap, label: 'CyberChef', desc: 'Tactical data transformation and encoding/decoding suite.' },
       { id: 'nettools', icon: HardDrive, label: 'Network Tools', desc: 'DNS lookup, Whois, Traceroute, and more.' },
       { id: 'webcheck', icon: Globe, label: 'Web Check', desc: 'Deep website analysis and header inspection.' },
       { id: 'sandbox', icon: HardDrive, label: 'Security Sandbox', desc: 'Secure web browser for inspecting malicious sites.', status: 'hidden' },
@@ -162,7 +145,6 @@ export const VISIBLE_NAV_ITEMS = VISIBLE_NAV_GROUPS.flatMap((group) => group.ite
 // Backwards compatibility with the IDs used by the current redesign screens.
 export const VIEW_ALIASES: Record<string, string> = {
   attack_map: 'attackmap',
-  mitre: 'navigator',
   ioc: 'iocs',
   exploit: 'exploits',
 };

@@ -61,7 +61,6 @@ import NewsPage from '../pages/NewsPage';
 import AttackMapPage from '../pages/AttackMapPage';
 import IocPage from '../pages/IocPage';
 import AnalysisPage from '../pages/AnalysisPage';
-import MitreNavigatorPage from '../pages/MitreNavigatorPage';
 import PlaceholderPage from '../pages/PlaceholderPage';
 
 /* -------------------------------------------------------------------------- */
@@ -69,16 +68,11 @@ import PlaceholderPage from '../pages/PlaceholderPage';
 /* -------------------------------------------------------------------------- */
 
 import { BigScreenView } from '../../components/views/BigScreenView';
-import { NetworkView } from '../../components/views/NetworkView';
-import { EmailForensicView } from '../../components/views/EmailForensicView';
 import { WebCheckView } from '../../components/views/WebCheckView';
 import { NetworkToolsView } from '../../components/views/NetworkToolsView';
 import { RansomwareView } from '../../components/views/RansomwareView';
 import { HelpView } from '../../components/views/HelpView';
 import { IntelSearchView } from '../../components/views/IntelSearchView';
-import { CyberChefView } from '../../components/views/CyberChefView';
-import { ThreatCanvasView } from '../../components/views/ThreatCanvasView';
-import { NetworkTopologyView } from '../../components/views/NetworkTopologyView';
 import { InfrastructureView } from '../../components/views/InfrastructureView';
 import { XyberahReconView } from '../../components/views/XyberahReconView';
 import { IntegrationsView } from '../../components/views/IntegrationsView';
@@ -254,21 +248,6 @@ export default function ViewRouter({
     urlHausItems,
   );
 
-  /* ------------------------------------------------------------------------ */
-  /*                               Navigation                                 */
-  /* ------------------------------------------------------------------------ */
-
-  const handleNavigateToIntel = (query: string) => {
-    const normalizedQuery = query.trim();
-
-    if (!normalizedQuery) {
-      onNavigate('intel_search');
-      return;
-    }
-
-    setInitialIntelQuery(normalizedQuery);
-    onNavigate('intel_search');
-  };
 
   /* ------------------------------------------------------------------------ */
   /*                              View dispatch                               */
@@ -341,36 +320,9 @@ export default function ViewRouter({
       renderedView = <AnalysisPage onNavigate={onNavigate} />;
       break;
 
-    case 'navigator':
-      renderedView = <MitreNavigatorPage />;
-      break;
-
     /* ====================================================================== */
     /*                          LEGACY COMPATIBILITY                           */
     /* ====================================================================== */
-
-    case 'network':
-      renderedView = (
-        <LegacyWrapper>
-          <NetworkView
-            actors={malpediaActors}
-            savedResult={networkAnalysis}
-            onUpdateResult={setNetworkAnalysis}
-          />
-        </LegacyWrapper>
-      );
-      break;
-
-    case 'email_forensic':
-      renderedView = (
-        <LegacyWrapper>
-          <EmailForensicView
-            savedResult={emailAnalysis}
-            onUpdateResult={setEmailAnalysis}
-          />
-        </LegacyWrapper>
-      );
-      break;
 
     case 'webcheck':
       renderedView = (
@@ -423,30 +375,6 @@ export default function ViewRouter({
       renderedView = (
         <LegacyWrapper>
           <IntelSearchView initialQuery={initialIntelQuery} />
-        </LegacyWrapper>
-      );
-      break;
-
-    case 'cyberchef':
-      renderedView = (
-        <LegacyWrapper>
-          <CyberChefView onNavigateToIntel={handleNavigateToIntel} />
-        </LegacyWrapper>
-      );
-      break;
-
-    case 'threat_canvas':
-      renderedView = (
-        <LegacyWrapper>
-          <ThreatCanvasView />
-        </LegacyWrapper>
-      );
-      break;
-
-    case 'topology':
-      renderedView = (
-        <LegacyWrapper>
-          <NetworkTopologyView />
         </LegacyWrapper>
       );
       break;

@@ -18,7 +18,6 @@ import {
   Hash,
   Link2,
   Network,
-  Plus,
   RefreshCw,
   Search,
   Server,
@@ -450,7 +449,6 @@ export default function IocPage() {
   const [selectedIocId, setSelectedIocId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('Overview');
   const [showFilters, setShowFilters] = useState(false);
-  const [addIocNotice, setAddIocNotice] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 100;
 
@@ -905,22 +903,6 @@ export default function IocPage() {
     setSearch(value);
   };
 
-  const showAddIocNotice =
-    () => {
-      /*
-       * There is currently no IOC mutation callback in AppDataContext.
-       * We therefore do not fabricate a local-only "Add IOC" operation that
-       * would disappear on navigation. This notice makes the missing write
-       * contract explicit until the backend mutation is wired.
-       */
-      setAddIocNotice(
-        'IOC creation is not connected to the current data API.',
-      );
-
-      window.setTimeout(() => {
-        setAddIocNotice('');
-      }, 3000);
-    };
 
   /* ------------------------------------------------------------------------ */
   /*                                Export                                   */
@@ -1135,31 +1117,10 @@ export default function IocPage() {
               <Download size={13} />
               STIX 2.1
             </button>
-
-            <button
-              type="button"
-              className="at-btn at-btn-primary at-btn-sm"
-              onClick={
-                showAddIocNotice
-              }
-            >
-              <Plus size={13} />
-              Add IOC
-            </button>
           </>
         }
       />
 
-      {addIocNotice && (
-        <div
-          className="at-ioc-notice"
-          role="status"
-          aria-live="polite"
-        >
-          <ShieldAlert size={14} />
-          {addIocNotice}
-        </div>
-      )}
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="max-w-[1800px] mx-auto w-full flex flex-col min-h-full relative px-6">

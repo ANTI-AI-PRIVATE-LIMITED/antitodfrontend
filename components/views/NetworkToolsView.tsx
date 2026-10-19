@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Server, Mail, Globe, Activity, Terminal, Shield, Hash, ArrowRight, CheckCircle, XCircle, Zap, Copy, MapPin, AlertTriangle, Network, FileCode, FileText, List, ExternalLink, Play, Pause, RefreshCw, Wifi, Lock, Eye, Archive, Radio, Clock, ChevronDown, Cloud, Upload, Briefcase, Rocket, Layers, Box, Download, Share2, HardDrive, Fingerprint, Key, Flame, Siren, Map as MapIcon, ShieldAlert, CreditCard, Languages, Calendar, Cookie, Loader2, Gauge, Database, File, Radar, Plus } from 'lucide-react';
-import { calculateSubnet, SubnetInfo, performRdapLookup, WhoisResult, analyzeSpf, SpfResult, analyzeDmarc, DmarcResult, analyzeHttpHeaders, HttpHeaderResult, analyzeEmailHeaders, EmailHeaderAnalysis, performPing, PingResult, performTrace, TraceHop, performPortScan, PortResult, performCrtLookup, checkWaybackAvailability, fetchIpWhoIs, IpWhoIsResult, fetchIpApiData, IpApiIsResult, searchAsn, fetchAsnDetails, AsnSearchResult, AsnDetails, resolveIpToAsn } from '../../services/netTools';
+import { calculateSubnet, SubnetInfo, performRdapLookup, WhoisResult, analyzeSpf, SpfResult, analyzeDmarc, DmarcResult, analyzeHttpHeaders, HttpHeaderResult, analyzeEmailHeaders, EmailHeaderAnalysis, performPing, PingResult, performPortScan, PortResult, performCrtLookup, checkWaybackAvailability, fetchIpWhoIs, IpWhoIsResult, fetchIpApiData, IpApiIsResult, searchAsn, fetchAsnDetails, AsnSearchResult, AsnDetails, resolveIpToAsn } from '../../services/netTools';
 import { queryDoH, checkRBL, resolveHostname, enrichIP, performMultiDnsLookup, checkDomainSecurity, SecurityCheckResult, EXTENDED_DNS_PROVIDERS, DetailedDnsRecord, DnsProviderConfig, DNS_RECORD_TYPES, analyzeDga, DgaResult } from '../../services/dns';
 import { calculateCompositeRisk, RiskAnalysis } from '../../services/riskEngine';
 import { mmdbService } from '../../services/mmdb';
@@ -8,7 +8,7 @@ import { CrtShEntry, WaybackResult, IpDataResponse, OtxAnalysis } from '../../ty
 import { downloadFile, generateNetworkToolsPDF } from '../../services/exporter';
 import { fetchOtxIndicator } from '../../services/otx';
 
-type ToolCategory = 'SUPER_SCAN' | 'DNS' | 'DNS_SEC' | 'EMAIL' | 'NETWORK' | 'SUBNET' | 'HTTP' | 'HEADERS' | 'PING' | 'TRACE' | 'SCAN' | 'CRT' | 'ARCHIVE' | 'MY_IP' | 'ASN';
+type ToolCategory = 'SUPER_SCAN' | 'DNS' | 'DNS_SEC' | 'EMAIL' | 'NETWORK' | 'SUBNET' | 'HEADERS' | 'PING' | 'SCAN' | 'CRT' | 'ARCHIVE' | 'MY_IP' | 'ASN';
 
 export const NetworkToolsView: React.FC = () => {
     const [input, setInput] = useState('');
@@ -52,7 +52,6 @@ export const NetworkToolsView: React.FC = () => {
 
     const [pingResults, setPingResults] = useState<PingResult[]>([]);
     const [isPinging, setIsPinging] = useState(false);
-    const [traceResults, setTraceResults] = useState<TraceHop[]>([]);
     const [scanResults, setScanResults] = useState<PortResult[]>([]);
     
     const pingRef = useRef<any>(null);
@@ -407,18 +406,9 @@ export const NetworkToolsView: React.FC = () => {
                     setWhoisResult(rdap);
                 }
                 setIsLoading(false);
-            } else if (activeCategory === 'HTTP') {
-                const headers = await analyzeHttpHeaders(target);
-                if (headers) setHttpResult(headers);
-                else throw new Error("Failed to fetch headers.");
-                setIsLoading(false);
             } else if (activeCategory === 'HEADERS') {
                 const analysis = analyzeEmailHeaders(input);
                 setHeaderResult(analysis);
-                setIsLoading(false);
-            } else if (activeCategory === 'TRACE') {
-                const hops = await performTrace(target);
-                setTraceResults(hops);
                 setIsLoading(false);
             } else if (activeCategory === 'SCAN') {
                 let ipToScan = target;
@@ -721,7 +711,6 @@ export const NetworkToolsView: React.FC = () => {
                     <button onClick={() => setActiveCategory('SCAN')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SCAN' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>PORT SCAN</button>
                     <div className="h-8 w-px bg-[#1C1C1C] mx-2 hidden md:block"></div>
                     <button onClick={() => setActiveCategory('PING')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'PING' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>PING</button>
-                    <button onClick={() => setActiveCategory('TRACE')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'TRACE' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>TRACE</button>
                     <button onClick={() => setActiveCategory('SUBNET')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SUBNET' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>CALC</button>
                     <button onClick={() => { setActiveCategory('MY_IP'); handleRunTool(); }} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'MY_IP' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>MY IP</button>
                 </div>
@@ -1312,57 +1301,18 @@ export const NetworkToolsView: React.FC = () => {
                         </div>
                     )}
 
-                    {/* HTTP HEADERS */}
-                    {activeCategory === 'HTTP' && httpResult && (
-                        <div className="bg-[#111]/40 border border-[#222] rounded-lg p-6 animate-fade-in font-mono text-xs">
-                            <div className="flex justify-between mb-4 pb-4 border-b border-[#222]">
-                                <div className="text-xl font-bold text-white">{httpResult.status} {httpResult.statusText}</div>
-                                <div className="text-red-500">{httpResult.serverInfo.server || 'Unknown Server'}</div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div>
-                                    <h4 className="text-[#888] font-bold mb-2 uppercase">Response Headers</h4>
-                                    <div className="space-y-1 text-[#AAA]">
-                                        {Object.entries(httpResult.headers).map(([k, v], i) => (
-                                            <div key={i} className="break-all"><span className="text-red-400">{k}:</span> {v}</div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-[#888] font-bold mb-2 uppercase">Security Policy</h4>
-                                    <div className="space-y-2">
-                                        {httpResult.security.map((sec, i) => (
-                                            <div key={i} className="flex justify-between items-center p-2 rounded bg-[#111]">
-                                                <span className="text-neutral-300">{sec.name}</span>
-                                                {sec.valid ? <CheckCircle size={14} className="text-white"/> : <XCircle size={14} className="text-red-500"/>}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* NETWORK / WHOIS */}
                     {activeCategory === 'NETWORK' && renderNetworkTool()}
 
                     {/* MY IP */}
                     {activeCategory === 'MY_IP' && renderMyIpTool()}
 
-                    {/* TRACE / PING */}
-                    {(activeCategory === 'PING' || activeCategory === 'TRACE') && (
+                    {/* PING */}
+                    {activeCategory === 'PING' && (
                         <div className="bg-[#111] border border-[#222] rounded-lg p-4 font-mono text-xs h-[400px] overflow-y-auto custom-scrollbar text-white">
-                            {activeCategory === 'PING' && pingResults.map((p, i) => (
+                            {pingResults.map((p, i) => (
                                 <div key={i} className="mb-1">
                                     <span className="text-[#888]">[{new Date().toLocaleTimeString()}]</span> 64 bytes from {p.ip}: seq={p.seq} time={p.time}ms status={p.status}
-                                </div>
-                            ))}
-                            {activeCategory === 'TRACE' && traceResults.map((h, i) => (
-                                <div key={i} className="mb-1 flex gap-4 border-b border-[#222]/30 pb-1">
-                                    <span className="w-6 text-[#888]">{h.hop}</span>
-                                    <span className="w-32 text-red-400">{h.ip}</span>
-                                    <span className="w-16 text-white">{h.time}ms</span>
-                                    <span className="text-[#AAA]">{h.details}</span>
                                 </div>
                             ))}
                             {isPinging && <div className="animate-pulse mt-2">_</div>}

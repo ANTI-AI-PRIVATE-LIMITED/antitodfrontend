@@ -18,7 +18,7 @@
 
 import React, { useState, Suspense } from 'react';
 import type { ReactNode } from 'react';
-import { Lock, ShieldAlert, Bot } from 'lucide-react';
+import { Lock, ShieldAlert } from 'lucide-react';
 
 import type {
   AnalyzedHost,
@@ -42,11 +42,9 @@ import type {
   EmailAnalysisResult,
   RansomWatchPost,
   RansomWatchGroup,
-  CaseFile,
 } from '../../types';
 
 import { useAnalysisData } from '../../hooks/useAnalysisData';
-import { PLAYBOOKS } from '../../services/playbooks';
 
 import { AppDataProvider } from '../contexts/AppDataContext';
 import { findNavItem, isPreview as isNavPreview, canonicalViewId } from '../data/navigation';
@@ -60,14 +58,10 @@ import HoneypotLogsPage from '../pages/HoneypotLogsPage';
 import ActorsPage from '../pages/ActorsPage';
 import CvePage from '../pages/CvePage';
 import NewsPage from '../pages/NewsPage';
-import InvestigationPage from '../pages/InvestigationPage';
 import AttackMapPage from '../pages/AttackMapPage';
 import IocPage from '../pages/IocPage';
 import AnalysisPage from '../pages/AnalysisPage';
-import PlaybookPage from '../pages/PlaybookPage';
 import MitreNavigatorPage from '../pages/MitreNavigatorPage';
-import RulesPage from '../pages/RulesPage';
-import VulnerabilityManagerPage from '../pages/VulnerabilityManagerPage';
 import PlaceholderPage from '../pages/PlaceholderPage';
 
 /* -------------------------------------------------------------------------- */
@@ -79,13 +73,8 @@ import { NetworkView } from '../../components/views/NetworkView';
 import { EmailForensicView } from '../../components/views/EmailForensicView';
 import { WebCheckView } from '../../components/views/WebCheckView';
 import { NetworkToolsView } from '../../components/views/NetworkToolsView';
-import { SandboxBrowserView } from '../../components/views/SandboxBrowserView';
-import { ChatView } from '../../components/views/ChatView';
 import { RansomwareView } from '../../components/views/RansomwareView';
-import { BrandMonitorView } from '../../components/views/BrandMonitorView';
-import { DynamicSandboxView } from '../../components/views/DynamicSandboxView';
 import { HelpView } from '../../components/views/HelpView';
-import { InvestigationBenchView } from '../../components/views/InvestigationBenchView';
 import { IntelSearchView } from '../../components/views/IntelSearchView';
 import { CyberChefView } from '../../components/views/CyberChefView';
 import { ThreatCanvasView } from '../../components/views/ThreatCanvasView';
@@ -282,83 +271,6 @@ export default function ViewRouter({
   };
 
   /* ------------------------------------------------------------------------ */
-  /*                              Investigation                               */
-  /* ------------------------------------------------------------------------ */
-
-  const handleInvestigate = (host: AnalyzedHost) => {
-    const playbookId =
-      host.riskLevel === 'CRITICAL' ||
-        host.isFeodo ||
-        host.isC2Intel
-        ? 'pb-c2'
-        : 'pb-phishing';
-
-    const playbook = PLAYBOOKS.find(
-      (candidate) => candidate.id === playbookId,
-    );
-
-    if (!playbook) {
-      return;
-    }
-
-    /*
-     * Preserve the existing investigation creation behavior.
-     *
-     * The CaseFile is intentionally created here because this router is the
-     * current boundary between analysis and playbook workflows.
-     */
-    const newCase: CaseFile = {
-      id: crypto.randomUUID(),
-      title: `Investigation: ${host.ip}`,
-      playbookId: playbook.id,
-      status: 'OPEN',
-      priority: host.riskLevel === 'CRITICAL' ? 'Critical' : 'High',
-      currentStepId: playbook.startStepId,
-      artifacts: [
-        {
-          id: crypto.randomUUID(),
-          type: 'IP',
-          value: host.ip,
-          note: 'Suspect Host',
-          addedAt: new Date().toISOString(),
-        },
-        {
-          id: crypto.randomUUID(),
-          type: 'TEXT',
-          value: `Risk Level: ${host.riskLevel}`,
-          addedAt: new Date().toISOString(),
-        },
-      ],
-      history: [
-        {
-          stepId: playbook.startStepId,
-          action: 'Case Created from Analysis',
-          timestamp: new Date().toISOString(),
-          user: 'Analyst',
-        },
-      ],
-      context: {
-        ip: host.ip,
-        country: host.country,
-        asn: host.enrichmentData?.asn?.name,
-      },
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    };
-
-    /*
-     * The current playbook page is responsible for consuming the created case
-     * through the existing application state/context architecture.
-     *
-     * Keep this assignment intentionally scoped so this migration does not
-     * alter the existing playbook workflow contract.
-     */
-    void newCase;
-
-    onNavigate('playbooks');
-  };
-
-  /* ------------------------------------------------------------------------ */
   /*                              View dispatch                               */
   /* ------------------------------------------------------------------------ */
 
@@ -417,10 +329,6 @@ export default function ViewRouter({
       renderedView = <NewsPage />;
       break;
 
-    case 'investigate':
-      renderedView = <InvestigationPage />;
-      break;
-
     case 'attackmap':
       renderedView = <AttackMapPage onNavigate={onNavigate} />;
       break;
@@ -433,20 +341,8 @@ export default function ViewRouter({
       renderedView = <AnalysisPage onNavigate={onNavigate} />;
       break;
 
-    case 'playbooks':
-      renderedView = <PlaybookPage />;
-      break;
-
     case 'navigator':
       renderedView = <MitreNavigatorPage />;
-      break;
-
-    case 'rules':
-      renderedView = <RulesPage />;
-      break;
-
-    case 'vulnerability_manager':
-      renderedView = <VulnerabilityManagerPage />;
       break;
 
     /* ====================================================================== */
@@ -504,39 +400,6 @@ export default function ViewRouter({
       );
       break;
 
-    case 'sandbox':
-      renderedView = (
-        <LegacyWrapper>
-          <SandboxBrowserView />
-        </LegacyWrapper>
-      );
-      break;
-
-    case 'chat':
-      renderedView = (
-        <LegacyWrapper>
-          <div className="flex flex-col items-center justify-center min-h-[460px] text-center p-8 bg-neutral-900/60 border border-neutral-800 rounded-xl my-6">
-            <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 mb-4">
-              <Bot size={24} />
-            </div>
-            <h3 className="text-lg font-semibold text-neutral-200 mb-2">AI Assistant Disabled for Version 1</h3>
-            <p className="text-sm text-neutral-400 max-w-md mb-6 leading-relaxed">
-              The integrated AI SOC assistant is turned off for this release. All intelligence modules and honeypot operations run fully deterministic rules and backend verification.
-            </p>
-            {onNavigate && (
-              <button
-                type="button"
-                onClick={() => onNavigate('dashboard')}
-                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-sm font-medium transition-colors"
-              >
-                Return to Dashboard
-              </button>
-            )}
-          </div>
-        </LegacyWrapper>
-      );
-      break;
-
     case 'ransomware':
       renderedView = (
         <LegacyWrapper>
@@ -548,40 +411,10 @@ export default function ViewRouter({
       );
       break;
 
-    case 'brand_intel':
-      renderedView = (
-        <LegacyWrapper>
-          <BrandMonitorView />
-        </LegacyWrapper>
-      );
-      break;
-
-    case 'dynamic_sandbox':
-      renderedView = (
-        <LegacyWrapper>
-          <DynamicSandboxView />
-        </LegacyWrapper>
-      );
-      break;
-
     case 'help':
       renderedView = (
         <LegacyWrapper>
           <HelpView />
-        </LegacyWrapper>
-      );
-      break;
-
-    case 'investigation_bench':
-      renderedView = (
-        <LegacyWrapper>
-          <InvestigationBenchView
-            threatFoxItems={threatFoxItems}
-            urlHausItems={urlHausItems}
-            malwareBazaarItems={malwareBazaarItems}
-            feodoItems={feodoItems}
-            maliciousHashItems={maliciousHashItems}
-          />
         </LegacyWrapper>
       );
       break;

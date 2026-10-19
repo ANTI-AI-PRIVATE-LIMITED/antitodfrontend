@@ -2071,6 +2071,8 @@
   --at-accent: #d62828;
   --at-accent-hover: #ef4444;
   --at-accent-soft: rgba(214, 40, 40, 0.09);
+  --at-red: #d62828;
+  --at-red-strong: #ef4444;
   --at-red-soft: rgba(214, 40, 40, 0.08);
 
   --at-green: #898989;

@@ -300,7 +300,7 @@ export default function Header({
                             <div
                               className={`h-full rounded-full transition-all duration-300 ${
                                 usage.usage.servers.used >= usage.usage.servers.limit
-                                  ? 'bg-red-500'
+                                  ? 'bg-[#d62828]'
                                   : 'bg-sky-500'
                               }`}
                               style={{
@@ -359,7 +359,7 @@ export default function Header({
                             }),
                           );
                         }}
-                        className="w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-center transition-all shadow-md shadow-red-600/20 hover:shadow-red-600/30 cursor-pointer"
+                        className="w-full py-2.5 px-3 rounded-lg bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-center border border-[#d62828] transition-all shadow-md shadow-[#d62828]/25 hover:shadow-[#d62828]/40 cursor-pointer"
                       >
                         Upgrade to Pro ($155/mo)
                       </button>

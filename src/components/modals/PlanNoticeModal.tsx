@@ -81,18 +81,12 @@ export const PlanNoticeModal: React.FC = () => {
         style={{
           boxShadow:
             type === 'INACTIVE'
-              ? '0 0 50px rgba(239, 68, 68, 0.25)'
-              : '0 0 50px rgba(225, 29, 72, 0.2)',
+              ? '0 0 50px rgba(214, 40, 40, 0.3)'
+              : '0 0 50px rgba(214, 40, 40, 0.22)',
         }}
       >
         {/* Glowing top line */}
-        <div
-          className={`h-1.5 w-full ${
-            type === 'INACTIVE'
-              ? 'bg-gradient-to-r from-red-600 via-rose-500 to-red-600'
-              : 'bg-gradient-to-r from-red-600 via-rose-500 to-red-600'
-          }`}
-        />
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#d62828] via-[#ef4444] to-[#d62828]" />
 
         {/* Close Button */}
         <button
@@ -110,8 +104,8 @@ export const PlanNoticeModal: React.FC = () => {
             <div
               className={`p-3.5 rounded-xl border flex-shrink-0 ${
                 type === 'INACTIVE'
-                  ? 'bg-red-950/40 border-red-500/40 text-red-400 shadow-lg shadow-red-500/20'
-                  : 'bg-rose-950/40 border-rose-500/40 text-rose-400 shadow-lg shadow-rose-500/20'
+                  ? 'bg-[#d62828]/15 border-[#d62828]/40 text-[#ef4444] shadow-lg shadow-[#d62828]/20'
+                  : 'bg-[#d62828]/15 border-[#d62828]/40 text-[#ef4444] shadow-lg shadow-[#d62828]/20'
               }`}
             >
               {type === 'INACTIVE' ? (
@@ -159,7 +153,7 @@ export const PlanNoticeModal: React.FC = () => {
                 <span className="text-neutral-400">Current Resource Usage</span>
                 <span
                   className={`font-bold ${
-                    percent >= 100 ? 'text-red-400' : 'text-sky-400'
+                    percent >= 100 ? 'text-[#ef4444]' : 'text-sky-400'
                   }`}
                 >
                   {used} / {limit} ({percent}%)
@@ -168,7 +162,7 @@ export const PlanNoticeModal: React.FC = () => {
               <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    percent >= 100 ? 'bg-red-500' : 'bg-sky-500'
+                    percent >= 100 ? 'bg-[#d62828]' : 'bg-sky-500'
                   }`}
                   style={{ width: `${percent}%` }}
                 />
@@ -183,7 +177,7 @@ export const PlanNoticeModal: React.FC = () => {
           <div className="space-y-3 bg-gradient-to-b from-neutral-900/90 to-neutral-950/90 border border-neutral-800 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                <Sparkles className="w-3.5 h-3.5 text-[#ef4444]" />
                 Unlock with Pro Plan:
               </span>
               <span className="text-xs font-mono text-neutral-400">$155 / month</span>
@@ -217,7 +211,7 @@ export const PlanNoticeModal: React.FC = () => {
                 // Open billing or mailto
                 window.location.href = 'mailto:billing@xyberah.com?subject=Subscription%20Upgrade%20Request';
               }}
-              className="w-full sm:flex-1 py-3 px-5 rounded-xl font-mono text-sm font-bold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-600/25 hover:shadow-red-500/40 transition-all flex items-center justify-center gap-2"
+              className="w-full sm:flex-1 py-3 px-5 rounded-xl font-mono text-sm font-bold text-white bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] border border-[#d62828] shadow-lg shadow-[#d62828]/25 hover:shadow-[#d62828]/45 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>{type === 'INACTIVE' ? 'Renew Subscription' : 'Upgrade to Pro'}</span>
               <ExternalLink className="w-4 h-4" />

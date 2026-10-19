@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
-  CheckCircle2,
-  ExternalLink,
-  ShieldAlert,
-  Sparkles,
+  Check,
   X,
-  Zap,
 } from 'lucide-react';
+import {
+  PLAN_TIERS,
+  getStoredPlan,
+  setStoredPlan,
+  type PlanTier,
+} from '../../data/planTiering';
 
 export interface PlanNoticeEventDetail {
   status?: number;
@@ -21,6 +23,7 @@ export interface PlanNoticeEventDetail {
 
 export const PlanNoticeModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<PlanTier>(getStoredPlan);
   const [detail, setDetail] = useState<PlanNoticeEventDetail>({});
   const [type, setType] = useState<
     'INACTIVE' | 'LIMIT_REACHED' | 'FEATURE_UNAVAILABLE' | 'GENERAL'
@@ -55,176 +58,193 @@ export const PlanNoticeModal: React.FC = () => {
       setIsOpen(true);
     };
 
+    const handlePlanChanged = (e: Event) => {
+      const custom = e as CustomEvent<{ plan: PlanTier }>;
+      if (custom.detail?.plan) {
+        setCurrentPlan(custom.detail.plan);
+      }
+    };
+
     window.addEventListener('plan-inactive', handleInactive);
     window.addEventListener('plan-limit-reached', handleLimit);
     window.addEventListener('plan-feature-unavailable', handleFeature);
     window.addEventListener('open-plan-upgrade', handleOpenModal);
+    window.addEventListener('plan-changed', handlePlanChanged);
 
     return () => {
       window.removeEventListener('plan-inactive', handleInactive);
       window.removeEventListener('plan-limit-reached', handleLimit);
       window.removeEventListener('plan-feature-unavailable', handleFeature);
       window.removeEventListener('open-plan-upgrade', handleOpenModal);
+      window.removeEventListener('plan-changed', handlePlanChanged);
     };
   }, []);
 
   if (!isOpen) return null;
 
-  const used = detail.used ?? 0;
-  const limit = detail.limit ?? 0;
-  const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
+  const plan = PLAN_TIERS[currentPlan] || PLAN_TIERS.basic;
+
+  const handleSelectPlan = (tierKey: PlanTier) => {
+    setCurrentPlan(tierKey);
+    setStoredPlan(tierKey);
+    window.dispatchEvent(
+      new CustomEvent('plan-changed', {
+        detail: { plan: tierKey, tierConfig: PLAN_TIERS[tierKey] },
+      })
+    );
+    setIsOpen(false);
+  };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+    <div
+      className="at-plan-modal-backdrop fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+      onClick={() => setIsOpen(false)}
+      role="dialog"
+      aria-modal="true"
+    >
       <div
-        className="relative w-full max-w-lg bg-[#0e1117] border border-neutral-800 rounded-2xl shadow-2xl overflow-hidden animate-slide-in-up"
-        style={{
-          boxShadow:
-            type === 'INACTIVE'
-              ? '0 0 50px rgba(214, 40, 40, 0.3)'
-              : '0 0 50px rgba(214, 40, 40, 0.22)',
-        }}
+        className="at-plan-modal-card w-full max-w-[880px] max-h-[92vh] overflow-y-auto rounded-xl border border-white/12 bg-[#11141c] p-6 shadow-2xl animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Glowing top line */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#d62828] via-[#ef4444] to-[#d62828]" />
+        <div className="at-plan-modal-header flex items-start justify-between mb-5">
+          <div>
+            <span className="at-plan-modal-kicker text-[10px] font-bold uppercase tracking-wider text-[#d2a06a] block">
+              ANTITODE SUBSCRIPTION TIERS
+            </span>
+            <h2 className="at-plan-modal-title text-xl font-bold text-white mt-1">
+              Choose Your Security Coverage
+            </h2>
+            <p className="at-plan-modal-desc text-xs text-neutral-400 mt-1">
+              Scale honeypot sensor networks and unlock structured threat intelligence exports.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="at-plan-modal-close p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
+            onClick={() => setIsOpen(false)}
+            aria-label="Close modal"
+          >
+            <X size={16} />
+          </button>
+        </div>
 
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={() => setIsOpen(false)}
-          className="absolute top-4 right-4 p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
-          aria-label="Close"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Optional context banner if opened via limit or inactive event */}
+        {detail.message && type !== 'GENERAL' && (
+          <div className="mb-4 p-3 rounded-lg bg-red-950/40 border border-[#d62828]/40 text-xs font-mono text-neutral-300 flex items-center gap-2">
+            <AlertTriangle size={14} className="text-[#ef4444] shrink-0" />
+            <span>{detail.message}</span>
+          </div>
+        )}
 
-        <div className="p-6 md:p-8 space-y-6">
-          {/* Header */}
-          <div className="flex items-start gap-4">
-            <div
-              className={`p-3.5 rounded-xl border flex-shrink-0 ${
-                type === 'INACTIVE'
-                  ? 'bg-[#d62828]/15 border-[#d62828]/40 text-[#ef4444] shadow-lg shadow-[#d62828]/20'
-                  : 'bg-[#d62828]/15 border-[#d62828]/40 text-[#ef4444] shadow-lg shadow-[#d62828]/20'
-              }`}
-            >
-              {type === 'INACTIVE' ? (
-                <ShieldAlert className="w-7 h-7" />
-              ) : (
-                <Zap className="w-7 h-7" />
-              )}
-            </div>
+        <div className="at-plan-cards-grid grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {(['basic', 'pro', 'enterprise'] as PlanTier[]).map((tierKey) => {
+            const tier = PLAN_TIERS[tierKey];
+            const isSelected = currentPlan === tierKey;
 
-            <div className="space-y-1 pr-6">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-neutral-800 text-neutral-300">
-                  {type === 'INACTIVE'
-                    ? 'Subscription Lapsed'
-                    : type === 'LIMIT_REACHED'
-                    ? 'Quota Exceeded'
-                    : 'Tier Gated'}
-                </span>
-                <span className="text-xs font-mono text-neutral-500">
-                  {detail.code || 'UPGRADE REQUIRED'}
-                </span>
+            return (
+              <div
+                key={tier.id}
+                className={`at-tier-card relative flex flex-col p-4.5 rounded-lg border transition-all duration-200 ${
+                  isSelected
+                    ? 'is-current border-emerald-500/40 bg-emerald-950/10'
+                    : tier.popular
+                    ? 'is-popular border-[#d2a06a]/45 bg-[#d2a06a]/5'
+                    : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                }`}
+              >
+                {tier.popular && (
+                  <div className="at-tier-ribbon absolute -top-2.5 right-3.5 px-2 py-0.5 rounded-full bg-[#d2a06a] text-[#0b0d13] text-[9px] font-bold uppercase tracking-wider">
+                    MOST POPULAR
+                  </div>
+                )}
+
+                <div className="at-tier-header mb-3">
+                  <span className={`at-plan-tag at-plan-tag-${tier.id}`}>
+                    {tier.name.toUpperCase()}
+                  </span>
+                  <div className="at-tier-price my-2 flex items-baseline gap-1">
+                    {tier.priceMonthly === 0 ? (
+                      <strong className="text-2xl font-bold text-white">Free</strong>
+                    ) : (
+                      <>
+                        <strong className="text-2xl font-bold text-white">${tier.priceMonthly}</strong>
+                        <span className="text-[11px] text-neutral-400">/month</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="at-tier-desc text-[11px] text-neutral-400 leading-relaxed min-h-[44px]">
+                    {tier.description}
+                  </p>
+                </div>
+
+                <div className="at-tier-quotas py-2.5 border-t border-b border-white/[0.06] mb-3 flex flex-col gap-1.5 font-mono text-[10px]">
+                  <div className="at-tier-quota-item flex items-center justify-between">
+                    <span className="text-neutral-400">Honeypots:</span>
+                    <strong className="text-neutral-200 font-bold">
+                      {tier.maxHoneypots >= 9999 ? 'Unlimited' : tier.maxHoneypots}
+                    </strong>
+                  </div>
+                  <div className="at-tier-quota-item flex items-center justify-between">
+                    <span className="text-neutral-400">Monthly Events:</span>
+                    <strong className="text-neutral-200 font-bold">
+                      {tier.maxEventsPerMonth >= 1000000
+                        ? 'Unlimited'
+                        : tier.id === 'pro'
+                        ? '1,00,000'
+                        : tier.maxEventsPerMonth.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div className="at-tier-quota-item flex items-center justify-between">
+                    <span className="text-neutral-400">Retention:</span>
+                    <strong className="text-neutral-200 font-bold">{tier.retentionDays} Days</strong>
+                  </div>
+                  <div className="at-tier-quota-item flex items-center justify-between">
+                    <span className="text-neutral-400">Exports:</span>
+                    <strong className="text-neutral-200 font-bold">{tier.exportFormats.join(', ')}</strong>
+                  </div>
+                </div>
+
+                <ul className="at-tier-features-list space-y-2 mb-4 flex-1">
+                  {tier.features.map((feat, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-[11px] text-neutral-300 leading-snug">
+                      <Check size={14} className="at-check-icon text-emerald-400 shrink-0 mt-0.5" />
+                      <span>{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="at-tier-footer mt-auto pt-2">
+                  {isSelected ? (
+                    <button
+                      type="button"
+                      className="at-btn at-btn-secondary at-btn-full w-full py-2.5 px-3 rounded-lg bg-neutral-800 text-neutral-400 border border-neutral-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-default opacity-90"
+                      disabled
+                    >
+                      <Check size={13} />
+                      Active Plan
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`at-btn at-btn-full w-full py-2.5 px-3 rounded-lg font-bold text-xs flex items-center justify-center transition-all cursor-pointer shadow-md ${
+                        tier.popular
+                          ? 'at-btn-primary bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white border border-[#d62828] shadow-[#d62828]/25 hover:shadow-[#d62828]/40'
+                          : 'at-btn-secondary bg-neutral-800 hover:bg-neutral-700 active:bg-neutral-600 text-white border border-white/10'
+                      }`}
+                      onClick={() => handleSelectPlan(tier.id)}
+                    >
+                      {tier.priceMonthly > plan.priceMonthly ? 'Upgrade to ' : 'Switch to '}
+                      {tier.name}
+                    </button>
+                  )}
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-white tracking-tight">
-                {type === 'INACTIVE'
-                  ? 'Plan Inactive — Renewal Required'
-                  : type === 'LIMIT_REACHED'
-                  ? 'Resource Quota Limit Reached'
-                  : 'Pro Plan Upgrade Required'}
-              </h3>
-            </div>
-          </div>
+            );
+          })}
+        </div>
 
-          {/* Description */}
-          <div className="bg-neutral-900/70 border border-neutral-800/80 rounded-xl p-4 text-sm text-neutral-300 leading-relaxed font-mono">
-            {detail.message ||
-              (type === 'INACTIVE'
-                ? 'Your subscription is currently inactive. Renew your plan to continue accessing live sensor telemetry and threat intelligence feeds.'
-                : 'You have reached the maximum allowed usage on your current subscription tier.')}
-          </div>
-
-          {/* Quota Meter if limit and used provided */}
-          {limit > 0 && (
-            <div className="space-y-2 bg-neutral-950/60 border border-neutral-800/60 rounded-xl p-4">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-neutral-400">Current Resource Usage</span>
-                <span
-                  className={`font-bold ${
-                    percent >= 100 ? 'text-[#ef4444]' : 'text-sky-400'
-                  }`}
-                >
-                  {used} / {limit} ({percent}%)
-                </span>
-              </div>
-              <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    percent >= 100 ? 'bg-[#d62828]' : 'bg-sky-500'
-                  }`}
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-neutral-500 font-mono">
-                Basic tier allows 2 honeypot servers and 3 team users.
-              </p>
-            </div>
-          )}
-
-          {/* Pro Benefits Card */}
-          <div className="space-y-3 bg-gradient-to-b from-neutral-900/90 to-neutral-950/90 border border-neutral-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#ef4444]" />
-                Unlock with Pro Plan:
-              </span>
-              <span className="text-xs font-mono text-neutral-400">$155 / month</span>
-            </div>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-neutral-300">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>10 Honeypot Servers</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>10 User Accounts</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>90-Day Retention</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>JSON & STIX 2.1 Exports</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                setIsOpen(false);
-                // Open billing or mailto
-                window.location.href = 'mailto:billing@xyberah.com?subject=Subscription%20Upgrade%20Request';
-              }}
-              className="w-full sm:flex-1 py-3 px-5 rounded-xl font-mono text-sm font-bold text-white bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] border border-[#d62828] shadow-lg shadow-[#d62828]/25 hover:shadow-[#d62828]/45 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>{type === 'INACTIVE' ? 'Renew Subscription' : 'Upgrade to Pro'}</span>
-              <ExternalLink className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="w-full sm:w-auto py-3 px-5 rounded-xl font-mono text-sm text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 transition-colors"
-            >
-              Dismiss
-            </button>
-          </div>
+        <div className="at-plan-modal-footer text-center text-[11px] text-neutral-400 pt-3 border-t border-white/[0.06]">
+          <small>All plans include encryption in transit and community vulnerability advisories.</small>
         </div>
       </div>
     </div>

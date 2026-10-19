@@ -130,11 +130,11 @@ export const ApiEventToast: React.FC<ApiEventToastProps> = ({ onNavigate }) => {
   if (toasts.length === 0) return null;
 
   const handleUpgradeClick = (upgradeUrl?: string) => {
-    if (onNavigate) {
-      onNavigate('settings');
-    } else if (upgradeUrl) {
-      window.location.href = upgradeUrl;
-    }
+    window.dispatchEvent(
+      new CustomEvent('open-plan-upgrade', {
+        detail: { upgradeUrl },
+      })
+    );
   };
 
   return (

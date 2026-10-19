@@ -20,6 +20,11 @@ import {
   billingService,
   type BillingUsageResponse,
 } from '../../../api/services/billingService';
+import {
+  PLAN_TIERS,
+  getStoredPlan,
+  type PlanTier,
+} from '../../data/planTiering';
 import { isPublicDemo, exitDemoMode } from '../../utils/demoMode';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -104,16 +109,18 @@ export default function Header({
       try {
         if (isPublicDemo()) {
           if (mounted) {
+            const stored = getStoredPlan();
+            const config = PLAN_TIERS[stored] || PLAN_TIERS.basic;
             setUsage({
               plan: {
-                id: 'demo',
-                label: 'Public Demo',
+                id: stored,
+                label: stored === 'basic' ? 'Public Demo' : `${config.name} Plan`,
                 status: 'active',
                 active: true,
               },
               usage: {
-                servers: { used: 3, limit: 10 },
-                users: { used: 1, limit: 5 },
+                servers: { used: 3, limit: config.maxHoneypots },
+                users: { used: 1, limit: stored === 'enterprise' ? 9999 : stored === 'pro' ? 10 : 5 },
               },
             });
           }
@@ -128,10 +135,44 @@ export default function Header({
     loadUsage();
 
     const handleAuth = () => loadUsage();
+    const handlePlanChanged = (e: Event) => {
+      const custom = e as CustomEvent<{ plan: PlanTier }>;
+      const newPlan = custom.detail?.plan;
+      if (!newPlan) return;
+      const config = PLAN_TIERS[newPlan];
+      if (!config) return;
+
+      setUsage((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          plan: {
+            ...prev.plan!,
+            id: newPlan,
+            label: `${config.name} Plan`,
+            status: 'active',
+            active: true,
+          },
+          usage: {
+            servers: {
+              used: prev.usage?.servers?.used ?? 3,
+              limit: config.maxHoneypots,
+            },
+            users: {
+              used: prev.usage?.users?.used ?? 1,
+              limit: newPlan === 'enterprise' ? 9999 : newPlan === 'pro' ? 10 : 5,
+            },
+          },
+        };
+      });
+    };
+
     window.addEventListener('auth-changed', handleAuth);
+    window.addEventListener('plan-changed', handlePlanChanged);
     return () => {
       mounted = false;
       window.removeEventListener('auth-changed', handleAuth);
+      window.removeEventListener('plan-changed', handlePlanChanged);
     };
   }, []);
 
@@ -398,29 +439,29 @@ export default function Header({
                       )}
                     </div>
 
-                    {/* Upgrade action button */}
-                    {usage.plan.id !== 'pro' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPlanMenu(false);
-                          window.dispatchEvent(
-                            new CustomEvent('open-plan-upgrade', {
-                              detail: {
-                                code: 'PRO_UPGRADE',
-                                message:
-                                  'Upgrade to Pro for 10 honeypot servers, 10 user seats, and 90-day retention.',
-                                limit: usage.usage?.servers?.limit,
-                                used: usage.usage?.servers?.used,
-                              },
-                            }),
-                          );
-                        }}
-                        className="w-full py-2.5 px-3 rounded-lg bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-center border border-[#d62828] transition-all shadow-md shadow-[#d62828]/25 hover:shadow-[#d62828]/40 cursor-pointer"
-                      >
-                        Upgrade to Pro ($155/mo)
-                      </button>
-                    )}
+                    {/* Upgrade / Choose Coverage action button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPlanMenu(false);
+                        window.dispatchEvent(
+                          new CustomEvent('open-plan-upgrade', {
+                            detail: {
+                              code: 'PLAN_UPGRADE',
+                              limit: usage.usage?.servers?.limit,
+                              used: usage.usage?.servers?.used,
+                            },
+                          }),
+                        );
+                      }}
+                      className="w-full py-2.5 px-3 rounded-lg bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-center border border-[#d62828] transition-all shadow-md shadow-[#d62828]/25 hover:shadow-[#d62828]/40 cursor-pointer"
+                    >
+                      {usage.plan.id === 'pro'
+                        ? 'Upgrade to Enterprise ($199/mo)'
+                        : usage.plan.id === 'enterprise'
+                        ? 'Manage Subscription Tiers'
+                        : 'Upgrade to Pro ($49/mo)'}
+                    </button>
                   </div>
                 )}
               </>

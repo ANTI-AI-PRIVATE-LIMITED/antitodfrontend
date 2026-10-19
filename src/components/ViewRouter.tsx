@@ -37,9 +37,6 @@ import type {
   IpsumEntry,
   BlocklistDeEntry,
   C2IntelFeedEntry,
-  MaliciousHashEntry,
-  NetworkAnalysisResult,
-  EmailAnalysisResult,
   RansomWatchPost,
   RansomWatchGroup,
 } from '../../types';
@@ -135,14 +132,6 @@ export interface ViewRouterProps {
 
   productName: string;
   logoUrl: string;
-
-  /* ------------------------------ Analysis -------------------------------- */
-
-  networkAnalysis: NetworkAnalysisResult | null;
-  setNetworkAnalysis: (data: NetworkAnalysisResult | null) => void;
-
-  emailAnalysis: EmailAnalysisResult | null;
-  setEmailAnalysis: (data: EmailAnalysisResult | null) => void;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -220,12 +209,6 @@ export default function ViewRouter({
   logoUrl,
 
   onEnrichHost,
-
-  networkAnalysis,
-  setNetworkAnalysis,
-
-  emailAnalysis,
-  setEmailAnalysis,
 }: ViewRouterProps) {
   const [initialIntelQuery, setInitialIntelQuery] = useState<string | null>(
     null,

@@ -32,8 +32,6 @@ import {
     WhitelistEntry,
     C2IntelFeedEntry,
     MaliciousHashEntry,
-    NetworkAnalysisResult,
-    EmailAnalysisResult,
 } from '../types';
 
 import {
@@ -172,12 +170,6 @@ export const App: React.FC = () => {
     >([]);
 
     const [c2Hosts, setC2Hosts] = useState<AnalyzedHost[]>([]);
-
-    const [networkAnalysis, setNetworkAnalysis] =
-        useState<NetworkAnalysisResult | null>(null);
-
-    const [emailAnalysis, setEmailAnalysis] =
-        useState<EmailAnalysisResult | null>(null);
 
     const [malpediaData, setMalpediaData] = useState<
         MalpediaEntry[]
@@ -780,8 +772,6 @@ export const App: React.FC = () => {
                     savedRansomPosts,
                     savedRansomGroups,
                     savedWhitelist,
-                    savedNetwork,
-                    savedEmail,
                 ] = await Promise.all([
                     loadFromStorage(STORES.ANALYSIS),
                     loadFromStorage(STORES.ACTORS),
@@ -803,12 +793,6 @@ export const App: React.FC = () => {
                         STORES.RANSOMWARE_GROUPS,
                     ),
                     loadFromStorage(STORES.WHITELIST),
-                    loadFromStorage(
-                        STORES.NETWORK_FORENSICS,
-                    ),
-                    loadFromStorage(
-                        STORES.EMAIL_FORENSICS,
-                    ),
                 ]);
 
                 if (
@@ -904,14 +888,6 @@ export const App: React.FC = () => {
 
                 if (savedWhitelist) {
                     setWhitelist(savedWhitelist);
-                }
-
-                if (savedNetwork) {
-                    setNetworkAnalysis(savedNetwork);
-                }
-
-                if (savedEmail) {
-                    setEmailAnalysis(savedEmail);
                 }
             } catch (error) {
                 console.warn(
@@ -1312,24 +1288,6 @@ export const App: React.FC = () => {
             );
         }
     }, [whitelist, isStorageLoaded]);
-
-    useEffect(() => {
-        if (isStorageLoaded) {
-            void saveToStorage(
-                STORES.NETWORK_FORENSICS,
-                networkAnalysis,
-            );
-        }
-    }, [networkAnalysis, isStorageLoaded]);
-
-    useEffect(() => {
-        if (isStorageLoaded) {
-            void saveToStorage(
-                STORES.EMAIL_FORENSICS,
-                emailAnalysis,
-            );
-        }
-    }, [emailAnalysis, isStorageLoaded]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -1953,18 +1911,6 @@ export const App: React.FC = () => {
                             }
                             onEnrichHost={
                                 handleEnrichHost
-                            }
-                            networkAnalysis={
-                                networkAnalysis
-                            }
-                            setNetworkAnalysis={
-                                setNetworkAnalysis
-                            }
-                            emailAnalysis={
-                                emailAnalysis
-                            }
-                            setEmailAnalysis={
-                                setEmailAnalysis
                             }
                         />
                         </ErrorBoundary>

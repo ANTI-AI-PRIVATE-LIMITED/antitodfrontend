@@ -153,7 +153,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
                         {posts.length === 0 ? (
-                            <div className="p-8 text-center text-[#888] text-xs italic">Loading ransomware feed...</div>
+                            <div className="p-8 text-center text-[#888] text-xs italic">No ransomware incidents recorded for this tenant.</div>
                         ) : filteredPosts.length === 0 ? (
                              <div className="p-8 text-center text-[#888] text-xs italic">No victims found matching filter.</div>
                         ) : (

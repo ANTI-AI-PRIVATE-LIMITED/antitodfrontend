@@ -19,6 +19,7 @@ import {
 } from '../../types';
 import { AttackMapView, AttackTarget } from './AttackMapView';
 import { LiveThreatFeed } from '../widgets/LiveThreatFeed';
+import { isPublicDemo } from '../../src/utils/demoMode';
 import { ShieldAlert, Activity, Globe, Target, ArrowUp, ArrowDown, Zap, Skull, XCircle, AlertTriangle, Siren, Bug, Database, Rss, Lock, Flame, Server, MonitorPlay, Maximize, PlayCircle, PauseCircle, Wifi, Users, Layout, BarChart3, AlertCircle, Clock, Network, Share2, Layers } from 'lucide-react';
 
 interface BigScreenViewProps {
@@ -385,7 +386,8 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
     }, [feodoItems, urlHausItems, threatFoxItems]);
 
     const globalThreats = useMemo(() => {
-        if (!showGlobalThreats) return [];
+        // Strict Backend Isolation: Only inject synthetic global external targets in public demo mode
+        if (!showGlobalThreats || !isPublicDemo()) return [];
         const targets: AttackTarget[] = [];
         feodoItems.forEach(i => {
             if (i.country) {
@@ -648,30 +650,36 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                         Latest victims
                                     </span>
 
-                                    {ransomwarePosts
-                                        .slice(0, 3)
-                                        .map((post, index) => (
-                                            <div
-                                                key={index}
-                                                className="at-soc-ransom-row"
-                                            >
-                                                <div>
-                                                    <strong>
-                                                        {post.post_title}
-                                                    </strong>
+                                    {ransomwarePosts.length === 0 ? (
+                                        <div className="py-3 text-center text-xs font-mono text-neutral-500 italic">
+                                            No active ransomware incidents recorded
+                                        </div>
+                                    ) : (
+                                        ransomwarePosts
+                                            .slice(0, 3)
+                                            .map((post, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="at-soc-ransom-row"
+                                                >
+                                                    <div>
+                                                        <strong>
+                                                            {post.post_title}
+                                                        </strong>
 
-                                                    <span>
-                                                        {post.group_name}
-                                                    </span>
+                                                        <span>
+                                                            {post.group_name}
+                                                        </span>
+                                                    </div>
+
+                                                    <time>
+                                                        {new Date(
+                                                            post.discovered,
+                                                        ).toLocaleDateString()}
+                                                    </time>
                                                 </div>
-
-                                                <time>
-                                                    {new Date(
-                                                        post.discovered,
-                                                    ).toLocaleDateString()}
-                                                </time>
-                                            </div>
-                                        ))}
+                                            ))
+                                    )}
                                 </div>
                             </div>
                         </div>

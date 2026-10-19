@@ -4,6 +4,7 @@ import * as topojson from 'topojson-client';
 import { AnalyzedHost } from '../../types';
 import { Map as MapIcon, Target, Maximize2, Minimize2, Play, Pause, Globe, Activity, Terminal, MousePointer2, Plus, Minus, Loader2 } from 'lucide-react';
 import { ThreeGlobeArc, ThreeGlobeRing, ThreeGlobePoint, ThreeGlobeLabel, ThreeGlobeViewHandle } from './ThreeGlobeView';
+import { isPublicDemo } from '../../src/utils/demoMode';
 
 const ThreeGlobeView = React.lazy(() => import('./ThreeGlobeView'));
 
@@ -144,7 +145,7 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
             });
     }, []);
 
-    // Initialize Attack Queue (Merge Local & Global)
+    // Initialize Attack Queue (Real local honeypot targets; globalThreats only in public demo mode)
     useEffect(() => {
         const localTargets: AttackTarget[] = results
             .filter(h => h.enrichmentData?.latitude && h.enrichmentData?.longitude)
@@ -158,7 +159,7 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
                 risk: h.riskLevel
             }));
         
-        const combined = [...localTargets, ...globalThreats];
+        const combined = isPublicDemo() ? [...localTargets, ...globalThreats] : localTargets;
         attackQueueRef.current = combined.sort(() => Math.random() - 0.5);
     }, [results, globalThreats]);
 
@@ -182,8 +183,9 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
                 }
             }
 
+            // If coordinates cannot be mapped to real location, do not pick random synthetic coordinates
             if (!start) {
-                start = [(Math.random() * 340) - 170, (Math.random() * 110) - 55];
+                return;
             }
 
             let color = '#3b82f6';

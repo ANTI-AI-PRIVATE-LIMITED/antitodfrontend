@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ViewRouter from './components/ViewRouter';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DEMO_HOSTS, DEMO_ACTORS, DEMO_CVES, DEMO_CVE_FEEDS, DEMO_NEWS, DEMO_EXPLOITS, DEMO_URLHAUS, DEMO_FEODO, DEMO_THREATFOX, DEMO_MALWAREBAZAAR, DEMO_SSLBL, DEMO_JA3, DEMO_RANSOMWARE_POSTS, DEMO_RANSOMWARE_GROUPS } from './data/demo';
-import { DEMO_MODE } from './services/dataProvider';
+import { DEMO_MODE, dataProvider } from './services/dataProvider';
 import { isPublicDemo } from './utils/demoMode';
 import { SettingsModal } from '../components/SettingsModal';
 import { PlanNoticeModal } from './components/modals/PlanNoticeModal';
@@ -77,6 +77,7 @@ import {
     saveToStorage,
     loadFromStorage,
     clearStorage,
+    clearExternalFeedStorage,
     STORES,
 } from '../services/storage';
 
@@ -842,48 +843,63 @@ export const App: React.FC = () => {
                     setMalpediaData(savedRefs);
                 }
 
-                if (savedUrlHaus) {
-                    setUrlHausItems(savedUrlHaus);
-                }
+                if (isPublicDemo()) {
+                    if (savedUrlHaus) {
+                        setUrlHausItems(savedUrlHaus);
+                    }
 
-                if (savedBazaar) {
-                    setMalwareBazaarItems(savedBazaar);
-                }
+                    if (savedBazaar) {
+                        setMalwareBazaarItems(savedBazaar);
+                    }
 
-                if (savedFeodo) {
-                    setFeodoItems(savedFeodo);
-                }
+                    if (savedFeodo) {
+                        setFeodoItems(savedFeodo);
+                    }
 
-                if (savedSslBl) {
-                    setSslBlItems(savedSslBl);
-                }
+                    if (savedSslBl) {
+                        setSslBlItems(savedSslBl);
+                    }
 
-                if (savedJa3) {
-                    setJa3Items(savedJa3);
-                }
+                    if (savedJa3) {
+                        setJa3Items(savedJa3);
+                    }
 
-                if (savedThreatFox) {
-                    setThreatFoxItems(savedThreatFox);
-                }
+                    if (savedThreatFox) {
+                        setThreatFoxItems(savedThreatFox);
+                    }
 
-                if (savedIpsum) {
-                    setIpsumItems(savedIpsum);
-                }
+                    if (savedIpsum) {
+                        setIpsumItems(savedIpsum);
+                    }
 
-                if (savedBlocklistDe) {
-                    setBlocklistDeItems(savedBlocklistDe);
-                }
+                    if (savedBlocklistDe) {
+                        setBlocklistDeItems(savedBlocklistDe);
+                    }
 
-                if (savedC2Intel) {
-                    setC2IntelItems(savedC2Intel);
-                }
+                    if (savedC2Intel) {
+                        setC2IntelItems(savedC2Intel);
+                    }
 
-                if (savedRansomPosts) {
-                    setRansomwarePosts(savedRansomPosts);
-                }
+                    if (savedRansomPosts) {
+                        setRansomwarePosts(savedRansomPosts);
+                    }
 
-                if (savedRansomGroups) {
-                    setRansomwareGroups(savedRansomGroups);
+                    if (savedRansomGroups) {
+                        setRansomwareGroups(savedRansomGroups);
+                    }
+                } else {
+                    void clearExternalFeedStorage();
+                    setUrlHausItems([]);
+                    setMalwareBazaarItems([]);
+                    setFeodoItems([]);
+                    setSslBlItems([]);
+                    setJa3Items([]);
+                    setThreatFoxItems([]);
+                    setIpsumItems([]);
+                    setBlocklistDeItems([]);
+                    setC2IntelItems([]);
+                    setRansomwarePosts([]);
+                    setRansomwareGroups([]);
                 }
 
                 if (savedWhitelist) {
@@ -1190,7 +1206,7 @@ export const App: React.FC = () => {
     }, [malpediaData, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.URLHAUS,
                 urlHausItems,
@@ -1199,7 +1215,7 @@ export const App: React.FC = () => {
     }, [urlHausItems, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.BAZAAR,
                 malwareBazaarItems,
@@ -1208,7 +1224,7 @@ export const App: React.FC = () => {
     }, [malwareBazaarItems, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.FEODO,
                 feodoItems,
@@ -1217,7 +1233,7 @@ export const App: React.FC = () => {
     }, [feodoItems, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.SSLBL_SHA1,
                 sslBlItems,
@@ -1226,7 +1242,7 @@ export const App: React.FC = () => {
     }, [sslBlItems, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.SSLBL_JA3,
                 ja3Items,
@@ -1235,7 +1251,7 @@ export const App: React.FC = () => {
     }, [ja3Items, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.THREATFOX,
                 threatFoxItems,
@@ -1244,7 +1260,7 @@ export const App: React.FC = () => {
     }, [threatFoxItems, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.IPSUM,
                 ipsumItems,
@@ -1253,7 +1269,7 @@ export const App: React.FC = () => {
     }, [ipsumItems, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.BLOCKLIST_DE,
                 blocklistDeItems,
@@ -1262,7 +1278,7 @@ export const App: React.FC = () => {
     }, [blocklistDeItems, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.C2_INTEL,
                 c2IntelItems,
@@ -1271,7 +1287,7 @@ export const App: React.FC = () => {
     }, [c2IntelItems, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.RANSOMWARE_POSTS,
                 ransomwarePosts,
@@ -1280,7 +1296,7 @@ export const App: React.FC = () => {
     }, [ransomwarePosts, isStorageLoaded]);
 
     useEffect(() => {
-        if (isStorageLoaded) {
+        if (isStorageLoaded && isPublicDemo()) {
             void saveToStorage(
                 STORES.RANSOMWARE_GROUPS,
                 ransomwareGroups,
@@ -1427,204 +1443,70 @@ export const App: React.FC = () => {
         setIsFeedLoading(true);
 
         addSystemLog(
-            'Initiating global intelligence refresh...',
+            'Initiating live telemetry refresh...',
             'INFO',
             'System',
         );
 
         try {
+            // Real authenticated account: strictly query backend APIs and authenticated proxies
             const results = await Promise.allSettled([
-                fetchThreatNews(),
-                fetchRemoteMalpedia(),
-                fetchMitreFromSource(),
-                fetchUrlHaus(),
-                fetchMalwareBazaar(),
-                fetchFeodoTracker(),
-                fetchSslBl(),
-                fetchJa3Bl(),
-                fetchThreatFox(),
-                fetchIpsum(),
-                fetchBlocklistDe(),
-                fetchC2IntelFeed(),
-                fetchMaliciousHashes(),
+                dataProvider.getHosts(),
+                dataProvider.getAttackEvents(),
+                dataProvider.getIocs(),
                 fetchRansomwarePosts(),
                 fetchRansomwareGroups(),
+                fetchThreatNews(),
                 fetchCveUpdates(),
-                fetchCveFeeds(),
-                fetchExploits(),
             ]);
 
             const [
-                newsResult,
-                remoteMalpediaResult,
-                mitreResult,
-                urlHausResult,
-                malwareBazaarResult,
-                feodoResult,
-                sslBlResult,
-                ja3Result,
-                threatFoxResult,
-                ipsumResult,
-                blocklistResult,
-                c2IntelResult,
-                maliciousHashesResult,
+                hostsResult,
+                eventsResult,
+                iocsResult,
                 ransomwarePostsResult,
                 ransomwareGroupsResult,
+                newsResult,
                 cveResult,
-                cveFeedResult,
-                exploitResult,
             ] = results;
+
+            if (hostsResult.status === 'fulfilled' && hostsResult.value.length > 0) {
+                setAnalysisResults(hostsResult.value);
+            }
+
+            if (ransomwarePostsResult.status === 'fulfilled') {
+                setRansomwarePosts(ransomwarePostsResult.value);
+            }
+
+            if (ransomwareGroupsResult.status === 'fulfilled') {
+                setRansomwareGroups(ransomwareGroupsResult.value);
+            }
 
             if (newsResult.status === 'fulfilled') {
                 setNewsItems(newsResult.value);
                 setNewsLastUpdated(new Date());
             }
 
-            setMalpediaActors((previous) =>
-                uniqueActors(
-                    previous,
-                    remoteMalpediaResult.status ===
-                        'fulfilled'
-                        ? remoteMalpediaResult.value
-                        : [],
-                    mitreResult.status === 'fulfilled'
-                        ? mitreResult.value
-                        : [],
-                ),
-            );
-
-            if (urlHausResult.status === 'fulfilled') {
-                setUrlHausItems(urlHausResult.value);
-            }
-
-            if (
-                malwareBazaarResult.status ===
-                'fulfilled'
-            ) {
-                setMalwareBazaarItems(
-                    malwareBazaarResult.value,
-                );
-            }
-
-            if (feodoResult.status === 'fulfilled') {
-                setFeodoItems(feodoResult.value);
-            }
-
-            if (sslBlResult.status === 'fulfilled') {
-                setSslBlItems(sslBlResult.value);
-            }
-
-            if (ja3Result.status === 'fulfilled') {
-                setJa3Items(ja3Result.value);
-            }
-
-            if (
-                threatFoxResult.status ===
-                'fulfilled'
-            ) {
-                setThreatFoxItems(
-                    threatFoxResult.value,
-                );
-            }
-
-            if (ipsumResult.status === 'fulfilled') {
-                setIpsumItems(ipsumResult.value);
-            }
-
-            if (
-                blocklistResult.status ===
-                'fulfilled'
-            ) {
-                setBlocklistDeItems(
-                    blocklistResult.value,
-                );
-            }
-
-            if (
-                c2IntelResult.status ===
-                'fulfilled'
-            ) {
-                setC2IntelItems(
-                    c2IntelResult.value,
-                );
-            }
-
-            if (
-                maliciousHashesResult.status ===
-                'fulfilled'
-            ) {
-                setMaliciousHashItems(
-                    maliciousHashesResult.value,
-                );
-            }
-
-            if (
-                ransomwarePostsResult.status ===
-                'fulfilled'
-            ) {
-                setRansomwarePosts(
-                    ransomwarePostsResult.value,
-                );
-            }
-
-            if (
-                ransomwareGroupsResult.status ===
-                'fulfilled'
-            ) {
-                setRansomwareGroups(
-                    ransomwareGroupsResult.value,
-                );
-            }
-
             if (cveResult.status === 'fulfilled') {
                 setCveData(cveResult.value);
             }
 
-            if (
-                cveFeedResult.status ===
-                'fulfilled'
-            ) {
-                setCveFeedItems(
-                    cveFeedResult.value,
-                );
-            }
+            addSystemLog(
+                'Intelligence and telemetry refresh completed.',
+                'SUCCESS',
+                'System',
+            );
 
-            if (
-                exploitResult.status ===
-                'fulfilled'
-            ) {
-                setExploitData(
-                    exploitResult.value,
-                );
-            }
-
-            const failedFeeds = results.filter(
-                (result) => result.status === 'rejected',
-            ).length;
-
-            if (failedFeeds > 0) {
-                addSystemLog(
-                    `Intelligence refresh completed with ${failedFeeds} failed feed(s).`,
-                    'WARN',
-                    'System',
-                );
-
-                addToast(
-                    `Refresh completed with ${failedFeeds} unavailable feed(s).`,
-                    'error',
-                );
-            } else {
-                addSystemLog(
-                    'Intelligence refresh completed successfully.',
-                    'SUCCESS',
-                    'System',
-                );
-
-                addToast(
-                    'All intelligence feeds refreshed.',
-                    'success',
-                );
-            }
+            addToast(
+                'Telemetry data refreshed from backend.',
+                'success',
+            );
+        } catch {
+            addSystemLog(
+                'Telemetry refresh encountered an issue.',
+                'WARN',
+                'System',
+            );
         } finally {
             setIsFeedLoading(false);
         }
@@ -2058,8 +1940,8 @@ export const App: React.FC = () => {
                             maliciousHashItems={
                                 maliciousHashItems
                             }
-                            ransomwarePosts={ransomwarePosts.length > 0 ? ransomwarePosts : (isPublicDemo() ? DEMO_RANSOMWARE_POSTS : [])}
-                            ransomwareGroups={ransomwareGroups.length > 0 ? ransomwareGroups : (isPublicDemo() ? DEMO_RANSOMWARE_GROUPS : [])}
+                            ransomwarePosts={isPublicDemo() ? DEMO_RANSOMWARE_POSTS : ransomwarePosts}
+                            ransomwareGroups={isPublicDemo() ? DEMO_RANSOMWARE_GROUPS : ransomwareGroups}
                             onAddLogs={
                                 handleAddLogs
                             }

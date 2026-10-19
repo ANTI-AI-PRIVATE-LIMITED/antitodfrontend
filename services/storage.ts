@@ -85,3 +85,32 @@ export const clearStorage = async () => {
         console.error("Failed to clear storage", e);
     }
 };
+
+export const clearExternalFeedStorage = async () => {
+    try {
+        const db = await initDB();
+        const feedStores = [
+            STORES.RANSOMWARE_POSTS,
+            STORES.RANSOMWARE_GROUPS,
+            STORES.URLHAUS,
+            STORES.BAZAAR,
+            STORES.FEODO,
+            STORES.SSLBL_SHA1,
+            STORES.SSLBL_JA3,
+            STORES.THREATFOX,
+            STORES.IPSUM,
+            STORES.BLOCKLIST_DE,
+            STORES.C2_INTEL,
+        ];
+        const availableStores = feedStores.filter((s) => db.objectStoreNames.contains(s));
+        if (availableStores.length === 0) return;
+        const transaction = db.transaction(availableStores, 'readwrite');
+        availableStores.forEach((s) => transaction.objectStore(s).clear());
+        return new Promise<void>((resolve) => {
+            transaction.oncomplete = () => resolve();
+        });
+    } catch (e) {
+        console.warn('Failed to clear external feed storage', e);
+    }
+};
+

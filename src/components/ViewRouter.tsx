@@ -188,32 +188,8 @@ function LegacyWrapper({ children }: { children: ReactNode }) {
  * Renders a dismissable preview banner above a module's content
  * when the active view is marked as `status: 'preview'`.
  */
-function PreviewBanner({ viewId, children }: { viewId: string; children: ReactNode }) {
-  const [dismissed, setDismissed] = useState<string | null>(null);
-  const navItem = findNavItem(canonicalViewId(viewId));
-  const showBanner = navItem && isNavPreview(navItem) && dismissed !== viewId;
-
-  return (
-    <>
-      {showBanner && (
-        <div className="at-preview-banner" role="status">
-          <span className="at-preview-banner-badge">Preview</span>
-          <span className="at-preview-banner-text">
-            This module is under active development and may use sample data.
-          </span>
-          <button
-            type="button"
-            className="at-preview-banner-dismiss"
-            onClick={() => setDismissed(viewId)}
-            aria-label="Dismiss preview notice"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-      {children}
-    </>
-  );
+function PreviewBanner({ children }: { viewId?: string; children: ReactNode }) {
+  return <>{children}</>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -383,19 +359,18 @@ export default function ViewRouter({
   };
 
   /* ------------------------------------------------------------------------ */
-  /*                              Fullscreen Views                            */
+  /*                              View dispatch                               */
   /* ------------------------------------------------------------------------ */
 
-  /*
-   * SOC Wall intentionally remains a special presentation surface.
-   *
-   * Unlike ordinary modules, this view historically owns the entire viewport.
-   * It therefore bypasses the regular page workspace while still using the
-   * application's navigation callback to return to the dashboard.
-   */
-  if (activeView === 'soc_wall') {
-    return (
-      <div className="at-fullscreen-view">
+  let renderedView: ReactNode;
+
+  switch (activeView) {
+    /* ====================================================================== */
+    /*                              MIGRATED PAGES                            */
+    /* ====================================================================== */
+
+    case 'soc_wall':
+      renderedView = (
         <BigScreenView
           results={results}
           newsItems={newsItems}
@@ -415,20 +390,8 @@ export default function ViewRouter({
           productName={productName}
           logoUrl={logoUrl}
         />
-      </div>
-    );
-  }
-
-  /* ------------------------------------------------------------------------ */
-  /*                              View dispatch                               */
-  /* ------------------------------------------------------------------------ */
-
-  let renderedView: ReactNode;
-
-  switch (activeView) {
-    /* ====================================================================== */
-    /*                              MIGRATED PAGES                            */
-    /* ====================================================================== */
+      );
+      break;
 
     case 'dashboard':
       renderedView = (

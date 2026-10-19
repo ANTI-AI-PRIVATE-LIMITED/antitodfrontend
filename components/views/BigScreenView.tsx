@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { 
     AnalyzedHost, 
     ThreatNewsItem, 
@@ -19,7 +18,8 @@ import {
 } from '../../types';
 import { AttackMapView, AttackTarget } from './AttackMapView';
 import { LiveThreatFeed } from '../widgets/LiveThreatFeed';
-import { ShieldAlert, Activity, Globe, Target, ArrowUp, ArrowDown, Zap, Skull, XCircle, AlertTriangle, Siren, Bug, Database, Rss, Lock, Flame, Server, MonitorPlay, Maximize, PlayCircle, PauseCircle, Wifi, Users, Layout, BarChart3, AlertCircle, Clock, Network, Share2, Layers } from 'lucide-react';
+import { isPublicDemo } from '../../src/utils/demoMode';
+import { ShieldAlert, Activity, Globe, Target, ArrowUp, ArrowDown, Zap, Skull, AlertTriangle, Siren, Bug, Database, Rss, Lock, Flame, Server, MonitorPlay, Wifi, Users, Layout, BarChart3, AlertCircle, Clock, Network, Share2, Layers } from 'lucide-react';
 
 interface BigScreenViewProps {
     results: AnalyzedHost[];
@@ -322,8 +322,6 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
 }) => {
     const [showGlobalThreats, setShowGlobalThreats] = useState(true);
     const [activeTab, setActiveTab] = useState<SocTab>('OPS');
-    const [isAutoCarousel, setIsAutoCarousel] = useState(true);
-    const [rotationInterval, setRotationInterval] = useState(30000);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const criticalHosts = results.filter(h => h.riskLevel === 'CRITICAL').length;
@@ -385,7 +383,8 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
     }, [feodoItems, urlHausItems, threatFoxItems]);
 
     const globalThreats = useMemo(() => {
-        if (!showGlobalThreats) return [];
+        // Strict Backend Isolation: Only inject synthetic global external targets in public demo mode
+        if (!showGlobalThreats || !isPublicDemo()) return [];
         const targets: AttackTarget[] = [];
         feodoItems.forEach(i => {
             if (i.country) {
@@ -465,14 +464,6 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
     }, []);
 
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && onExit) onExit();
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onExit]);
-
-    useEffect(() => {
         if(onRefresh) {
             // Set interval to 30 minutes (30 * 60 * 1000)
             const t = setInterval(onRefresh, 30 * 60 * 1000);
@@ -480,42 +471,18 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
         }
     }, [onRefresh]);
 
-    useEffect(() => {
-        if (!isAutoCarousel) return;
-        const interval = setInterval(() => {
-            setActiveTab(prev => {
-                const sequence: SocTab[] = ['OPS', 'LIVE', 'VULN', 'IOC', 'NEWS'];
-                const currentIndex = sequence.indexOf(prev);
-                return sequence[(currentIndex + 1) % sequence.length];
-            });
-        }, rotationInterval);
-        return () => clearInterval(interval);
-    }, [isAutoCarousel, rotationInterval]);
-
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            containerRef.current?.requestFullscreen();
-        } else {
-            document.exitFullscreen();
-        }
-    };
-
-    return createPortal(
-        <div ref={containerRef} className="at-soc-wall fixed inset-0 z-[100] bg-[#06080b] text-white overflow-hidden flex flex-col font-sans select-none">
+    return (
+        <div ref={containerRef} className="at-soc-wall flex-1 min-w-0 min-h-0 w-full h-full bg-[#06080b] text-white overflow-hidden flex flex-col font-sans select-none">
             <div className="at-soc-header">
-                <div className="flex items-center gap-4">
-                    {logoUrl ? (
-                        <img src={logoUrl} className="h-10 w-10 object-contain"/>
-                    ) : (
-                        <div className="at-soc-brand-mark">
-                            <span>A</span>
-                        </div>
-                    )}
+                <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse" />
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-[0.14em] text-[#e7e8ea]">
-                            {productName}
-                            <span className="ml-2 text-[#d62828]">SOC</span>
-                        </h1>
+                        <h2 className="text-sm font-semibold tracking-wider uppercase text-neutral-200">
+                            SOC Operations Wall
+                        </h2>
+                        <div className="text-[11px] text-neutral-500 font-mono hidden sm:block">
+                            Live Threat Telemetry & Situational Awareness
+                        </div>
                     </div>
                 </div>
 
@@ -529,7 +496,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                     ].map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => { setActiveTab(tab.id as SocTab); setIsAutoCarousel(false); }}
+                            onClick={() => setActiveTab(tab.id as SocTab)}
                             className={`px-3 py-1.5 rounded flex items-center gap-2 text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-[#d62828] text-white shadow-[0_6px_18px_rgba(214,40,40,.20)]' : 'text-[#777e87] hover:text-[#e5e7eb] hover:bg-[#171a20]'}`}
                         >
                             <tab.icon size={14}/> {tab.label}
@@ -537,43 +504,16 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                     ))}
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                        <button 
-                            onClick={() => setIsAutoCarousel(!isAutoCarousel)}
-                            className={`text-[10px] font-bold px-3 py-1 rounded-l border transition-colors flex items-center gap-2 ${isAutoCarousel ? 'bg-red-900/40 border-red-500 text-red-300' : 'bg-[#151515] border-[#333] text-[#888]'}`}
-                        >
-                            {isAutoCarousel ? <PauseCircle size={14}/> : <PlayCircle size={14}/>} ROTATION
-                        </button>
-                        <select 
-                            value={rotationInterval}
-                            onChange={(e) => setRotationInterval(Number(e.target.value))}
-                            className="bg-[#111] border border-[#333] text-xs rounded-r px-2 py-1 text-neutral-300 outline-none h-full border-l-0"
-                        >
-                            <option value={10000}>10s</option>
-                            <option value={30000}>30s</option>
-                            <option value={60000}>1m</option>
-                            <option value={300000}>5m</option>
-                        </select>
-                    </div>
-
+                <div className="flex items-center gap-5">
                     <div className="text-right hidden md:block">
                         <div className="text-[10px] text-[#888] font-bold uppercase tracking-widest">System Status</div>
-                        <div className="text-white font-mono text-sm flex items-center justify-end gap-2">
-                            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_5px_#ef4444]"></span> OPERATIONAL
+                        <div className="text-white font-mono text-xs flex items-center justify-end gap-1.5">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_#10b981]"></span> OPERATIONAL
                         </div>
                     </div>
                     <div className="text-right">
-                        <div className="text-3xl font-mono font-bold leading-none">{time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div className="text-lg font-mono font-bold leading-none text-neutral-200">{time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</div>
                         <div className="text-[10px] text-[#888] font-bold uppercase tracking-widest">{time.toLocaleDateString()}</div>
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={toggleFullscreen} className="p-2 hover:bg-white/10 rounded text-[#888] hover:text-white transition-colors">
-                            <Maximize size={24}/>
-                        </button>
-                        <button onClick={onExit} className="p-2 hover:bg-white/10 rounded text-[#888] hover:text-white transition-colors">
-                            <XCircle size={24}/>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -648,30 +588,36 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                         Latest victims
                                     </span>
 
-                                    {ransomwarePosts
-                                        .slice(0, 3)
-                                        .map((post, index) => (
-                                            <div
-                                                key={index}
-                                                className="at-soc-ransom-row"
-                                            >
-                                                <div>
-                                                    <strong>
-                                                        {post.post_title}
-                                                    </strong>
+                                    {ransomwarePosts.length === 0 ? (
+                                        <div className="py-3 text-center text-xs font-mono text-neutral-500 italic">
+                                            No active ransomware incidents recorded
+                                        </div>
+                                    ) : (
+                                        ransomwarePosts
+                                            .slice(0, 3)
+                                            .map((post, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="at-soc-ransom-row"
+                                                >
+                                                    <div>
+                                                        <strong>
+                                                            {post.post_title}
+                                                        </strong>
 
-                                                    <span>
-                                                        {post.group_name}
-                                                    </span>
+                                                        <span>
+                                                            {post.group_name}
+                                                        </span>
+                                                    </div>
+
+                                                    <time>
+                                                        {new Date(
+                                                            post.discovered,
+                                                        ).toLocaleDateString()}
+                                                    </time>
                                                 </div>
-
-                                                <time>
-                                                    {new Date(
-                                                        post.discovered,
-                                                    ).toLocaleDateString()}
-                                                </time>
-                                            </div>
-                                        ))}
+                                            ))
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1005,8 +951,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
             <div className="h-8 shrink-0 z-30">
                 <NewsTicker items={newsItems} />
             </div>
-        </div>,
-        document.body
+        </div>
     );
 };
 

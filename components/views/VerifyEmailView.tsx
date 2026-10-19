@@ -95,15 +95,15 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({ onNavigateToLo
   }, [resendCooldown]);
 
   return (
-    <div className="min-h-screen bg-[#111] relative overflow-hidden flex items-center justify-center py-12">
+    <div className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-[#0a0a0a] flex flex-col items-center py-6 sm:py-10 px-4 custom-scrollbar">
       {/* Cyber grid background */}
-      <div className="cyber-grid-bg"></div>
+      <div className="cyber-grid-bg fixed inset-0 pointer-events-none"></div>
 
       {/* Scanlines overlay */}
       <div className="scanlines pointer-events-none fixed inset-0 z-50 opacity-5 mix-blend-overlay"></div>
 
       {/* Ambient lighting */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse"></div>
         <div
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neutral-500/5 rounded-full blur-3xl animate-pulse"
@@ -111,20 +111,20 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({ onNavigateToLo
         ></div>
       </div>
 
-      <div className="relative z-10 w-full max-w-lg px-6">
+      <div className="relative z-10 w-full max-w-lg my-auto py-2">
         {/* Brand header */}
-        <div className="text-center mb-6 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-3 bg-red-600 rounded-2xl shadow-lg shadow-red-500/20">
-            <ShieldCheck className="w-8 h-8 text-white" />
+        <div className="text-center mb-5 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-red-600 rounded-2xl shadow-lg shadow-red-500/25">
+            <ShieldCheck className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-3xl font-cyber font-bold text-white mb-1">ANTITODE</h1>
+          <h1 className="text-2xl sm:text-3xl font-cyber font-bold text-white tracking-wider mb-1">ANTITODE</h1>
           <p className="text-neutral-400 font-mono text-xs">
-            Cyber Threat & Honeypot Operations Platform
+            Cyber Threat &amp; Honeypot Operations Platform
           </p>
         </div>
 
         {/* Main Card */}
-        <div className="bg-[#111]/80 backdrop-blur-md border border-neutral-800 rounded-2xl p-8 shadow-2xl animate-slide-in-up font-mono">
+        <div className="bg-[#111]/90 backdrop-blur-md border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl animate-slide-in-up font-mono">
           {status === 'verifying' && (
             <div className="text-center space-y-6 py-6 animate-fade-in">
               <div className="w-16 h-16 mx-auto bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center text-red-400">

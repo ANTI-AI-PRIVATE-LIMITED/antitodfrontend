@@ -2,12 +2,8 @@
 import { RansomWatchPost, RansomWatchGroup } from '../types';
 import { API_ENDPOINTS } from '../config/config';
 import api from '../api/client';
-import { fetchJsonWithCors } from './http';
-import { DEMO_MODE } from '../src/services/dataProvider';
+import { isPublicDemo } from '../src/utils/demoMode';
 import { DEMO_RANSOMWARE_POSTS, DEMO_RANSOMWARE_GROUPS } from '../src/data/demo/ransomware';
-
-const POSTS_URL = 'https://raw.githubusercontent.com/joshhighet/ransomwatch/main/posts.json';
-const GROUPS_URL = 'https://raw.githubusercontent.com/joshhighet/ransomwatch/main/groups.json';
 
 const mapLiveVictims = (json: any): RansomWatchPost[] => {
     const items = json.victims || (Array.isArray(json) ? json : []);
@@ -47,62 +43,25 @@ const fetchRansomwareLive = async (): Promise<RansomWatchPost[]> => {
 };
 
 export const fetchRansomwarePosts = async (): Promise<RansomWatchPost[]> => {
-    if (DEMO_MODE) return DEMO_RANSOMWARE_POSTS;
+    // Demo mode: prospect sandbox
+    if (isPublicDemo()) return DEMO_RANSOMWARE_POSTS;
+
+    // Authenticated mode: strictly query backend proxy API
     try {
-        const [rwData, liveData] = await Promise.all([
-            fetchJsonWithCors<RansomWatchPost[]>(POSTS_URL).catch((e) => {
-                console.warn("RansomWatch posts fetch failed, falling back to live data only");
-                return [] as RansomWatchPost[];
-            }),
-            fetchRansomwareLive().catch(() => [] as RansomWatchPost[])
-        ]);
-
-        const normalizedRw = Array.isArray(rwData) ? rwData.map(p => ({ ...p, source: 'RansomWatch' })) : [];
-        
-        // Combine and dedup based on title + group
-        const unique = new Map<string, RansomWatchPost>();
-        
-        // Process Live Data First (High Fidelity)
-        liveData.forEach(post => {
-            const key = `${post.group_name}-${post.post_title}`.toLowerCase();
-            unique.set(key, post);
-        });
-
-        // Merge in RansomWatch (Standard Feed)
-        normalizedRw.forEach(post => {
-            const key = `${post.group_name}-${post.post_title}`.toLowerCase();
-            if (!unique.has(key)) {
-                unique.set(key, post);
-            } else {
-                // Keep the 'Ransomware.live' one if it has extra data (screenshot/country), otherwise simple merge
-                const existing = unique.get(key)!;
-                if (!existing.screenshot && !existing.country) {
-                     unique.set(key, { ...post, ...existing }); 
-                }
-            }
-        });
-
-        // Sort by date descending
-        const results = Array.from(unique.values()).sort((a, b) => new Date(b.discovered).getTime() - new Date(a.discovered).getTime());
-        return results.length > 0 ? results : DEMO_RANSOMWARE_POSTS;
+        const liveData = await fetchRansomwareLive();
+        return Array.isArray(liveData) ? liveData : [];
     } catch (e) {
-        console.error("Failed to fetch Ransomware posts", e);
-        return DEMO_RANSOMWARE_POSTS;
+        console.warn("[Ransomware] Failed to fetch backend ransomware data", e);
+        return [];
     }
 };
 
 export const fetchRansomwareGroups = async (): Promise<RansomWatchGroup[]> => {
-    if (DEMO_MODE) return DEMO_RANSOMWARE_GROUPS;
-    try {
-        const data = await fetchJsonWithCors<RansomWatchGroup[]>(GROUPS_URL);
-        if (Array.isArray(data) && data.length > 0) {
-            return data;
-        }
-        return DEMO_RANSOMWARE_GROUPS;
-    } catch (e) {
-        console.warn("Failed to fetch RansomWatch groups:", e);
-        return DEMO_RANSOMWARE_GROUPS;
-    }
+    // Demo mode: prospect sandbox
+    if (isPublicDemo()) return DEMO_RANSOMWARE_GROUPS;
+
+    // Authenticated mode: only backend data if provided, otherwise clean empty state
+    return [];
 };
 
 

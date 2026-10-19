@@ -75,7 +75,7 @@ export function isVisible(item: NavItem): boolean {
 
 /** True when the item carries the "Preview" badge. */
 export function isPreview(item: NavItem): boolean {
-  return viewStatus(item) === 'preview';
+  return false;
 }
 
 // Product/module vocabulary is intentionally sourced from the original Xyberah-Admin
@@ -86,51 +86,51 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', desc: 'Real-time threat monitoring and global status overview.' },
       { id: 'honeypot_logs', icon: Database, label: 'Honeypot Logs', desc: 'Search, filter, and inspect honeypot events with threat intelligence.' },
-      { id: 'soc_wall', icon: MonitorPlay, label: 'SOC Wall', desc: 'Cinematic full-screen visualization mode.', status: 'preview' },
-      { id: 'investigation_bench', icon: Briefcase, label: 'Investigation Bench', desc: 'Manage cases, artifacts, and evidence for incidents.', status: 'preview' },
-      { id: 'playbooks', icon: Archive, label: 'Response Playbooks', desc: 'Execute standard operating procedures for incident response.', status: 'preview' },
+      { id: 'soc_wall', icon: MonitorPlay, label: 'SOC Wall', desc: 'Cinematic full-screen visualization mode.' },
+      { id: 'investigation_bench', icon: Briefcase, label: 'Investigation Bench', desc: 'Manage cases, artifacts, and evidence for incidents.' },
+      { id: 'playbooks', icon: Archive, label: 'Response Playbooks', desc: 'Execute standard operating procedures for incident response.' },
       { id: 'attackmap', icon: Crosshair, label: 'Threat Map', desc: 'Geospatial visualization of active cyber attacks.' },
-      { id: 'ransomware', icon: Skull, label: 'Ransomware Monitor', desc: 'Track active ransomware groups and leak sites.', status: 'preview' },
+      { id: 'ransomware', icon: Skull, label: 'Ransomware Monitor', desc: 'Track active ransomware groups and leak sites.' },
     ],
   },
   {
     title: 'Forensics',
     items: [
       { id: 'analysis', icon: FileText, label: 'Log Analysis', desc: 'Parse, normalize, and score raw server logs.' },
-      { id: 'investigate', icon: Network, label: 'Graph Investigation', desc: 'Visual link analysis of entities and relationships.', status: 'preview' },
-      { id: 'network', icon: Network, label: 'Network Forensics', desc: 'Analyze PCAP files, TCP streams, and packet headers.', status: 'preview' },
-      { id: 'email_forensic', icon: Mail, label: 'Email Forensic', desc: 'Analyze email headers, hops, and authentication.', status: 'preview' },
+      { id: 'investigate', icon: Network, label: 'Graph Investigation', desc: 'Visual link analysis of entities and relationships.' },
+      { id: 'network', icon: Network, label: 'Network Forensics', desc: 'Analyze PCAP files, TCP streams, and packet headers.' },
+      { id: 'email_forensic', icon: Mail, label: 'Email Forensic', desc: 'Analyze email headers, hops, and authentication.' },
       { id: 'dynamic_sandbox', icon: Box, label: 'Dynamic Sandbox', desc: 'Detonate files and URLs in a secure isolated environment.', status: 'hidden' },
     ],
   },
   {
     title: 'Modeling',
     items: [
-      { id: 'topology', icon: Share2, label: 'Network Topology', desc: 'Security-focused network builder with attack path simulation.', status: 'preview' },
-      { id: 'threat_canvas', icon: PencilLine, label: 'Threat Canvas', desc: 'Interactive STRIDE threat modeling with AI analysis.', status: 'preview' },
+      { id: 'topology', icon: Share2, label: 'Network Topology', desc: 'Security-focused network builder with attack path simulation.' },
+      { id: 'threat_canvas', icon: PencilLine, label: 'Threat Canvas', desc: 'Interactive STRIDE threat modeling with AI analysis.' },
       { id: 'navigator', icon: Layers, label: 'MITRE Navigator', desc: 'Map coverage against MITRE ATT&CK framework.' },
     ],
   },
   {
     title: 'Intelligence',
     items: [
-      { id: 'intel_search', icon: Search, label: 'Intel Grounding', desc: 'Deep research tool using Gemini Search Grounding.', status: 'preview' },
+      { id: 'intel_search', icon: Search, label: 'Intel Grounding', desc: 'Deep research tool using Gemini Search Grounding.' },
       { id: 'actors', icon: Users, label: 'Threat Actors', desc: 'Detailed profiles of APT groups and cybercriminals.' },
       { id: 'cve', icon: Shield, label: 'Vulnerabilities', desc: 'Search CVE database and KEV catalog.' },
       { id: 'exploits', icon: Bug, label: 'Exploit DB', desc: 'Database of public exploits and PoCs.' },
       { id: 'news', icon: Newspaper, label: 'Intel Feed', desc: 'Aggregated cybersecurity news and advisories.' },
       { id: 'iocs', icon: ShieldAlert, label: 'IOC Manager', desc: 'Manage and export Indicators of Compromise.' },
-      { id: 'brand_intel', icon: Fingerprint, label: 'Brand Intel', desc: 'Monitor brand impersonation and typosquatting.', status: 'preview' },
+      { id: 'brand_intel', icon: Fingerprint, label: 'Brand Intel', desc: 'Monitor brand impersonation and typosquatting.' },
     ],
   },
   {
     title: 'Tools',
     items: [
-      { id: 'cyberchef', icon: Zap, label: 'CyberChef', desc: 'Tactical data transformation and encoding/decoding suite.', status: 'preview' },
-      { id: 'nettools', icon: HardDrive, label: 'Network Tools', desc: 'DNS lookup, Whois, Traceroute, and more.', status: 'preview' },
-      { id: 'webcheck', icon: Globe, label: 'Web Check', desc: 'Deep website analysis and header inspection.', status: 'preview' },
+      { id: 'cyberchef', icon: Zap, label: 'CyberChef', desc: 'Tactical data transformation and encoding/decoding suite.' },
+      { id: 'nettools', icon: HardDrive, label: 'Network Tools', desc: 'DNS lookup, Whois, Traceroute, and more.' },
+      { id: 'webcheck', icon: Globe, label: 'Web Check', desc: 'Deep website analysis and header inspection.' },
       { id: 'sandbox', icon: Monitor, label: 'Security Sandbox', desc: 'Secure web browser for inspecting malicious sites.', status: 'hidden' },
-      { id: 'rules', icon: Book, label: 'SOC Rules', desc: 'Manage detection rules (YARA, Sigma, Suricata).', status: 'preview' },
+      { id: 'rules', icon: Book, label: 'SOC Rules', desc: 'Manage detection rules (YARA, Sigma, Suricata).' },
     ],
   },
   {

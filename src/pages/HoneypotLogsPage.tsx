@@ -20,7 +20,6 @@ import {
   Globe2,
   RefreshCw,
   Search,
-  Server,
   ShieldAlert,
   TerminalSquare,
   X,
@@ -1351,27 +1350,17 @@ export default function HoneypotLogsPage({
                         className="at-btn at-btn-primary"
                         onClick={() =>
                           onNavigate(
-                            'investigate',
+                            'net_tools',
                           )
                         }
                       >
                         <ShieldAlert
                           size={14}
                         />
-                        Investigate
+                        Network Recon
                         <ArrowUpRight
                           size={13}
                         />
-                      </button>
-
-                      <button
-                        type="button"
-                        className="at-btn at-btn-secondary"
-                        onClick={() =>
-                          onNavigate('iocs')
-                        }
-                      >
-                        Add to IOC
                       </button>
                     </section>
 
@@ -1388,22 +1377,6 @@ export default function HoneypotLogsPage({
 
                       Search this source across
                       telemetry
-
-                      <ChevronRight size={13} />
-                    </button>
-
-                    <button
-                      type="button"
-                      className="at-hp-pivot"
-                      onClick={() =>
-                        onNavigate(
-                          'investigate',
-                        )
-                      }
-                    >
-                      <Server size={13} />
-
-                      Open investigation workspace
 
                       <ChevronRight size={13} />
                     </button>

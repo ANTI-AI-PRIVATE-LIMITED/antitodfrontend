@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Globe, Server, Shield, Lock, FileCode, Code, Leaf, Activity, ArrowRight, Wifi, FileText, Layers, CheckCircle, XCircle, Loader2, Network, Eye, Skull, ExternalLink, Zap, Key, History, Archive, AlertTriangle, Maximize2, Download, Radar } from 'lucide-react';
+import { Search, Globe, Server, Shield, Lock, Code, Leaf, Activity, ArrowRight, Wifi, FileText, CheckCircle, XCircle, Loader2, Network, Skull, ExternalLink, Zap, Key, History, Archive, AlertTriangle, Download, Radar } from 'lucide-react';
 import { WebCheckResult } from '../../types';
 import { performWebCheck } from '../../services/webcheck';
 import { downloadFile, generateWebCheckPDF } from '../../services/exporter';
@@ -34,7 +34,6 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<WebCheckResult | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
 
     const handleScan = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -164,35 +163,12 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
 
     return (
         <div className="h-full bg-[#111] overflow-y-auto custom-scrollbar p-4 md:p-8 w-full relative">
-            {/* Screenshot Modal */}
-            {expandedScreenshot && (
-                <div 
-                    className="fixed inset-0 z-[100] bg-[#111]/90 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in cursor-zoom-out"
-                    onClick={() => setExpandedScreenshot(null)}
-                >
-                    <div className="relative max-w-[95vw] max-h-[95vh]">
-                        <button 
-                            className="absolute -top-12 right-0 md:-right-12 p-2 text-[#AAA] hover:text-white transition-colors"
-                            onClick={() => setExpandedScreenshot(null)}
-                        >
-                            <XCircle size={32} />
-                        </button>
-                        <img 
-                            src={expandedScreenshot} 
-                            alt="Full Capture" 
-                            className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border border-[#222] object-contain bg-[#111]"
-                            onClick={(e) => e.stopPropagation()} 
-                        />
-                    </div>
-                </div>
-            )}
-
             {/* Header Input Section */}
             <div className="max-w-3xl mx-auto mb-12 text-center">
                 <h1 className="text-3xl md:text-4xl font-cyber font-bold text-white mb-4 text-glow">WEB <span className="text-red-500">CHECK</span></h1>
                 <p className="text-[#AAA] mb-8 text-sm md:text-base font-mono">
                     Deep passive analysis of domains, IPs, and URLs. 
-                    <span className="block text-xs text-neutral-600 mt-2">DNS Firewall • Headers • SSL • Visuals • Blocklists • Tech Stack</span>
+                    <span className="block text-xs text-neutral-600 mt-2">DNS Firewall • SSL • Blocklists • Whois</span>
                 </p>
                 
                 <form onSubmit={handleScan} className="relative max-w-lg mx-auto">
@@ -280,49 +256,6 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                             </div>
                         </div>
                     </div>
-
-                    {/* 2. Visual Recon */}
-                    <Card title="Visual Recon" badge="Coming Soon" icon={Eye} color="text-white" className="md:col-span-1 row-span-2">
-                        <div className="space-y-4 h-full flex flex-col">
-                            {result.visuals?.screenshot ? (
-                                <div 
-                                    className="relative rounded-lg overflow-hidden border border-[#333] group flex-1 bg-[#111] min-h-[200px] cursor-zoom-in"
-                                    onClick={() => setExpandedScreenshot(result.visuals!.screenshot)}
-                                >
-                                    <img 
-                                        src={result.visuals.screenshot} 
-                                        alt="Site Screenshot" 
-                                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                                    />
-                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/80 to-transparent opacity-60"></div>
-                                    <div className="absolute bottom-2 left-2">
-                                        <span className="text-[10px] bg-[#111]/80 text-neutral-300 px-2 py-1 rounded border border-[#333]">Live Capture</span>
-                                    </div>
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-[#111]/20 backdrop-blur-[1px]">
-                                        <div className="p-3 bg-[#111]/60 rounded-full text-white border border-white/20 shadow-xl">
-                                            <Maximize2 size={24} />
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-center h-48 bg-[#111] rounded text-neutral-600 text-xs">
-                                    Screenshot Unavailable
-                                </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-[#151515]/50 p-2 rounded text-center">
-                                    <div className="text-[9px] text-[#888] uppercase mb-1">Favicon</div>
-                                    <div className="flex justify-center">
-                                        {result.visuals?.favicon && <img src={result.visuals.favicon} className="w-4 h-4" alt="icon" onError={(e) => e.currentTarget.style.display = 'none'}/>}
-                                    </div>
-                                </div>
-                                <div className="bg-[#151515]/50 p-2 rounded text-center">
-                                    <div className="text-[9px] text-[#888] uppercase mb-1">Tech Stack</div>
-                                    <div className="text-xs text-neutral-300 font-mono">{result.page.techStack.length} Detected</div>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
 
                     {/* 3. DNS Firewall (DoT) */}
                     <Card title="DNS Firewall Analysis" icon={Shield} color="text-red-400" loading={loading && result.dnsSecurity.length === 0}>
@@ -542,57 +475,6 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                                 <span className="text-xs italic">{loading ? "Checking Wayback..." : "No Archive Data"}</span>
                             </div>
                         )}
-                    </Card>
-
-                    {/* 9. HTTP Headers */}
-                    <Card title="HTTP Headers" badge="Coming Soon" icon={FileCode} color="text-white" loading={loading && Object.keys(result.http.headers).length === 0}>
-                        <div className="space-y-1 font-mono text-[10px] text-[#AAA] h-48 overflow-y-auto custom-scrollbar">
-                            {Object.keys(result.http.headers).length > 0 ? (
-                                Object.entries(result.http.headers).map(([k, v]) => (
-                                    <div key={k} className="break-all">
-                                        <span className="text-white/70">{k}:</span> <span className="text-[#888]">{v}</span>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-center p-3">
-                                    <span className="text-xs text-neutral-400 font-mono">Arbitrary website inspection coming soon in v1.1 via backend egress.</span>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-
-                    {/* 10. Security Policy */}
-                    <Card title="Security Policy" badge="Coming Soon" icon={Shield} color="text-red-400" loading={loading && result.http.securityHeaders.length === 0}>
-                        <div className="space-y-2">
-                            {result.http.securityHeaders.length > 0 ? (
-                                result.http.securityHeaders.map(h => (
-                                    <div key={h.name} className="flex items-center justify-between text-xs">
-                                        <span className="text-[#AAA] truncate pr-2" title={h.name}>{h.name}</span>
-                                        {h.valid ? (
-                                            <CheckCircle size={14} className="text-white flex-shrink-0"/>
-                                        ) : (
-                                            <XCircle size={14} className="text-red-500/50 flex-shrink-0"/>
-                                        )}
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-center p-3">
-                                    <span className="text-xs text-neutral-400 font-mono">Security header policy audit coming soon in v1.1.</span>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-
-                    {/* 11. Tech Stack */}
-                    <Card title="Tech Stack" badge="Coming Soon" icon={Layers} color="text-white">
-                        <div className="flex flex-wrap gap-2">
-                            {result.page.techStack.map(tech => (
-                                <span key={tech} className="px-2 py-1 bg-neutral-900/20 border border-neutral-500/30 text-white rounded text-xs font-bold">
-                                    {tech}
-                                </span>
-                            ))}
-                            {result.page.techStack.length === 0 && <span className="text-[#888] text-xs italic">{loading ? "Analyzing..." : "No technologies detected."}</span>}
-                        </div>
                     </Card>
 
                     {/* 12. Carbon Footprint */}

@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import {
-  Bell,
   ChevronDown,
   ChevronRight,
   Command,
@@ -174,16 +173,6 @@ export default function Header({
           onClick={() => onNavigate && onNavigate('help')}
         >
           <HelpCircle size={15} />
-        </button>
-
-        <button
-          type="button"
-          className="at-header-quick-action at-header-notification"
-          title="Notifications"
-          aria-label="Notifications"
-        >
-          <Bell size={15} />
-          <span />
         </button>
 
         {onOpenSettings && (

@@ -383,19 +383,18 @@ export default function ViewRouter({
   };
 
   /* ------------------------------------------------------------------------ */
-  /*                              Fullscreen Views                            */
+  /*                              View dispatch                               */
   /* ------------------------------------------------------------------------ */
 
-  /*
-   * SOC Wall intentionally remains a special presentation surface.
-   *
-   * Unlike ordinary modules, this view historically owns the entire viewport.
-   * It therefore bypasses the regular page workspace while still using the
-   * application's navigation callback to return to the dashboard.
-   */
-  if (activeView === 'soc_wall') {
-    return (
-      <div className="at-fullscreen-view">
+  let renderedView: ReactNode;
+
+  switch (activeView) {
+    /* ====================================================================== */
+    /*                              MIGRATED PAGES                            */
+    /* ====================================================================== */
+
+    case 'soc_wall':
+      renderedView = (
         <BigScreenView
           results={results}
           newsItems={newsItems}
@@ -415,20 +414,8 @@ export default function ViewRouter({
           productName={productName}
           logoUrl={logoUrl}
         />
-      </div>
-    );
-  }
-
-  /* ------------------------------------------------------------------------ */
-  /*                              View dispatch                               */
-  /* ------------------------------------------------------------------------ */
-
-  let renderedView: ReactNode;
-
-  switch (activeView) {
-    /* ====================================================================== */
-    /*                              MIGRATED PAGES                            */
-    /* ====================================================================== */
+      );
+      break;
 
     case 'dashboard':
       renderedView = (

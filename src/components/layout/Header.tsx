@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import {
+  Bell,
+  CheckCircle,
   ChevronDown,
   ChevronRight,
   Command,
@@ -43,8 +45,26 @@ export default function Header({
   const [usage, setUsage] = useState<BillingUsageResponse | null>(null);
   const [showPlanMenu, setShowPlanMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const planMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideNotifications = (e: MouseEvent) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(e.target as Node)
+      ) {
+        setShowNotifications(false);
+      }
+    };
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleOutsideNotifications);
+    }
+    return () =>
+      document.removeEventListener('mousedown', handleOutsideNotifications);
+  }, [showNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -174,6 +194,54 @@ export default function Header({
         >
           <HelpCircle size={15} />
         </button>
+
+        {/* Notifications Popover */}
+        <div className="relative" ref={notificationsRef}>
+          <button
+            type="button"
+            className="at-header-quick-action at-header-notification"
+            title="Notifications"
+            aria-label="Notifications"
+            onClick={() => setShowNotifications((prev) => !prev)}
+          >
+            <Bell size={15} />
+            <span />
+          </button>
+
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-[#111] border border-neutral-800 rounded-xl shadow-2xl p-4 z-50 animate-fade-in font-sans">
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+                <div className="flex items-center gap-2">
+                  <Bell size={14} className="text-red-500" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Notifications
+                  </span>
+                </div>
+                <span className="text-[10px] text-neutral-400 font-mono px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800">
+                  0 Unread
+                </span>
+              </div>
+              <div className="py-6 flex flex-col items-center justify-center text-center">
+                <div className="w-8 h-8 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-500 mb-2">
+                  <CheckCircle size={15} className="text-emerald-500" />
+                </div>
+                <span className="text-xs text-neutral-300 font-medium">
+                  All caught up
+                </span>
+                <span className="text-[11px] text-neutral-400 mt-0.5">
+                  Real-time alerts and sensor events will stream here
+                </span>
+              </div>
+              <div className="pt-2.5 border-t border-neutral-800/80 flex items-center justify-between text-[10px] text-neutral-400 font-mono">
+                <span>Telemetry Ingestion</span>
+                <span className="text-emerald-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />{' '}
+                  Active
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
 
         {onOpenSettings && (
           <button

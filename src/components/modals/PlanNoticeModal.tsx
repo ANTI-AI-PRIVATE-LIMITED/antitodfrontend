@@ -82,7 +82,7 @@ export const PlanNoticeModal: React.FC = () => {
           boxShadow:
             type === 'INACTIVE'
               ? '0 0 50px rgba(239, 68, 68, 0.25)'
-              : '0 0 50px rgba(249, 115, 22, 0.25)',
+              : '0 0 50px rgba(225, 29, 72, 0.2)',
         }}
       >
         {/* Glowing top line */}
@@ -90,7 +90,7 @@ export const PlanNoticeModal: React.FC = () => {
           className={`h-1.5 w-full ${
             type === 'INACTIVE'
               ? 'bg-gradient-to-r from-red-600 via-rose-500 to-red-600'
-              : 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500'
+              : 'bg-gradient-to-r from-red-600 via-rose-500 to-red-600'
           }`}
         />
 
@@ -111,7 +111,7 @@ export const PlanNoticeModal: React.FC = () => {
               className={`p-3.5 rounded-xl border flex-shrink-0 ${
                 type === 'INACTIVE'
                   ? 'bg-red-950/40 border-red-500/40 text-red-400 shadow-lg shadow-red-500/20'
-                  : 'bg-orange-950/40 border-orange-500/40 text-orange-400 shadow-lg shadow-orange-500/20'
+                  : 'bg-rose-950/40 border-rose-500/40 text-rose-400 shadow-lg shadow-rose-500/20'
               }`}
             >
               {type === 'INACTIVE' ? (
@@ -157,14 +157,18 @@ export const PlanNoticeModal: React.FC = () => {
             <div className="space-y-2 bg-neutral-950/60 border border-neutral-800/60 rounded-xl p-4">
               <div className="flex items-center justify-between text-xs font-mono">
                 <span className="text-neutral-400">Current Resource Usage</span>
-                <span className="font-bold text-orange-400">
+                <span
+                  className={`font-bold ${
+                    percent >= 100 ? 'text-red-400' : 'text-sky-400'
+                  }`}
+                >
                   {used} / {limit} ({percent}%)
                 </span>
               </div>
               <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    percent >= 100 ? 'bg-red-500' : 'bg-orange-500'
+                    percent >= 100 ? 'bg-red-500' : 'bg-sky-500'
                   }`}
                   style={{ width: `${percent}%` }}
                 />
@@ -179,7 +183,7 @@ export const PlanNoticeModal: React.FC = () => {
           <div className="space-y-3 bg-gradient-to-b from-neutral-900/90 to-neutral-950/90 border border-neutral-800 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                <Sparkles className="w-3.5 h-3.5 text-rose-400" />
                 Unlock with Pro Plan:
               </span>
               <span className="text-xs font-mono text-neutral-400">$155 / month</span>
@@ -213,7 +217,7 @@ export const PlanNoticeModal: React.FC = () => {
                 // Open billing or mailto
                 window.location.href = 'mailto:billing@xyberah.com?subject=Subscription%20Upgrade%20Request';
               }}
-              className="w-full sm:flex-1 py-3 px-5 rounded-xl font-mono text-sm font-bold text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 shadow-lg shadow-red-600/20 hover:shadow-red-500/30 transition-all flex items-center justify-center gap-2"
+              className="w-full sm:flex-1 py-3 px-5 rounded-xl font-mono text-sm font-bold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-600/25 hover:shadow-red-500/40 transition-all flex items-center justify-center gap-2"
             >
               <span>{type === 'INACTIVE' ? 'Renew Subscription' : 'Upgrade to Pro'}</span>
               <ExternalLink className="w-4 h-4" />

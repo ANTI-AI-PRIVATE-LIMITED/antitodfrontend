@@ -240,14 +240,14 @@ export default function Header({
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider border transition-all ${
                     usage.plan.id === 'pro'
                       ? 'bg-blue-950/60 text-blue-400 border-blue-500/40 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/20'
-                      : 'bg-amber-950/60 text-amber-400 border-amber-500/40 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/20'
+                      : 'bg-neutral-900/90 text-neutral-300 border-neutral-700/80 hover:border-neutral-500 hover:text-white hover:bg-neutral-800'
                   }`}
                   title={`Subscription: ${usage.plan.label}. Click to view quotas.`}
                 >
                   {usage.plan.id === 'pro' ? (
                     <Crown size={12} className="text-blue-400" />
                   ) : (
-                    <Zap size={12} className="text-amber-400" />
+                    <Zap size={12} className="text-neutral-400" />
                   )}
                   <span>{usage.plan.label}</span>
                   {typeof usage.usage?.servers?.used === 'number' &&
@@ -298,10 +298,10 @@ export default function Header({
                           </div>
                           <div className="w-full bg-neutral-800 h-1.5 rounded-full overflow-hidden">
                             <div
-                              className={`h-full rounded-full ${
+                              className={`h-full rounded-full transition-all duration-300 ${
                                 usage.usage.servers.used >= usage.usage.servers.limit
                                   ? 'bg-red-500'
-                                  : 'bg-orange-500'
+                                  : 'bg-sky-500'
                               }`}
                               style={{
                                 width: `${Math.min(
@@ -359,7 +359,7 @@ export default function Header({
                             }),
                           );
                         }}
-                        className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold text-center transition-all shadow-md shadow-orange-600/20"
+                        className="w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-center transition-all shadow-md shadow-red-600/20 hover:shadow-red-600/30 cursor-pointer"
                       >
                         Upgrade to Pro ($155/mo)
                       </button>

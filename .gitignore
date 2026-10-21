@@ -1,4 +1,4 @@
-﻿# Logs
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -28,3 +28,10 @@ bun.lock
 bun.lockb
 
 *.tsbuildinfo
+
+# Env & credentials
+.env
+.env.*
+!.env.example
+razorpay*_api_keys*.csv
+*razorpay*keys*.csv

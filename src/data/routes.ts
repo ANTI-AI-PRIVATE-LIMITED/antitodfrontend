@@ -39,6 +39,7 @@ const ROUTE_SLUGS: Record<string, string> = {
   chat: 'ai-assistant',
   help: 'system-guide',
   access_control: 'access-control',
+  billing: 'billing',
 };
 
 const PATH_TO_VIEW = Object.fromEntries(

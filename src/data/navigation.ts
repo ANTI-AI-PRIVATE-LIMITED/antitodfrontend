@@ -2,6 +2,7 @@ import {
   Bug,
   Cable,
   CloudCog,
+  CreditCard,
   Crosshair,
   Database,
   FileText,
@@ -120,6 +121,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'System',
     items: [
       { id: 'access_control', icon: Users, label: 'Access Control', desc: 'Manage users, RBAC groups, and inspect the security audit trail.' },
+      { id: 'billing', icon: CreditCard, label: 'Billing', desc: 'Plan usage, Razorpay checkout, upgrades, and cancellations.' },
       { id: 'help', icon: HelpCircle, label: 'System Guide', desc: 'Documentation, shortcuts, and help topics.' },
     ],
   },

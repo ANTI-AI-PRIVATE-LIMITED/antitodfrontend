@@ -39,6 +39,7 @@ import type {
   C2IntelFeedEntry,
   RansomWatchPost,
   RansomWatchGroup,
+  MaliciousHashEntry,
 } from '../../types';
 
 import { useAnalysisData } from '../../hooks/useAnalysisData';
@@ -75,6 +76,7 @@ import { XyberahReconView } from '../../components/views/XyberahReconView';
 import { IntegrationsView } from '../../components/views/IntegrationsView';
 import { ExploitView } from '../../components/views/ExploitView';
 import { AccessControlView } from '../../components/views/AccessControlView';
+import { BillingView } from '../../components/views/BillingView';
 import { useAuth } from '../../contexts/AuthContext';
 
 /* -------------------------------------------------------------------------- */
@@ -374,6 +376,14 @@ export default function ViewRouter({
       renderedView = (
         <LegacyWrapper>
           <AccessControlView />
+        </LegacyWrapper>
+      );
+      break;
+
+    case 'billing':
+      renderedView = (
+        <LegacyWrapper>
+          <BillingView />
         </LegacyWrapper>
       );
       break;

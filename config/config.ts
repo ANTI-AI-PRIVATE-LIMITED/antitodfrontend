@@ -39,6 +39,10 @@ export const API_ENDPOINTS = {
     BILLING_USAGE: '/AdminRoutes/billing/usage',
     BILLING_PLANS: '/AdminRoutes/billing/plans',
     BILLING_HISTORY: '/AdminRoutes/billing/history',
+    BILLING_SUBSCRIPTION: '/AdminRoutes/billing/subscription',
+    BILLING_SUBSCRIBE: '/AdminRoutes/billing/subscribe',
+    BILLING_CHANGE_PLAN: '/AdminRoutes/billing/change-plan',
+    BILLING_CANCEL: '/AdminRoutes/billing/cancel',
 
     // V1 HoneyPot endpoints (legacy)
     INGEST_LOGS_V1: '/HoneyPotRoutes/ingestHoneyPotLogs',

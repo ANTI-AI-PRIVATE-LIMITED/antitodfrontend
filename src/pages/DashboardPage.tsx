@@ -577,7 +577,7 @@ export default function DashboardPage({
           <PlanUsageBanner
             honeypotCount={deployedHoneypotCount}
             eventCount={totalEvents}
-            onNavigateToBilling={() => onNavigate('settings')}
+            onNavigateToBilling={() => onNavigate('billing')}
           />
 
           {/* Real Customer 0-Data Onboarding Prompt */}

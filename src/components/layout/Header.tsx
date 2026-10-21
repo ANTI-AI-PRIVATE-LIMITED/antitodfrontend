@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   Command,
+  CreditCard,
   Crown,
   HelpCircle,
   LogOut,
@@ -533,17 +534,30 @@ export default function Header({
                 )}
 
                 {onNavigate && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      onNavigate('help');
-                    }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-neutral-300 hover:text-white hover:bg-neutral-800/80 transition-colors text-left text-xs cursor-pointer"
-                  >
-                    <HelpCircle size={14} className="text-neutral-400" />
-                    <span>System Guide & Help</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onNavigate('billing');
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-neutral-300 hover:text-white hover:bg-neutral-800/80 transition-colors text-left text-xs cursor-pointer"
+                    >
+                      <CreditCard size={14} className="text-neutral-400" />
+                      <span>Billing &amp; Subscriptions</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onNavigate('help');
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-neutral-300 hover:text-white hover:bg-neutral-800/80 transition-colors text-left text-xs cursor-pointer"
+                    >
+                      <HelpCircle size={14} className="text-neutral-400" />
+                      <span>System Guide &amp; Help</span>
+                    </button>
+                  </>
                 )}
               </div>
 

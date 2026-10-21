@@ -169,7 +169,7 @@ export const NetworkToolsView: React.FC = () => {
         // Reset all result states
         setSubnetResult(null); setWhoisResult(null); setSpfResult(null); setDmarcResult(null);
         setMxRecords([]); setHttpResult(null); setHeaderResult(null); setRblStatus(null);
-        setTraceResults([]); setScanResults([]); setCrtResults([]); setWaybackResult(null);
+        setScanResults([]); setCrtResults([]); setWaybackResult(null);
         setIpWhoIsResult(null); setIpApiResult(null); setEnrichmentResult(null);
         setAsnResult(null); setAsnSearchResults([]); setSecurityResults([]); setDgaResult(null);
         setMailServerReputation([]); setRiskAnalysis(null); setOtxResult(null);
@@ -473,15 +473,10 @@ export const NetworkToolsView: React.FC = () => {
             mxRecords.forEach(mx => content += `${mx.data} (TTL: ${mx.ttl})\n`);
             content += `\n[SPF]\nRaw: ${spfResult?.raw || 'None'}\nValid: ${spfResult?.valid}\n`;
             content += `\n[DMARC]\nRaw: ${dmarcResult?.raw || 'None'}\nPolicy: ${dmarcResult?.policy}\n`;
-        } else if (activeCategory === 'HTTP' && httpResult) {
-            content += `Status: ${httpResult.status} ${httpResult.statusText}\nServer: ${httpResult.serverInfo.server || 'Unknown'}\n\n[HEADERS]\n`;
-            Object.entries(httpResult.headers).forEach(([k, v]) => content += `${k}: ${v}\n`);
         } else if (activeCategory === 'SUBNET' && subnetResult) {
             content += `Network: ${subnetResult.networkAddress}\nBroadcast: ${subnetResult.broadcastAddress}\nNetmask: ${subnetResult.netmask}\nHost Range: ${subnetResult.firstHost} - ${subnetResult.lastHost}\nTotal Hosts: ${subnetResult.totalHosts}\n`;
         } else if (activeCategory === 'PING') {
             pingResults.forEach(p => content += `SEQ ${p.seq}: ${p.status} (${p.time}ms) from ${p.ip}\n`);
-        } else if (activeCategory === 'TRACE') {
-            traceResults.forEach(h => content += `${h.hop}: ${h.ip} (${h.time}ms) - ${h.details || ''}\n`);
         } else if (activeCategory === 'SCAN') {
             scanResults.forEach(p => content += `Port ${p.port}/${p.transport}: ${p.service}\n`);
         } else if (activeCategory === 'CRT') {

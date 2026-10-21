@@ -101,7 +101,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'nettools', icon: HardDrive, label: 'Network Tools', desc: 'DNS lookup, Whois, Traceroute, and more.' },
       { id: 'webcheck', icon: Globe, label: 'Web Check', desc: 'Deep website analysis and header inspection.' },
-      { id: 'sandbox', icon: HardDrive, label: 'Security Sandbox', desc: 'Secure web browser for inspecting malicious sites.', status: 'hidden' },
     ],
   },
   {

@@ -853,11 +853,8 @@ describe('Task 102: Browser Security Pass (Sandbox Iframe, RSS Sanitization, CSP
     const allItems = NAV_GROUPS.flatMap(g => g.items);
     const sandboxItem = allItems.find(i => i.id === 'sandbox');
 
-    expect(sandboxItem).toBeDefined();
-    expect(sandboxItem?.status).toBe('hidden');
-    expect(isVisible(sandboxItem!)).toBe(false);
-
-    // Verify it is excluded from visible nav groups
+    // Verify sandbox item is removed completely from navigation
+    expect(sandboxItem).toBeUndefined();
     const visibleIds = VISIBLE_NAV_GROUPS.flatMap(g => g.items).map(i => i.id);
     expect(visibleIds).not.toContain('sandbox');
   });
@@ -981,5 +978,37 @@ describe('Task 103: Self-Serve Signup Routes (/verify-email, /reset-password) & 
 
     const strong = validatePassword('AntitodeSec!2026#');
     expect(Object.values(strong).every(Boolean)).toBe(true);
+  });
+});
+
+describe('Task 106: Dynamic CSP Build-Time Origin Injection from VITE_BACKEND_URL', () => {
+  it('extracts non-xyberah origin from sandbox backend URL correctly', async () => {
+    const { getBackendOrigin } = await import('../../vite.config');
+    const sandboxUrl = 'https://dbfy5oxx2x1eg.cloudfront.net';
+    expect(getBackendOrigin(sandboxUrl)).toBe('https://dbfy5oxx2x1eg.cloudfront.net');
+  });
+
+  it('does not add redundant origin for xyberah.com or subdomains', async () => {
+    const { getBackendOrigin } = await import('../../vite.config');
+    expect(getBackendOrigin('https://api.xyberah.com')).toBe('');
+    expect(getBackendOrigin('https://xyberah.com')).toBe('');
+    expect(getBackendOrigin('https://prod.xyberah.com/api')).toBe('');
+  });
+
+  it('returns empty string for invalid or empty backend URLs', async () => {
+    const { getBackendOrigin } = await import('../../vite.config');
+    expect(getBackendOrigin('')).toBe('');
+    expect(getBackendOrigin(undefined)).toBe('');
+    expect(getBackendOrigin('not-a-valid-url')).toBe('');
+  });
+
+  it('verifies connect-src never includes wildcard * or wildcard https:', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const viteConfigContent = fs.readFileSync(path.resolve(process.cwd(), 'vite.config.ts'), 'utf-8');
+
+    // connectOrigins in production build must not contain wildcard origins
+    expect(viteConfigContent).not.toMatch(/connectOrigins\s*=\s*\[[^\]]*'\*'/);
+    expect(viteConfigContent).not.toMatch(/connectOrigins\s*=\s*\[[^\]]*'https:'/);
   });
 });

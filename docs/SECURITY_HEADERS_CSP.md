@@ -26,7 +26,7 @@ Implementing these headers prevents:
 
 ### Directives String
 ```http
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.xyberah.com https://api.rss2json.com https://dns.google https://cloudflare-dns.com https://otx.alienvault.com https://www.virustotal.com https://feodotracker.abuse.ch https://threatfox-api.abuse.ch https://urlhaus-api.abuse.ch https://bazaar.abuse.ch https://raw.githubusercontent.com; frame-src 'self' blob: data:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';
+Content-Security-Policy: default-src 'self'; script-src 'self' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.xyberah.com [VITE_BACKEND_URL origin] https://api.razorpay.com https://lumberjack.razorpay.com https://lumberjack-cx.razorpay.com https://api.rss2json.com https://dns.google https://cloudflare-dns.com https://otx.alienvault.com https://www.virustotal.com https://feodotracker.abuse.ch https://threatfox-api.abuse.ch https://urlhaus-api.abuse.ch https://bazaar.abuse.ch https://raw.githubusercontent.com https://services.nvd.nist.gov https://www.cisa.gov https://cvefeed.io https://www.zerodayinitiative.com https://gitlab.com https://cdn.jsdelivr.net https://malpedia.caad.fkie.fraunhofer.de https://api.ipapi.is https://www.peeringdb.com https://internetdb.shodan.io; frame-src 'self' blob: data: https://api.razorpay.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';
 ```
 
 ### Directive Breakdown & Rationale
@@ -34,12 +34,12 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; 
 | Directive | Allowed Sources | Rationale |
 | :--- | :--- | :--- |
 | `default-src` | `'self'` | Fallback default to same origin only. |
-| `script-src` | `'self' 'unsafe-inline'` | Allows application JavaScript bundles; inline script support for Vite bootstrap and client router hooks. No `eval` allowed. |
+| `script-src` | `'self' https://checkout.razorpay.com` | Allows application JavaScript bundles and Razorpay Checkout gateway script. No inline scripts permitted in production. |
 | `style-src` | `'self' 'unsafe-inline' https://fonts.googleapis.com` | Allows local stylesheets, dynamic CSS variables/animations, and Google Fonts CSS. |
 | `font-src` | `'self' https://fonts.gstatic.com data:` | Allows web fonts loaded by Google Fonts and local/embedded icon fonts. |
 | `img-src` | `'self' data: blob: https:` | Allows Earth textures for 3D Globe, Threat Map SVGs, flag icons, and external vendor/threat icons. |
-| `connect-src` | `'self' https://*.xyberah.com https://api.rss2json.com https://dns.google https://cloudflare-dns.com https://otx.alienvault.com https://www.virustotal.com https://feodotracker.abuse.ch https://threatfox-api.abuse.ch https://urlhaus-api.abuse.ch https://bazaar.abuse.ch https://raw.githubusercontent.com` | Authorizes REST APIs, Honeypot feeds, DNS-over-HTTPS queries, AlienVault OTX, VirusTotal, and Abuse.ch intel feeds. |
-| `frame-src` | `'self' blob: data:` | Authorizes sandboxed isolated previews in `SandboxBrowserView`. |
+| `connect-src` | `'self' https://*.xyberah.com [VITE_BACKEND_URL origin] https://api.razorpay.com ...` | Authorizes REST APIs, Honeypot feeds, DNS-over-HTTPS queries, threat feeds, and Razorpay telemetry. **Task 106:** Injected automatically at build time from `VITE_BACKEND_URL` in `vite.config.ts`. CloudFront sandboxes (e.g. `https://dbfy5oxx2x1eg.cloudfront.net`) are added cleanly without manual HTML edits. Strict prohibition against wildcards (`*`, `https:`). |
+| `frame-src` | `'self' blob: data: https://api.razorpay.com` | Authorizes sandboxed isolated previews and Razorpay authentication modals. |
 | `frame-ancestors` | `'none'` | Blocks the entire frontend from being embedded inside any foreign iframe (stronger replacement for `X-Frame-Options: DENY`). |
 | `object-src` | `'none'` | Fully blocks legacy plugins (Flash, Java Applets, ActiveX). |
 | `base-uri` | `'self'` | Prevents malicious `<base>` tag injection attacks. |

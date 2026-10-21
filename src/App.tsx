@@ -1947,10 +1947,6 @@ export const App: React.FC = () => {
                 }
                 onNotify={addToast}
                 systemLogs={systemLogs}
-                whitelist={whitelist}
-                onUpdateWhitelist={
-                    setWhitelist
-                }
             />
 
             {toasts.length > 0 && (

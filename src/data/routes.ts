@@ -31,7 +31,6 @@ const ROUTE_SLUGS: Record<string, string> = {
   cyberchef: 'cyberchef',
   nettools: 'network-tools',
   webcheck: 'web-check',
-  sandbox: 'security-sandbox',
   rules: 'soc-rules',
   infrastructure: 'infrastructure',
   recon: 'recon',

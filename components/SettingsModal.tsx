@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Monitor, Moon, Sun, Terminal, Save, Trash2, Shield, Lock, CloudSnow, Flame, Upload, FilePlus, Loader2, ScrollText, Copy } from 'lucide-react';
-import { AppSettings, AppTheme, LogEntry, MalpediaActor, CveEntry, SystemLogEntry, WhitelistEntry } from '../types';
+import { AppSettings, AppTheme, LogEntry, MalpediaActor, CveEntry, SystemLogEntry } from '../types';
 import { parseNvdCve } from '../services/cve';
 import { parseMalpediaActors, parseMalpediaMisp } from '../services/malpedia';
 import { parseMitreStix } from '../services/mitre';
@@ -18,8 +18,6 @@ interface SettingsModalProps {
     onCveLoaded: (cves: CveEntry[]) => void;
     onNotify: (msg: string, type: 'info' | 'success' | 'error') => void;
     systemLogs?: SystemLogEntry[];
-    whitelist?: WhitelistEntry[];
-    onUpdateWhitelist?: (entries: WhitelistEntry[]) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ 
@@ -35,8 +33,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onCveLoaded,
     onNotify,
     systemLogs = [],
-    whitelist = [],
-    onUpdateWhitelist
 }) => {
     const [activeTab, setActiveTab] = useState<'CONFIG' | 'LOGS'>('CONFIG');
     const [isProcessing, setIsProcessing] = useState(false);

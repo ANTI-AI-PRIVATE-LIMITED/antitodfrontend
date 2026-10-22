@@ -17,6 +17,7 @@ export interface PlanConfig {
   billingPeriod: string;
   description: string;
   maxHoneypots: number;
+  maxUsers: number;
   maxEventsPerMonth: number;
   retentionDays: number;
   exportFormats: Array<'CSV' | 'JSON' | 'STIX' | 'PDF'>;
@@ -33,11 +34,13 @@ export const PLAN_TIERS: Record<PlanTier, PlanConfig> = {
     billingPeriod: '$69 / month',
     description: 'Essential telemetry and honeypot monitoring for small setups and evaluation.',
     maxHoneypots: 15,
+    maxUsers: 1,
     maxEventsPerMonth: 10000,
     retentionDays: 30,
     exportFormats: ['CSV'],
     features: [
       'Up to 15 active honeypots',
+      '1 analyst seat included',
       'CSV log & indicator export',
       'Community threat intelligence feeds',
       'Standard 30-day log retention',
@@ -52,11 +55,13 @@ export const PLAN_TIERS: Record<PlanTier, PlanConfig> = {
     billingPeriod: '$155 / month',
     description: 'Advanced threat intelligence, extended quotas, and structured JSON integrations.',
     maxHoneypots: 35,
+    maxUsers: 3,
     maxEventsPerMonth: 100000,
     retentionDays: 90,
     exportFormats: ['CSV', 'JSON'],
     features: [
       'Up to 35 active honeypots',
+      '3 analyst seats included',
       'JSON + CSV automated threat exports',
       'Automated threat scoring & heuristics',
       'MITRE ATT&CK technique mapping',
@@ -69,15 +74,17 @@ export const PLAN_TIERS: Record<PlanTier, PlanConfig> = {
     id: 'enterprise',
     name: 'Enterprise',
     badge: 'Full Defense',
-    priceMonthly: 199,
-    billingPeriod: '$199 / month',
+    priceMonthly: 0,
+    billingPeriod: 'Contact Sales',
     description: 'Full-spectrum cyber defense, STIX 2.1 & TAXII sharing, and dedicated SOC connectors.',
     maxHoneypots: 9999,
+    maxUsers: 9999,
     maxEventsPerMonth: 1000000,
     retentionDays: 90,
     exportFormats: ['CSV', 'JSON', 'STIX', 'PDF'],
     features: [
       'Unlimited honeypot deployments',
+      'Unlimited analyst team seats',
       'Full STIX 2.1 bundle & PDF threat reports',
       'Built-in TAXII 2.1 server & remote push',
       '90-day extended forensics retention',

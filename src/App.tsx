@@ -1396,69 +1396,35 @@ const THEME_PALETTES: Record<
             palette.accentGlow,
         );
 
-        const isLight = settings.theme === 'LIGHT';
+        root.style.setProperty(
+            '--color-bg-primary',
+            '#090a0c',
+        );
 
-        if (isLight) {
-            root.style.setProperty(
-                '--color-bg-primary',
-                '#f6f7f9',
-            );
+        root.style.setProperty(
+            '--color-bg-secondary',
+            '#101216',
+        );
 
-            root.style.setProperty(
-                '--color-bg-secondary',
-                '#ffffff',
-            );
+        root.style.setProperty(
+            '--color-bg-glass',
+            'rgba(16,18,22,0.92)',
+        );
 
-            root.style.setProperty(
-                '--color-bg-glass',
-                'rgba(255,255,255,0.92)',
-            );
+        root.style.setProperty(
+            '--color-accent-primary',
+            palette.accent,
+        );
 
-            root.style.setProperty(
-                '--color-accent-primary',
-                palette.accent,
-            );
+        root.style.setProperty(
+            '--color-accent-secondary',
+            '#98a2b3',
+        );
 
-            root.style.setProperty(
-                '--color-accent-secondary',
-                '#667085',
-            );
-
-            root.style.setProperty(
-                '--color-bg-grid',
-                'transparent',
-            );
-        } else {
-            root.style.setProperty(
-                '--color-bg-primary',
-                '#090a0c',
-            );
-
-            root.style.setProperty(
-                '--color-bg-secondary',
-                '#101216',
-            );
-
-            root.style.setProperty(
-                '--color-bg-glass',
-                'rgba(16,18,22,0.92)',
-            );
-
-            root.style.setProperty(
-                '--color-accent-primary',
-                palette.accent,
-            );
-
-            root.style.setProperty(
-                '--color-accent-secondary',
-                '#98a2b3',
-            );
-
-            root.style.setProperty(
-                '--color-bg-grid',
-                'transparent',
-            );
-        }
+        root.style.setProperty(
+            '--color-bg-grid',
+            'transparent',
+        );
     }, [settings.theme]);
 
     useEffect(() => {

@@ -16893,3 +16893,17 @@ body.theme-terminal {
   color: var(--theme-accent, #ef4444);
 }
 
+.at-btn-primary {
+  border-color: var(--theme-accent, #d62828) !important;
+  background: var(--theme-accent, #d62828) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 12px var(--theme-accent-glow, rgba(214, 40, 40, 0.2)) !important;
+  transition: all 180ms ease !important;
+}
+
+.at-btn-primary:hover {
+  border-color: var(--theme-accent-hover, #ef4444) !important;
+  background: var(--theme-accent-hover, #ef4444) !important;
+  box-shadow: 0 5px 20px var(--theme-accent-glow, rgba(214, 40, 40, 0.35)) !important;
+}
+

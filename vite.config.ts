@@ -100,6 +100,9 @@ function cspPlugin(backendUrl?: string) {
         'https://malpedia.caad.fkie.fraunhofer.de',
         'https://api.ipapi.is',
         'https://www.peeringdb.com',
+        'https://stat.ripe.net',
+        'https://dns.quad9.net',
+        'https://security.cloudflare-dns.com',
         'https://internetdb.shodan.io',
       ].filter(Boolean);
 

@@ -12,14 +12,10 @@ const FEEDS = [
     { name: 'BleepingComputer', url: 'https://www.bleepingcomputer.com/feed/' },
     { name: 'Dark Reading', url: 'https://www.darkreading.com/rss.xml' },
     { name: 'Krebs on Security', url: 'https://krebsonsecurity.com/feed/' },
-    { name: 'SecurityWeek', url: 'https://feeds.feedburner.com/securityweek' },
     { name: 'CISA Alerts', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml' },
     { name: 'Unit 42 (Palo Alto)', url: 'https://unit42.paloaltonetworks.com/feed/' },
-    { name: 'Google Project Zero', url: 'https://googleprojectzero.blogspot.com/feeds/posts/default' },
-    { name: 'Trend Micro', url: 'https://blog.trendmicro.com/category/research/feed/' },
     { name: 'WeLiveSecurity (ESET)', url: 'https://www.welivesecurity.com/feed/' },
     { name: 'Microsoft Security', url: 'https://www.microsoft.com/security/blog/feed/' },
-    { name: 'Mandiant', url: 'https://www.mandiant.com/resources/blog/rss.xml' },
     { name: 'Securelist (Kaspersky)', url: 'https://securelist.com/feed/' },
     { name: 'Recorded Future', url: 'https://www.recordedfuture.com/feed' }
 ];

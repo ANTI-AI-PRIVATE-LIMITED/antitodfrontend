@@ -35,7 +35,8 @@ const MODULE_LABELS: Record<string, string> = {
 const moduleLabel = (m: string) => MODULE_LABELS[m] || m;
 
 export const AccessControlView: React.FC = () => {
-  const { can, refreshPermissions } = useAuth();
+  const { can, refreshPermissions, admin } = useAuth();
+  const isPlatform = !admin?.CustomerID;
   const canUsers = can('rbac.users.manage');
   const canGroups = can('rbac.groups.manage');
 
@@ -77,7 +78,8 @@ export const AccessControlView: React.FC = () => {
       const tasks: Promise<unknown>[] = [
         rbacService.listPermissions(),
         rbacService.listGroups(),
-        rbacService.listAuditLogs({ limit: 100 }),
+        // The audit trail is platform-only on the backend; customer admins skip it
+        isPlatform ? rbacService.listAuditLogs({ limit: 100 }) : Promise.resolve({ total: 0, logs: [] as RbacAuditLog[] }),
       ];
       if (canUsers) tasks.push(rbacService.listUsers());
       const [perms, grps, audit, usrs] = (await Promise.all(tasks)) as [
@@ -96,7 +98,7 @@ export const AccessControlView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [canUsers]);
+  }, [canUsers, isPlatform]);
 
   useEffect(() => {
     void load();
@@ -392,6 +394,7 @@ export const AccessControlView: React.FC = () => {
           >
             Permissions
           </button>
+          {isPlatform && (
           <button
             type="button"
             onClick={() => setTab('audit')}
@@ -401,6 +404,7 @@ export const AccessControlView: React.FC = () => {
           >
             <History size={13} /> Audit trail
           </button>
+          )}
         </div>
 
         <div className="flex gap-2 py-2">

@@ -82,7 +82,6 @@ function cspPlugin(backendUrl?: string) {
         'https://api.razorpay.com',
         'https://lumberjack.razorpay.com',
         'https://lumberjack-cx.razorpay.com',
-        'https://api.rss2json.com',
         'https://dns.google',
         'https://cloudflare-dns.com',
         'https://otx.alienvault.com',

@@ -2,7 +2,7 @@
 
 import DOMPurify from 'dompurify';
 import { ThreatNewsItem, NewsCategory } from '../types';
-import { toProxyUrl } from './proxy';
+import { toProxyUrl, getProxyHeaders } from './proxy';
 
 const CACHE_KEY = 'xyberah_news_cache_v3';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -98,48 +98,11 @@ export const sanitizeText = (html: string): string => {
     return stripped.substring(0, 250) + (stripped.length > 250 ? '...' : '');
 };
 
-// Strategy 1: RSS2JSON (Reliable JSON, avoids CORS/MIME issues)
-const fetchRss2Json = async (url: string): Promise<ThreatNewsItem[] | null> => {
-    try {
-        // Using rss2json API which converts RSS to JSON server-side
-        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`; 
-        const res = await fetch(apiUrl);
-        if (!res.ok) return null;
-        const data = await res.json();
-        
-        if (data.status !== 'ok' || !Array.isArray(data.items)) return null;
-
-        return data.items.map((item: any) => {
-             const title = item.title || "Unknown Title";
-             const description = item.description || item.content || "";
-             const cleanDesc = sanitizeText(description);
-
-             const timestamp = new Date(item.pubDate).getTime();
-
-             return {
-                 title,
-                 link: item.link,
-                 source: data.feed?.title || "Unknown Source",
-                 published: Number.isNaN(timestamp)
-                     ? new Date().toISOString()
-                     : new Date(timestamp).toISOString(),
-                 timestamp: Number.isNaN(timestamp)
-                     ? Date.now()
-                     : timestamp,
-                 description: cleanDesc,
-                 category: determineCategory(title, cleanDesc)
-             };
-        });
-    } catch (e) {
-        return null;
-    }
-};
-
-// Strategy 2: Backend Proxy XML/RSS Fetch (Task 101)
+// Backend Proxy XML/RSS Fetch (Task 101)
 const fetchProxyRss = async (url: string, sourceName: string): Promise<ThreatNewsItem[] | null> => {
     try {
         const proxyEndpoint = toProxyUrl(url);
-        const res = await fetch(proxyEndpoint);
+        const res = await fetch(proxyEndpoint, { headers: getProxyHeaders() });
         if (!res.ok) return null;
         const xmlText = await res.text();
         if (!xmlText || !xmlText.trim().startsWith('<')) return null;
@@ -211,13 +174,8 @@ export const fetchThreatNews = async (): Promise<ThreatNewsItem[]> => {
         // Stagger requests to be polite to the APIs
         await new Promise(r => setTimeout(r, Math.random() * 2000));
 
-        // Try Strategy 1 first
-        let items = await fetchRss2Json(feed.url);
-        
-        // Fallback to Strategy 2 (Backend allowlisted proxy)
-        if (!items) {
-            items = await fetchProxyRss(feed.url, feed.name);
-        }
+        // Backend allowlisted proxy only (no third-party RSS converters from the browser)
+        const items = await fetchProxyRss(feed.url, feed.name);
 
         if (items) {
             // Enforce consistent source name

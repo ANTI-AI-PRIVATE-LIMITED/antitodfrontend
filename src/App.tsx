@@ -3,8 +3,15 @@ import ViewRouter from './components/ViewRouter';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DEMO_HOSTS, DEMO_ACTORS, DEMO_CVES, DEMO_CVE_FEEDS, DEMO_NEWS, DEMO_EXPLOITS, DEMO_URLHAUS, DEMO_FEODO, DEMO_THREATFOX, DEMO_MALWAREBAZAAR, DEMO_SSLBL, DEMO_JA3, DEMO_RANSOMWARE_POSTS, DEMO_RANSOMWARE_GROUPS } from './data/demo';
 import { DEMO_MODE, dataProvider } from './services/dataProvider';
-import { isPublicDemo } from './utils/demoMode';
-import { SettingsModal } from '../components/SettingsModal';
+import { isPublicDemo, enterDemoMode, DEMO_GUEST_TOKEN } from './utils/demoMode';
+import { AUTH_CONFIG } from '../config/config';
+
+// A visitor arriving with ?demo=true must see the pure demo, never a mix with a real session.
+try {
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('demo') === 'true' && localStorage.getItem(AUTH_CONFIG.TOKEN_KEY) !== DEMO_GUEST_TOKEN) {
+    enterDemoMode();
+  }
+} catch { /* storage blocked */ }
 import { PlanNoticeModal } from './components/modals/PlanNoticeModal';
 import { ApiEventToast } from './components/common/ApiEventToast';
 import {
@@ -162,8 +169,6 @@ export const App: React.FC = () => {
     const [settings, setSettings] = useState<AppSettings>(
         safeParseSettings,
     );
-
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const [analysisResults, setAnalysisResults] = useState<
         AnalyzedHost[]
@@ -1092,7 +1097,12 @@ export const App: React.FC = () => {
                         '/data/malpedia.bib',
                     );
 
-                    if (response.ok) {
+                    if (
+                        response.ok &&
+                        !response.headers
+                            .get('content-type')
+                            ?.includes('text/html')
+                    ) {
                         const blob = await response.blob();
 
                         const file = new File(
@@ -1547,11 +1557,6 @@ export const App: React.FC = () => {
     const navigate = (viewId: string) => {
         const next = canonicalViewId(viewId);
 
-        if (next === 'settings') {
-            setIsSettingsOpen(true);
-            return;
-        }
-
         const currentPath =
             window.location.pathname;
 
@@ -1801,7 +1806,7 @@ export const App: React.FC = () => {
                         setSearchOpen(true)
                     }
                     onOpenSettings={() =>
-                        setIsSettingsOpen(true)
+                        navigate('settings')
                     }
                     onNavigate={(viewId) => {
                         navigate(viewId);
@@ -1909,6 +1914,8 @@ export const App: React.FC = () => {
                             logoUrl={
                                 settings.logoUrl
                             }
+                            settings={settings}
+                            onUpdateSettings={setSettings}
                             onEnrichHost={
                                 handleEnrichHost
                             }
@@ -1918,36 +1925,7 @@ export const App: React.FC = () => {
                 </main>
             </div>
 
-            <SettingsModal
-                isOpen={isSettingsOpen}
-                onClose={() =>
-                    setIsSettingsOpen(false)
-                }
-                settings={settings}
-                onUpdateSettings={
-                    setSettings
-                }
-                onClearData={
-                    handleClearData
-                }
-                onDataLoaded={
-                    handleDataLoaded
-                }
-                onMmdbLoaded={
-                    handleMmdbLoaded
-                }
-                onMalpediaLoaded={
-                    handleMalpediaLoaded
-                }
-                onMalpediaActorsLoaded={
-                    handleMalpediaActorsLoaded
-                }
-                onCveLoaded={
-                    handleCveLoaded
-                }
-                onNotify={addToast}
-                systemLogs={systemLogs}
-            />
+
 
             {toasts.length > 0 && (
                 <div className="at-toast-stack">

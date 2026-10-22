@@ -29,7 +29,14 @@ import { isPublicDemo } from '../utils/demoMode';
 import { DEFAULT_HQ, COUNTRY_COORDS } from '../../components/views/AttackMapView';
 import type { ThreeGlobeArc, ThreeGlobeRing, ThreeGlobePoint, ThreeGlobeLabel } from '../../components/views/ThreeGlobeView';
 
-const ThreeGlobeView = React.lazy(() => import('../../components/views/ThreeGlobeView'));
+const ThreeGlobeView = React.lazy(() =>
+    import('../../components/views/ThreeGlobeView').catch((error) => {
+        // Retry dynamically imported module if first attempt fails during a server restart or deployment
+        return new Promise((resolve) => setTimeout(resolve, 800)).then(() =>
+            import('../../components/views/ThreeGlobeView')
+        );
+    })
+);
 import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 

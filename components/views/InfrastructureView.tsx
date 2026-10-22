@@ -22,6 +22,7 @@ import {
     AgentInstallScriptResponse, DeleteAgentHardResponse,
 } from '../../api/services/agentService';
 import { handleApiError } from '../../api/client';
+import { useAuth } from '../../contexts/AuthContext';
 
 // ── Utility helpers ────────────────────────────────────────────────────────
 
@@ -1565,6 +1566,9 @@ export const InfrastructureView: React.FC = () => {
     const [registerLoading, setRegisterLoading] = useState(false);
     const [registerError, setRegisterError] = useState('');
     const [showRegisterServer, setShowRegisterServer] = useState(false);
+    // Portainer health is a platform-staff endpoint (403 for customer accounts), so only query it for staff.
+    const { admin, permissionsLoaded } = useAuth();
+    const isPlatformUser = !admin?.CustomerID;
 
     const loadShippers = useCallback(async () => {
         setLoadingShippers(true);
@@ -1599,18 +1603,22 @@ export const InfrastructureView: React.FC = () => {
     }, []);
 
     const checkPortainerHealth = useCallback(async () => {
+        if (!permissionsLoaded || !isPlatformUser) return;
         try {
             const h = await agentService.getPortainerHealth();
             setPortainerHealth(h.status);
         } catch { setPortainerHealth('unhealthy'); }
-    }, []);
+    }, [permissionsLoaded, isPlatformUser]);
 
     useEffect(() => {
         loadOverview();
         loadTemplates();
         loadShippers();
-        checkPortainerHealth();
     }, []);
+
+    useEffect(() => {
+        checkPortainerHealth();
+    }, [checkPortainerHealth]);
 
     const handleRegisterAgent = async (serverId: string) => {
         setRegisterLoading(true); setRegisterError('');

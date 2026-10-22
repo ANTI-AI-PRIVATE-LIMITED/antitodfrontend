@@ -1426,6 +1426,7 @@ export const App: React.FC = () => {
                 fetchRansomwareGroups(),
                 fetchThreatNews(),
                 fetchCveUpdates(),
+                fetchExploits(),
             ]);
 
             const [
@@ -1436,6 +1437,7 @@ export const App: React.FC = () => {
                 ransomwareGroupsResult,
                 newsResult,
                 cveResult,
+                exploitResult,
             ] = results;
 
             if (hostsResult.status === 'fulfilled' && hostsResult.value.length > 0) {
@@ -1457,6 +1459,10 @@ export const App: React.FC = () => {
 
             if (cveResult.status === 'fulfilled') {
                 setCveData(cveResult.value);
+            }
+
+            if (exploitResult.status === 'fulfilled' && exploitResult.value.length > 0) {
+                setExploitData(exploitResult.value);
             }
 
             addSystemLog(

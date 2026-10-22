@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { isPublicDemo } from '../../src/utils/demoMode';
 import {
   rbacService,
   type RbacAuditLog,
@@ -72,6 +73,10 @@ export const AccessControlView: React.FC = () => {
   };
 
   const load = useCallback(async () => {
+    if (isPublicDemo()) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

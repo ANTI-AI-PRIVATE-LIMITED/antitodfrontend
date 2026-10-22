@@ -50,7 +50,7 @@ export default function PlanUsageBanner({
         if (!mounted || !d || d.platform) return;
         const id = d.plan?.id;
         if (id === 'basic' || id === 'pro' || id === 'enterprise') setCurrentPlan(id as PlanTier);
-        const s = d.usage?.servers;
+        const s = d.usage?.honeypots || d.usage?.servers;
         if (s && typeof s.used === 'number' && typeof s.limit === 'number') {
           setServerUsage({ used: s.used, limit: s.limit });
         }

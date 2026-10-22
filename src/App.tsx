@@ -25,6 +25,7 @@ import {
     ThreatNewsItem,
     ExploitEntry,
     AppSettings,
+    AppTheme,
     UrlHausEntry,
     MalwareBazaarEntry,
     FeodoTrackerEntry,
@@ -1299,6 +1300,65 @@ export const App: React.FC = () => {
         }
     }, [whitelist, isStorageLoaded]);
 
+const THEME_PALETTES: Record<
+    AppTheme,
+    {
+        accent: string;
+        accentHover: string;
+        accentMuted: string;
+        accentGlow: string;
+    }
+> = {
+    CYBER: {
+        accent: '#f72585',
+        accentHover: '#b5179e',
+        accentMuted: 'rgba(247, 37, 133, 0.15)',
+        accentGlow: 'rgba(247, 37, 133, 0.4)',
+    },
+    NORDIC: {
+        accent: '#38bdf8',
+        accentHover: '#0ea5e9',
+        accentMuted: 'rgba(56, 189, 248, 0.15)',
+        accentGlow: 'rgba(56, 189, 248, 0.4)',
+    },
+    EMBER: {
+        accent: '#f97316',
+        accentHover: '#ea580c',
+        accentMuted: 'rgba(249, 115, 22, 0.15)',
+        accentGlow: 'rgba(249, 115, 22, 0.4)',
+    },
+    SENTINEL: {
+        accent: '#00f5d4',
+        accentHover: '#00bbf9',
+        accentMuted: 'rgba(0, 245, 212, 0.15)',
+        accentGlow: 'rgba(0, 245, 212, 0.4)',
+    },
+    FORTRESS: {
+        accent: '#a855f7',
+        accentHover: '#9333ea',
+        accentMuted: 'rgba(168, 85, 247, 0.15)',
+        accentGlow: 'rgba(168, 85, 247, 0.4)',
+    },
+    DARK: {
+        accent: '#ef4444',
+        accentHover: '#dc2626',
+        accentMuted: 'rgba(239, 68, 68, 0.15)',
+        accentGlow: 'rgba(239, 68, 68, 0.4)',
+    },
+    LIGHT: {
+        accent: '#2563eb',
+        accentHover: '#1d4ed8',
+        accentMuted: 'rgba(37, 99, 235, 0.15)',
+        accentGlow: 'rgba(37, 99, 235, 0.4)',
+    },
+    TERMINAL: {
+        accent: '#22c55e',
+        accentHover: '#16a34a',
+        accentMuted: 'rgba(34, 197, 94, 0.15)',
+        accentGlow: 'rgba(34, 197, 94, 0.4)',
+    },
+};
+
     useEffect(() => {
         const root = document.documentElement;
         const body = document.body;
@@ -1316,6 +1376,24 @@ export const App: React.FC = () => {
 
         body.classList.add(
             `theme-${settings.theme.toLowerCase()}`,
+        );
+
+        const palette =
+            THEME_PALETTES[settings.theme] ||
+            THEME_PALETTES.DARK;
+
+        root.style.setProperty('--theme-accent', palette.accent);
+        root.style.setProperty(
+            '--theme-accent-hover',
+            palette.accentHover,
+        );
+        root.style.setProperty(
+            '--theme-accent-muted',
+            palette.accentMuted,
+        );
+        root.style.setProperty(
+            '--theme-accent-glow',
+            palette.accentGlow,
         );
 
         const isLight = settings.theme === 'LIGHT';
@@ -1338,7 +1416,7 @@ export const App: React.FC = () => {
 
             root.style.setProperty(
                 '--color-accent-primary',
-                '#b4232b',
+                palette.accent,
             );
 
             root.style.setProperty(
@@ -1368,7 +1446,7 @@ export const App: React.FC = () => {
 
             root.style.setProperty(
                 '--color-accent-primary',
-                '#c93a3f',
+                palette.accent,
             );
 
             root.style.setProperty(

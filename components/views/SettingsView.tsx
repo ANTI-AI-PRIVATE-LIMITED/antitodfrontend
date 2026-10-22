@@ -12,15 +12,15 @@ import type { AppSettings, AppTheme } from '../../types';
 
 type Tab = 'account' | 'team' | 'plan' | 'appearance';
 
-const THEMES: { id: AppTheme; label: string }[] = [
-  { id: 'CYBER', label: 'Cyberpunk' },
-  { id: 'NORDIC', label: 'Nordic (Ice)' },
-  { id: 'EMBER', label: 'Ember (Heat)' },
-  { id: 'SENTINEL', label: 'Sentinel (Holo)' },
-  { id: 'FORTRESS', label: 'Fortress (Void)' },
-  { id: 'DARK', label: 'Midnight' },
-  { id: 'LIGHT', label: 'Corporate' },
-  { id: 'TERMINAL', label: 'Hacker' },
+const THEMES: { id: AppTheme; label: string; color: string; desc: string }[] = [
+  { id: 'CYBER', label: 'Cyberpunk', color: '#f72585', desc: 'Neon Magenta & Cyan' },
+  { id: 'NORDIC', label: 'Nordic (Ice)', color: '#38bdf8', desc: 'Arctic Frost Sky' },
+  { id: 'EMBER', label: 'Ember (Heat)', color: '#f97316', desc: 'Molten Flame Orange' },
+  { id: 'SENTINEL', label: 'Sentinel (Holo)', color: '#00f5d4', desc: 'Teal & Electric Holo' },
+  { id: 'FORTRESS', label: 'Fortress (Void)', color: '#a855f7', desc: 'Stealth Violet & Purple' },
+  { id: 'DARK', label: 'Midnight', color: '#ef4444', desc: 'Classic Crimson Red' },
+  { id: 'LIGHT', label: 'Corporate', color: '#2563eb', desc: 'Clean Day Mode' },
+  { id: 'TERMINAL', label: 'Hacker', color: '#22c55e', desc: 'Matrix Phosphor Green' },
 ];
 
 interface SettingsViewProps {
@@ -95,8 +95,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 -mb-px ${
-                tab === t.id ? 'border-red-500 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+                tab === t.id
+                  ? 'border-[var(--theme-accent,#ef4444)] text-white'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-300'
               }`}
             >
               {t.icon}
@@ -207,19 +209,45 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
       )}
 
       {tab === 'appearance' && settings && onUpdateSettings && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl">
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onUpdateSettings({ ...settings, theme: t.id })}
-              className={`rounded-lg border px-4 py-3 text-sm text-left ${
-                settings.theme === t.id ? 'border-white text-white' : 'border-neutral-800 text-neutral-400'
-              } bg-neutral-900`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="space-y-4 max-w-3xl">
+          <p className="text-xs text-neutral-400">
+            Select an interface accent palette. Changes apply instantly across the entire platform.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            {THEMES.map((t) => {
+              const isSelected = settings.theme === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => onUpdateSettings({ ...settings, theme: t.id })}
+                  className={`group relative rounded-xl border p-4 text-left transition-all duration-150 flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-[var(--theme-accent)] bg-neutral-900/90 shadow-lg shadow-[var(--theme-accent-muted)] ring-1 ring-[var(--theme-accent)]'
+                      : 'border-neutral-800 bg-neutral-900/40 text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900 hover:text-neutral-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3 w-full">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0"
+                        style={{ backgroundColor: t.color, boxShadow: `0 0 10px ${t.color}` }}
+                      />
+                      <span className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
+                        {t.label}
+                      </span>
+                    </div>
+                    {isSelected && (
+                      <Check size={14} className="text-[var(--theme-accent)]" />
+                    )}
+                  </div>
+                  <span className="text-[11px] text-neutral-500 group-hover:text-neutral-400">
+                    {t.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

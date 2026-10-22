@@ -19,7 +19,7 @@ const THEMES: { id: AppTheme; label: string; color: string; desc: string }[] = [
   { id: 'SENTINEL', label: 'Sentinel (Holo)', color: '#00f5d4', desc: 'Teal & Electric Holo' },
   { id: 'FORTRESS', label: 'Fortress (Void)', color: '#a855f7', desc: 'Stealth Violet & Purple' },
   { id: 'DARK', label: 'Midnight', color: '#ef4444', desc: 'Classic Crimson Red' },
-  { id: 'LIGHT', label: 'Corporate', color: '#2563eb', desc: 'Clean Day Mode' },
+  { id: 'LIGHT', label: 'Corporate', color: '#2563eb', desc: 'Corporate Blue' },
   { id: 'TERMINAL', label: 'Hacker', color: '#22c55e', desc: 'Matrix Phosphor Green' },
 ];
 

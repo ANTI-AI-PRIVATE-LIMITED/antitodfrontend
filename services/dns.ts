@@ -271,7 +271,20 @@ export const enrichIP = async (ip: string): Promise<IpDataResponse | null> => {
             is_threat: data.threat?.is_threat || false,
             is_bogon: data.threat?.is_bogon || false,
             blocklists: data.threat?.blocklists || [],
-            scores: data.threat?.scores
+            // The provider's numeric score is unreliable (it returns 100 even for 8.8.8.8). Derive the
+            // score from the real flags so a clean IP reads 0 and a flagged IP reads high.
+            scores: (() => {
+                const t = data.threat || {};
+                const raw = t.scores || {};
+                let derived = 0;
+                if (t.is_known_attacker) derived = Math.max(derived, 80);
+                if (t.is_known_abuser) derived = Math.max(derived, 70);
+                if (t.is_threat) derived = Math.max(derived, 60);
+                if (t.is_bot) derived = Math.max(derived, 60);
+                if (t.is_tor) derived = Math.max(derived, 40);
+                if (t.is_proxy || t.is_anonymous) derived = Math.max(derived, 30);
+                return { ...raw, threat_score: derived };
+            })()
         },
         shodan: shodanData
     };
@@ -719,6 +732,8 @@ export const checkDomainSecurity = async (target: string): Promise<SecurityCheck
                 if (res?.Status === 0 && res.Answer && res.Answer.length > 0) {
                      const resultIp = res.Answer[0].data;
                      if (!resultIp.startsWith('127.255.255.')) listed = true;
+                     // URIBL and similar answer 127.0.0.1 when they refuse queries from public resolvers
+                     if (resultIp === '127.0.0.1') listed = false;
                 }
                 results.push({
                     provider: dbl,

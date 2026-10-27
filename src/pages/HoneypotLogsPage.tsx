@@ -223,6 +223,27 @@ function exportEventsToCsv(
   );
 }
 
+// The API nests the score under `threat` and keeps username, password and command inside the
+// honeypot_data JSON string. The table and detail panel read flat fields, so fill them in here.
+function normalizeEvent(e: LogEventV2): LogEventV2 {
+  let inner: any = null;
+  if (typeof e.honeypot_data === 'string' && e.honeypot_data) {
+    try {
+      const parsed = JSON.parse(e.honeypot_data);
+      inner = parsed?.[e.honeypot] ?? (parsed ? Object.values(parsed)[0] : null);
+    } catch {
+      inner = null;
+    }
+  }
+  return {
+    ...e,
+    threat_score: e.threat_score ?? e.threat?.threat_score,
+    username: e.username ?? inner?.username,
+    password: e.password ?? inner?.password,
+    command: e.command ?? inner?.input ?? inner?.command,
+  };
+}
+
 export default function HoneypotLogsPage({
   onNavigate,
 }: HoneypotLogsProps) {
@@ -239,7 +260,7 @@ export default function HoneypotLogsPage({
         limit,
         offset: currentOffset,
       });
-      setEvents(resp?.events || []);
+      setEvents((resp?.events || []).map(normalizeEvent));
       setTotal(resp?.total ?? resp?.events?.length ?? 0);
     } catch (err) {
       console.error('Failed to load honeypot logs:', err);

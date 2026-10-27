@@ -462,7 +462,7 @@ const RegisterServerModal: React.FC<{
                 setError(
                     data?.message ||
                     (typeof used === 'number' && typeof limit === 'number'
-                        ? `Server limit reached (${used} of ${limit} servers used). Upgrade to Pro for 10 servers.`
+                        ? `Server limit reached (${used} of ${limit} servers used). Upgrade to Pro for 35 honeypots.`
                         : 'Server limit reached on your plan. Please upgrade to Pro to add more servers.')
                 );
             } else if (status === 402 || data?.code === 'PLAN_INACTIVE') {
@@ -521,14 +521,14 @@ const RegisterServerModal: React.FC<{
                                             new CustomEvent('open-plan-upgrade', {
                                                 detail: {
                                                     code: 'PLAN_LIMIT_REACHED',
-                                                    message: 'You have reached the server limit on your current plan. Upgrade to Pro for 10 servers.',
+                                                    message: 'You have reached the server limit on your current plan. Upgrade to Pro for 35 honeypots.',
                                                 },
                                             })
                                         );
                                     }}
                                     className="self-start text-[11px] font-bold text-orange-400 hover:text-orange-300 underline font-mono flex items-center gap-1 mt-1"
                                 >
-                                    Upgrade to Pro Plan (10 Servers) →
+                                    Upgrade to Pro Plan (35 Honeypots) →
                                 </button>
                             )}
                         </div>

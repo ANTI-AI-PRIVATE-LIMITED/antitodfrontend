@@ -114,7 +114,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                     <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-red-500/30 transition-all duration-300 group">
                         <div>
                             <div className="text-[10px] text-[#888] uppercase font-bold">Active Groups</div>
-                            <div className="text-4xl font-mono font-bold text-white group-hover:text-red-400 transition-colors drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">{groups.length}</div>
+                            <div className="text-4xl font-mono font-bold text-white group-hover:text-red-400 transition-colors drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">{groups.length || Object.keys(groupVictimCounts).length}</div>
                         </div>
                         <Users size={32} className="text-neutral-500 group-hover:text-red-400 transition-colors opacity-50"/>
                     </div>
@@ -173,7 +173,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                                     <div className="flex justify-between items-end">
                                         <div>
                                             <h4 className="text-sm font-bold text-neutral-200 group-hover:text-red-400 transition-colors mb-1">{post.post_title}</h4>
-                                            {post.description && post.description !== 'N/A' && (
+                                            {post.description && post.description !== 'N/A' && !post.description.startsWith('[AI generated]') && (
                                                 <p className="text-[10px] text-[#888] line-clamp-1 mb-1 max-w-[250px]">{post.description}</p>
                                             )}
                                             {post.activity && post.activity !== 'N/A' && post.activity !== 'Not Found' && (
@@ -231,7 +231,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-4 grid grid-cols-1 xl:grid-cols-2 gap-4 content-start">
                         {filteredGroups.length === 0 && !searchTerm ? (
-                            <div className="col-span-full text-center text-[#888] text-xs italic mt-10">Loading group profiles...</div>
+                            <div className="col-span-full text-center text-[#888] text-xs italic mt-10">No group profiles available.</div>
                         ) : (
                             filteredGroups.map((group, i) => (
                                 <div key={i} className="bg-[#111]/40 backdrop-blur-md border border-[#222] rounded-xl p-5 hover:bg-[#111]/60 hover:border-red-500/40 hover:shadow-[0_0_30px_rgba(220,38,38,0.1)] transition-all duration-500 flex flex-col h-full group/card">

@@ -18,7 +18,6 @@ import {
   Shield,
   ShieldAlert,
   Skull,
-  Target,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -114,9 +113,8 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Reconnaissance',
+    title: 'Integrations',
     items: [
-      { id: 'recon', icon: Target, label: 'Xyberah Recon', desc: 'Attack surface reconnaissance — workspaces, targets, assets, vulnerabilities, and workers.', status: 'live', permissionPrefix: 'osm.' },
       { id: 'integrations', icon: Cable, label: 'SIEM Connectors', desc: 'Real-time event pipelines & push/pull threat intelligence feeds.', status: 'live', permissionPrefix: 'integrations.' },
     ],
   },

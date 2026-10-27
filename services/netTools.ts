@@ -207,12 +207,9 @@ export const fetchAsnDetails = async (asn: string): Promise<AsnDetails | null> =
     // 2. RIPEStat: Good for prefixes and neighbors
     // 3. PeeringDB: Best for Organization Name, Website, and Country
 
-    const pBgp = (async () => {
-        try {
-            const url = `https://api.bgpview.io/asn/${cleanAsn}`;
-            return await fetchJsonWithCors<any>(url);
-        } catch (e) { return null; }
-    })();
+    // BGPView has shut down; RIPEstat + PeeringDB cover the same data.
+    const pBgp: Promise<any> = Promise.resolve(null);
+    const pRipeOverview = fetchRipeStat('as-overview', `resource=AS${cleanAsn}`).catch(() => null);
 
     const pRipeNeigh = fetchRipeStat('asn-neighbours', `resource=AS${cleanAsn}`).catch(() => null);
     const pRipePrefixes = fetchRipeStat('announced-prefixes', `resource=AS${cleanAsn}`).catch(() => null);
@@ -224,7 +221,7 @@ export const fetchAsnDetails = async (asn: string): Promise<AsnDetails | null> =
         } catch (e) { return null; }
     })();
 
-    const [bgpData, ripeNeigh, ripePrefixes, pdbData] = await Promise.all([pBgp, pRipeNeigh, pRipePrefixes, pPdb]);
+    const [bgpData, ripeNeigh, ripePrefixes, pdbData, ripeOverview] = await Promise.all([pBgp, pRipeNeigh, pRipePrefixes, pPdb, pRipeOverview]);
 
     // --- Identity & Country Logic ---
     let name = `AS${cleanAsn}`;
@@ -255,8 +252,10 @@ export const fetchAsnDetails = async (asn: string): Promise<AsnDetails | null> =
         upstreams = bgpData.data.upstreams_count || 0;
         downstreams = bgpData.data.downstreams_count || 0;
     } else if (ripeNeigh && ripeNeigh.data && ripeNeigh.data.neighbour_counts) {
-        peers = ripeNeigh.data.neighbour_counts.peer || 0;
-        upstreams = ripeNeigh.data.neighbour_counts.transit || 0;
+        const nc = ripeNeigh.data.neighbour_counts;
+        peers = nc.unique || 0;
+        upstreams = nc.left || 0;
+        downstreams = nc.right || 0;
         // RIPE doesn't separate downstream easily in summary
     }
 
@@ -272,6 +271,10 @@ export const fetchAsnDetails = async (asn: string): Promise<AsnDetails | null> =
     } else if (bgpData && bgpData.status === 'ok' && bgpData.data && bgpData.data.iana_assignment?.prefixes) {
         // Fallback to BGPView if RIPE failed
         // Note: BGPView prefixes structure varies, this is a best guess fallback
+    }
+
+    if (name === `AS${cleanAsn}` && ripeOverview?.data?.holder) {
+        name = String(ripeOverview.data.holder);
     }
 
     // Fallback description if empty

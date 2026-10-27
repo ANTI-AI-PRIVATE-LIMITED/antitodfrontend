@@ -1371,7 +1371,7 @@ export default function HoneypotLogsPage({
                         className="at-btn at-btn-primary"
                         onClick={() =>
                           onNavigate(
-                            'net_tools',
+                            'nettools',
                           )
                         }
                       >
@@ -1409,4 +1409,4 @@ export default function HoneypotLogsPage({
       </div>
     </div>
   );
-}
+}

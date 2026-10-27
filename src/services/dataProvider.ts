@@ -15,6 +15,7 @@ import {
 
 import { fetchThreatNews } from '../../services/news';
 import { fetchCveUpdates } from '../../services/cve';
+import { fetchCveFeeds } from '../../services/cveFeed';
 import { fetchRemoteMalpedia } from '../../services/malpedia';
 import { isPublicDemo } from '../utils/demoMode';
 
@@ -514,7 +515,34 @@ export const dataProvider = {
 
   getCveFeeds: async () => {
     if (isPublicDemo()) return DEMO_CVE_FEEDS;
+    try {
+      const data = await fetchCveFeeds();
+      if (data && data.length > 0) return data;
+    } catch (e) {
+      console.warn('Failed to fetch live CVE feeds:', e);
+    }
     return [];
+  },
+
+  /**
+   * IPs from the given list that appear in an external threat feed (ioc_feed),
+   * excluding our own verdicts (source 'xyberah').
+   */
+  getBlocklistMatches: async (ips: string[]): Promise<string[]> => {
+    if (isPublicDemo()) return [];
+    const unique = Array.from(new Set(ips.filter(Boolean))).slice(0, 25);
+    const hits = await Promise.all(
+      unique.map(async (ip) => {
+        try {
+          const resp = await iocService.getFeed({ search: ip, limit: 20 });
+          const rows = (resp?.data || []) as any[];
+          return rows.some((r) => r.indicator_value === ip && r.source !== 'xyberah') ? ip : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return hits.filter((x): x is string => !!x);
   },
 
   getNews: async () => {

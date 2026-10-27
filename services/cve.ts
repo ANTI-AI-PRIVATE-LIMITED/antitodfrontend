@@ -128,87 +128,96 @@ export const parseNvdCve = async (file: File): Promise<CveEntry[]> => {
 export const fetchCveUpdates = async (lastUpdate?: Date): Promise<CveEntry[]> => {
     const cves: CveEntry[] = [];
     const seenIds = new Set<string>();
+    const kevEntries: CveEntry[] = [];
 
-    // 1. Fetch CISA KEV
-    try {
-        const kevData = await fetchJsonWithProxy(CISA_KEV_GITHUB_MAIN);
-        if (kevData && kevData.vulnerabilities) {
-            kevData.vulnerabilities.forEach((vuln: any) => {
-                if (lastUpdate && new Date(vuln.dateAdded) <= lastUpdate) {
-                    return;
-                }
-
-                const entry = {
-                    id: vuln.cveID,
-                    sourceIdentifier: 'CISA',
-                    published: vuln.dateAdded,
-                    lastModified: vuln.dateAdded,
-                    status: 'Active',
-                    description: vuln.shortDescription,
-                    cvssScore: 0,
-                    severity: 'HIGH', // Implicit for KEV
-                    vectorString: '',
-                    weaknesses: [],
-                    references: [{ url: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog', tags: ['CISA KEV'] }],
-                    configurations: [vuln.product],
-                    vendor: vuln.vendorProject,
-                    product: vuln.product,
-                    cweCategory: 'Unknown',
-                    hasExploit: true,
-                    isKev: true,
-                    tags: ['KEV', 'Exploited'],
-                    vector: {}
-                };
-
-                cves.push(entry);
-                seenIds.add(vuln.cveID);
-            });
+    // Fetch CISA KEV and recent NVD in parallel (NVD gives real CVSS and severity).
+    const kevTask = (async () => {
+        try {
+            const kevData = await fetchJsonWithProxy(CISA_KEV_GITHUB_MAIN);
+            return kevData?.vulnerabilities || [];
+        } catch (e) {
+            console.warn("Failed to fetch CISA KEV", e);
+            return [];
         }
-    } catch (e) {
-        console.warn("Failed to fetch CISA KEV", e);
-    }
+    })();
 
-    // 2. Fetch NVD (Recent)
-    try {
+    const nvdPage = async (startIndex: number): Promise<any[]> => {
         const params = new URLSearchParams();
-        params.append('resultsPerPage', '500'); // Fetch a batch
-
+        params.append('resultsPerPage', '500');
+        params.append('startIndex', String(startIndex));
+        const end = new Date();
+        const start = lastUpdate ? lastUpdate : new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+        const fmt = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, '');
         if (lastUpdate) {
-            // NVD API format for dates: YYYY-MM-DDTHH:mm:ss.SSS
-            const start = lastUpdate.toISOString().replace(/\.\d{3}Z$/, '');
-            const end = new Date().toISOString().replace(/\.\d{3}Z$/, '');
-            params.append('lastModStartDate', start);
-            params.append('lastModEndDate', end);
+            params.append('lastModStartDate', fmt(start));
+            params.append('lastModEndDate', fmt(end));
         } else {
-            // Initial load: Fetch last 120 days to populate database with relevant recent data
-            const daysAgo = new Date();
-            daysAgo.setDate(daysAgo.getDate() - 120);
-            const start = daysAgo.toISOString().replace(/\.\d{3}Z$/, '');
-            const end = new Date().toISOString().replace(/\.\d{3}Z$/, '');
-            params.append('pubStartDate', start);
-            params.append('pubEndDate', end);
+            params.append('pubStartDate', fmt(start));
+            params.append('pubEndDate', fmt(end));
         }
-
-        // NVD is slow and often 502s. Do not hold the whole CVE page hostage for it: give up after 12s and keep the CISA KEV data.
-        const nvdData = await Promise.race([
-            fetchJsonWithProxy(`${NVD_API_URL}?${params.toString()}`),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('NVD timeout')), 12000)),
-        ]);
-
-        if (nvdData && nvdData.vulnerabilities) {
-            for (const item of nvdData.vulnerabilities) {
-                const entry = transformNvdCve(item);
-                if (!seenIds.has(entry.id)) {
-                    cves.push(entry);
-                    seenIds.add(entry.id);
-                }
-            }
+        try {
+            const data = await Promise.race([
+                fetchJsonWithProxy(`${NVD_API_URL}?${params.toString()}`),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('NVD timeout')), 20000)),
+            ]);
+            return data?.vulnerabilities || [];
+        } catch (e) {
+            console.warn("Failed to fetch NVD data", e);
+            return [];
         }
-    } catch (e) {
-        console.warn("Failed to fetch NVD data", e);
+    };
+
+    const [kevRaw, nvdA, nvdB] = await Promise.all([kevTask, nvdPage(0), nvdPage(500)]);
+
+    const nvdById = new Map<string, CveEntry>();
+    for (const item of [...nvdA, ...nvdB]) {
+        const entry = transformNvdCve(item);
+        if (entry.id) nvdById.set(entry.id, entry);
     }
+
+    kevRaw.forEach((vuln: any) => {
+        if (lastUpdate && new Date(vuln.dateAdded) <= lastUpdate) return;
+        const nvd = nvdById.get(vuln.cveID);
+        // Severity and CVSS come from NVD when we have them; KEV alone carries no score,
+        // so do not invent one.
+        const entry: CveEntry = {
+            ...(nvd || {
+                id: vuln.cveID,
+                sourceIdentifier: 'CISA',
+                published: vuln.dateAdded,
+                lastModified: vuln.dateAdded,
+                status: 'Active',
+                description: vuln.shortDescription,
+                cvssScore: 0,
+                severity: 'UNKNOWN',
+                vectorString: '',
+                weaknesses: [],
+                references: [],
+                configurations: [vuln.product],
+                vendor: vuln.vendorProject,
+                product: vuln.product,
+                cweCategory: 'Unknown',
+                vector: {},
+            }),
+            hasExploit: true,
+            isKev: true,
+            tags: ['KEV', 'Exploited'],
+        } as CveEntry;
+        entry.references = [
+            ...(entry.references || []),
+            { url: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog', tags: ['CISA KEV'] },
+        ];
+        kevEntries.push(entry);
+        cves.push(entry);
+        seenIds.add(vuln.cveID);
+    });
+
+    nvdById.forEach((entry, id) => {
+        if (!seenIds.has(id)) {
+            cves.push(entry);
+            seenIds.add(id);
+        }
+    });
 
     return cves;
 };
-
-

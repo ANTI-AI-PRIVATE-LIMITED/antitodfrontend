@@ -20,6 +20,18 @@ const FEEDS = [
     { name: 'Recorded Future', url: 'https://www.recordedfuture.com/feed' }
 ];
 
+const decodeEntities = (t: string): string => {
+    if (!t) return t;
+    try {
+        if (typeof document !== 'undefined') {
+            const el = document.createElement('textarea');
+            el.innerHTML = t;
+            return el.value;
+        }
+    } catch {}
+    return t.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'");
+};
+
 const determineCategory = (title: string, desc: string): NewsCategory => {
     const text = `${title} ${desc}`.toLowerCase();
     
@@ -116,9 +128,9 @@ const parseXmlFeed = (xmlText: string, sourceName: string): ThreatNewsItem[] => 
         const entries = xmlDoc.querySelectorAll("item, entry");
         
         entries.forEach(item => {
-            const title = item.querySelector("title")?.textContent || "Unknown Title";
+            const title = decodeEntities(item.querySelector("title")?.textContent || "Unknown Title");
             let description = item.querySelector("description")?.textContent || item.querySelector("summary")?.textContent || "";
-            const cleanDesc = sanitizeText(description);
+            const cleanDesc = decodeEntities(sanitizeText(description));
 
             let link = item.querySelector("link")?.textContent;
             if (!link || !link.startsWith('http')) {

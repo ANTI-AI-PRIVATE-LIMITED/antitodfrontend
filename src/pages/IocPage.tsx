@@ -421,6 +421,17 @@ function parseAdvancedQuery(
 /*                               IOC Page                                     */
 /* -------------------------------------------------------------------------- */
 
+const IOC_SOURCE_LABELS: Record<string, string> = {
+  xyberah: 'ANTITODE Honeypot',
+  abuseipdb: 'AbuseIPDB',
+  urlhaus: 'URLhaus',
+  malwarebazaar: 'MalwareBazaar',
+  spamhaus: 'Spamhaus',
+  alienvault_otx: 'AlienVault OTX',
+};
+const iocSourceLabel = (src?: string): string =>
+  (src && IOC_SOURCE_LABELS[src.toLowerCase()]) || src || 'Threat Intel';
+
 export default function IocPage() {
   const { onNavigate } = useAppData();
   const [liveIocs, setLiveIocs] = useState<IocRecord[]>([]);
@@ -1149,8 +1160,8 @@ export default function IocPage() {
               <Server size={12} />
             </div>
             <div className="flex flex-col min-w-0">
-              <strong className="text-xs text-white truncate">{typeCounts.ip.toLocaleString()}</strong>
-              <span className="text-[9px] text-[#888] uppercase truncate leading-none mt-0.5">IP addresses</span>
+              <strong className="text-xs text-white truncate">{(iocStats.active_network_iocs || typeCounts.ip).toLocaleString()}</strong>
+              <span className="text-[9px] text-[#888] uppercase truncate leading-none mt-0.5">IPs / networks</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1158,8 +1169,8 @@ export default function IocPage() {
               <Globe size={12} />
             </div>
             <div className="flex flex-col min-w-0">
-              <strong className="text-xs text-white truncate">{typeCounts.domain.toLocaleString()}</strong>
-              <span className="text-[9px] text-[#888] uppercase truncate leading-none mt-0.5">Domains</span>
+              <strong className="text-xs text-white truncate">{(iocStats.new_24h || 0).toLocaleString()}</strong>
+              <span className="text-[9px] text-[#888] uppercase truncate leading-none mt-0.5">New in 24h</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1176,8 +1187,8 @@ export default function IocPage() {
               <Link2 size={12} />
             </div>
             <div className="flex flex-col min-w-0">
-              <strong className="text-xs text-white truncate">{typeCounts.url.toLocaleString()}</strong>
-              <span className="text-[9px] text-[#888] uppercase truncate leading-none mt-0.5">URLs</span>
+              <strong className="text-xs text-white truncate">{iocs.length.toLocaleString()}</strong>
+              <span className="text-[9px] text-[#888] uppercase truncate leading-none mt-0.5">Loaded rows</span>
             </div>
           </div>
         </div>
@@ -1187,12 +1198,12 @@ export default function IocPage() {
           <div className="flex items-center gap-2.5">
             <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] shrink-0"></div>
             <strong className="text-xs text-white w-12 truncate">{criticalCount.toLocaleString()}</strong>
-            <span className="text-[10px] text-[#888] uppercase tracking-wider truncate">critical</span>
+            <span className="text-[10px] text-[#888] uppercase tracking-wider truncate">critical (loaded)</span>
           </div>
           <div className="flex items-center gap-2.5">
             <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)] shrink-0"></div>
             <strong className="text-xs text-white w-12 truncate">{highCount.toLocaleString()}</strong>
-            <span className="text-[10px] text-[#888] uppercase tracking-wider truncate">high</span>
+            <span className="text-[10px] text-[#888] uppercase tracking-wider truncate">high (loaded)</span>
           </div>
         </div>
       </section>
@@ -1505,7 +1516,7 @@ export default function IocPage() {
 
                           <td>
                             <span className="at-ioc-source">
-                              {ioc.source}
+                              {iocSourceLabel(ioc.source)}
                             </span>
                           </td>
 
@@ -1697,7 +1708,7 @@ export default function IocPage() {
                 </span>
 
                 <span className="at-ioc-inspector-source">
-                  {selectedIoc.source}
+                  {iocSourceLabel(selectedIoc.source)}
                 </span>
               </div>
 
@@ -1843,7 +1854,7 @@ export default function IocPage() {
                         <div className="at-ioc-source-card">
                           <strong>
                             {
-                              selectedIoc.source
+                              iocSourceLabel(selectedIoc.source)
                             }
                           </strong>
 

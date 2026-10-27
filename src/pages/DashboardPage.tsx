@@ -171,6 +171,7 @@ export default function DashboardPage({
   const [newsItems, setNewsItems] = useState<ThreatNewsItem[]>([]);
   const [cveFeedItems, setCveFeedItems] = useState<CveFeedItem[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [blocklisted, setBlocklisted] = useState<string[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [activityTimeline, setActivityTimeline] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -188,6 +189,7 @@ export default function DashboardPage({
       ]);
       setMetrics(m);
       setResults(h || []);
+      dataProvider.getBlocklistMatches((h || []).map((x: any) => x.ip)).then(setBlocklisted).catch(() => undefined);
       setNewsItems(n || []);
       setCveFeedItems(c || []);
       setEvents(e || []);
@@ -232,7 +234,7 @@ export default function DashboardPage({
 
     const blacklisted = results.filter(
       (host) =>
-        host.rblStatus === 'LISTED',
+        host.rblStatus === 'LISTED' || blocklisted.includes(host.ip),
     ).length;
 
     const countries = new Set(
@@ -249,7 +251,7 @@ export default function DashboardPage({
       blacklisted,
       countries,
     };
-  }, [results]);
+  }, [results, blocklisted]);
 
   const timeline = useMemo<TimelineBucket[]>(
     () => {
@@ -1929,4 +1931,4 @@ export default function DashboardPage({
       </div>
     </div>
   );
-}
+}

@@ -229,7 +229,7 @@ export const NetworkToolsView: React.FC = () => {
                 // Task: Security Checks
                 tasks.push(
                     checkDomainSecurity(cleanTarget).then(sec => {
-                        setSecurityResults(sec);
+                        setSecurityResults(sec.filter(r => r.status !== 'FAILED'));
                         currentSecurity = sec;
                         setScanStatus("Threat Intelligence Checked...");
                         updateRisk();
@@ -295,7 +295,7 @@ export const NetworkToolsView: React.FC = () => {
                 setIsLoading(false);
             } else if (activeCategory === 'DNS_SEC') {
                 const results = await checkDomainSecurity(target);
-                setSecurityResults(results);
+                setSecurityResults(results.filter(r => r.status !== 'FAILED'));
                 if (!isIp) {
                     setDgaResult(analyzeDga(target));
                 }
@@ -367,7 +367,7 @@ export const NetworkToolsView: React.FC = () => {
                 const dmarc = await analyzeDmarc(target);
                 setDmarcResult(dmarc);
                 const security = await checkDomainSecurity(target);
-                setSecurityResults(security);
+                setSecurityResults(security.filter(r => r.status !== 'FAILED'));
                 if (mxRecs.length > 0) {
                     mxRecs.slice(0, 5).forEach(async (mx) => {
                         try {
@@ -403,7 +403,16 @@ export const NetworkToolsView: React.FC = () => {
                     setIpApiResult(res);
                 } else {
                     const rdap = await performRdapLookup(target, 'DOMAIN');
-                    setWhoisResult(rdap);
+                    if (rdap) {
+                        setWhoisResult(rdap);
+                    } else {
+                        // Registry WHOIS is not reachable from here: show hosting details for the resolved IP instead.
+                        const dns = await queryDoH(cleanTarget, 'A');
+                        const ip = dns?.Answer?.find((a: any) => a.type === 1)?.data;
+                        if (!ip) throw new Error('Could not resolve this domain.');
+                        setIpApiResult(await fetchIpApiData(ip));
+                        setError(`Registrar WHOIS is unavailable for domains. Showing hosting details for ${ip}.`);
+                    }
                 }
                 setIsLoading(false);
             } else if (activeCategory === 'HEADERS') {
@@ -703,11 +712,7 @@ export const NetworkToolsView: React.FC = () => {
                     <button onClick={() => setActiveCategory('EMAIL')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'EMAIL' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>EMAIL SEC</button>
                     <button onClick={() => setActiveCategory('ASN')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'ASN' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>ASN INTEL</button>
                     <button onClick={() => setActiveCategory('CRT')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'CRT' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>CERT LOGS</button>
-                    <button onClick={() => setActiveCategory('SCAN')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SCAN' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>PORT SCAN</button>
-                    <div className="h-8 w-px bg-[#1C1C1C] mx-2 hidden md:block"></div>
-                    <button onClick={() => setActiveCategory('PING')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'PING' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>PING</button>
                     <button onClick={() => setActiveCategory('SUBNET')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SUBNET' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>CALC</button>
-                    <button onClick={() => { setActiveCategory('MY_IP'); handleRunTool(); }} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'MY_IP' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>MY IP</button>
                 </div>
             </div>
 
@@ -1180,9 +1185,6 @@ export const NetworkToolsView: React.FC = () => {
                             <div className="flex bg-[#111] p-1 rounded-lg overflow-x-auto custom-scrollbar gap-1 border border-[#222]">
                                 {renderDnsTab('google', 'Google')}
                                 {renderDnsTab('cloudflare', 'Cloudflare')}
-                                {renderDnsTab('quad9', 'Quad9')}
-                                {renderDnsTab('dns0', 'DNS0.eu')}
-                                {renderDnsTab('cira', 'CIRA')}
                             </div>
                             <div className="bg-[#111]/40 border border-[#222] rounded-lg p-4 min-h-[300px]">
                                 {renderDnsTable()}
@@ -1264,7 +1266,7 @@ export const NetworkToolsView: React.FC = () => {
                                 <div className="p-4 rounded border bg-[#111]/40 border-[#222]">
                                     <div className="text-xs font-bold text-[#888] uppercase mb-2">Mail Servers</div>
                                     <div className="text-xl font-bold text-white mb-1">{mxRecords.length} MX Records</div>
-                                    <div className="text-[10px] text-[#AAA]">Primary: {mxRecords[0]?.name || 'N/A'}</div>
+                                    <div className="text-[10px] text-[#AAA]">Primary: {[...mxRecords].sort((a, b) => parseInt(a.data) - parseInt(b.data))[0]?.data?.split(' ').slice(1).join(' ') || 'N/A'}</div>
                                 </div>
                             </div>
 
@@ -1284,9 +1286,11 @@ export const NetworkToolsView: React.FC = () => {
                                                     <span className={`px-2 py-0.5 rounded font-bold ${server.rbl === 'LISTED' ? 'bg-red-900/20 text-red-400' : 'bg-neutral-900/20 text-white'}`}>
                                                         {server.rbl === 'LISTED' ? 'BLACKLISTED' : 'CLEAN RBL'}
                                                     </span>
-                                                    <span className={`px-2 py-0.5 rounded font-bold border ${server.score > 50 ? 'border-red-500/30 text-red-400' : 'border-red-500/30 text-red-400'}`}>
+                                                    {server.score >= 60 && (
+                                                    <span className="px-2 py-0.5 rounded font-bold border border-red-500/30 text-red-400">
                                                         Risk: {server.score}
                                                     </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -1319,14 +1323,14 @@ export const NetworkToolsView: React.FC = () => {
                         <div className="bg-[#111]/40 border border-[#222] rounded-lg overflow-hidden animate-fade-in">
                             <table className="w-full text-left text-xs font-mono">
                                 <thead className="bg-[#111] text-[#888] uppercase font-bold">
-                                    <tr><th className="p-3">Logged At</th><th className="p-3">Common Name</th><th className="p-3">Issuer</th></tr>
+                                    <tr><th className="p-3">Issued</th><th className="p-3">Common Name</th><th className="p-3">Issuer</th></tr>
                                 </thead>
                                 <tbody className="divide-y divide-neutral-800 text-neutral-300">
                                     {crtResults.map((crt, i) => (
                                         <tr key={i} className="hover:bg-white/5">
-                                            <td className="p-3">{new Date(crt.entry_timestamp).toLocaleDateString()}</td>
+                                            <td className="p-3">{(() => { const d = new Date(crt.not_before || crt.entry_timestamp); return isNaN(d.getTime()) ? '-' : d.toLocaleDateString(); })()}</td>
                                             <td className="p-3 text-red-500">{crt.common_name}</td>
-                                            <td className="p-3 text-[#888]">{crt.issuer_name.split(',')[0]}</td>
+                                            <td className="p-3 text-[#888]">{(crt.issuer_name.match(/O=([^,]+)/) || crt.issuer_name.match(/CN=([^,]+)/) || [null, crt.issuer_name.split(',')[0]])[1]}</td>
                                         </tr>
                                     ))}
                                 </tbody>

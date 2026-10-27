@@ -256,8 +256,9 @@ function parseAdvancedQuery(
 
 export default function CvePage() {
   const [MOCK_CVES, set_MOCK_CVES] = React.useState<any[]>([]);
+  const [isCveLoading, setIsCveLoading] = React.useState(true);
     React.useEffect(() => {
-        dataProvider.getCves().then(set_MOCK_CVES);
+        dataProvider.getCves().then(set_MOCK_CVES).catch(() => undefined).finally(() => setIsCveLoading(false));
     }, []);
 
   /* ------------------------------------------------------------------------ */
@@ -1013,7 +1014,7 @@ export default function CvePage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8"><div className="at-cve-empty-state mx-auto max-w-sm bg-[#111] border border-[#222] rounded-xl shadow-lg"><FileWarning size={24} className="text-[#666] mb-2" /><strong className="text-white text-sm block">No CVEs found</strong><span className="text-[#888] text-xs block mt-1">No vulnerabilities match the current search and filters.</span><button type="button" onClick={clearAllFilters} className="mt-4 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg text-xs text-white border border-neutral-700">Clear filters</button></div></td>
+                    <td colSpan={7} className="p-8"><div className="at-cve-empty-state mx-auto max-w-sm bg-[#111] border border-[#222] rounded-xl shadow-lg"><FileWarning size={24} className="text-[#666] mb-2" /><strong className="text-white text-sm block">{isCveLoading ? 'Loading CVE feed…' : 'No CVEs found'}</strong><span className="text-[#888] text-xs block mt-1">{isCveLoading ? 'Fetching CISA KEV and NVD data. This can take up to 15 seconds.' : 'No vulnerabilities match the current search and filters.'}</span>{!isCveLoading && <button type="button" onClick={clearAllFilters} className="mt-4 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg text-xs text-white border border-neutral-700">Clear filters</button>}</div></td>
                   </tr>
                 ) : (
                   filtered.slice(0, visibleCount).map((cve) => {

@@ -649,9 +649,9 @@ export default function NewsPage() {
                             </button>
 
                             <span className="at-news-headline-meta">
-                              Security
-                              intelligence
-                              article
+                              {news.description
+                                ? (news.description.length > 140 ? news.description.slice(0, 140) + '…' : news.description)
+                                : 'No summary provided by the source'}
                             </span>
 
                           </td>

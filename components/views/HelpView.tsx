@@ -53,48 +53,44 @@ export const HelpView: React.FC = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <HelpSection title="Getting Started" icon={Rocket}>
                             <p>
-                                <strong>Xyberah Threat Processor</strong> is a client-side threat intelligence and forensic analysis platform. 
-                                It runs entirely in your browser, ensuring data privacy while providing advanced analytic capabilities.
+                                <strong>Xyberah Threat Processor</strong> is a cloud threat intelligence platform. Your honeypots send attack telemetry to the Xyberah backend, which scores each attacking host and shows the results here.
                             </p>
                             <div className="bg-[#111] border border-neutral-500/20 p-4 rounded text-white text-xs font-mono mt-2">
-                                <strong className="text-red-400">QUICK START:</strong> Drag & Drop any JSON logs, PCAP capture files, or STIX bundles directly onto the dashboard to begin analysis immediately.
+                                <strong className="text-red-400">QUICK START:</strong> Open Infrastructure to register a server and deploy a honeypot. Events appear in Honeypot Logs within minutes, and hosts are scored in Log Analysis.
                             </div>
                         </HelpSection>
 
-                        <HelpSection title="Data Ingestion" icon={Database}>
-                            <p>The system accepts multiple file formats for analysis:</p>
+                        <HelpSection title="Where Data Comes From" icon={Database}>
+                            <p>Every page reads from one of these sources:</p>
                             <ul className="list-disc list-inside space-y-2 ml-2">
-                                <li><strong>JSON Logs:</strong> Array of objects with <code>ip</code>, <code>commands</code>, and <code>timestamp</code> fields.</li>
-                                <li><strong>PCAP / PCAPNG:</strong> Standard network capture files for deep packet inspection.</li>
-                                <li><strong>STIX 2.1:</strong> Threat intelligence bundles (`.json`) for graph visualization.</li>
-                                <li><strong>MMDB:</strong> MaxMind GeoLite2 databases (`.mmdb`) for offline geolocation enrichment.</li>
+                                <li><strong>Your honeypots:</strong> events, hosts, scores and detections.</li>
+                                <li><strong>Threat feeds:</strong> Spamhaus, AbuseIPDB, URLhaus, MalwareBazaar and AlienVault OTX fill the IOC Manager.</li>
+                                <li><strong>Public sources:</strong> CISA KEV, NVD, Exploit DB, security news and ransomware.live.</li>
+                                <li><strong>Your own verdicts:</strong> hosts scored high or critical are added to the IOC list as ANTITODE Honeypot.</li>
                             </ul>
                         </HelpSection>
                     </div>
 
                     <div className="h-px bg-[#151515] w-full"></div>
 
-                    {/* Architecture & Tech Specs */}
-                    <h3 className="text-xl font-bold text-white mb-4 pl-2 border-l-4 border-red-500">Technical Architecture</h3>
+                    <h3 className="text-xl font-bold text-white mb-4 pl-2 border-l-4 border-red-500">How Scoring Works</h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <HelpSection title="Zero-Trust Privacy" icon={Shield}>
+                        <HelpSection title="Host Threat Score" icon={Shield}>
                             <p>
-                                This system employs a <strong>Local-First</strong> architecture. All heavy lifting—log parsing, graph generation, and pattern matching—is executed within your browser's JavaScript engine (V8/SpiderMonkey).
+                                Each attacking IP gets a score from 0 to 100, built from signals such as brute force, port scanning, malware downloads and matches in outside threat feeds. A score of 80 or more is Critical, 60 or more is High.
                             </p>
                             <div className="bg-neutral-900/10 border border-neutral-500/20 p-3 rounded text-white text-xs font-mono mt-2">
-                                NO UPLOADS: Your raw logs and PCAP files are never sent to a remote server.
+                                Our own verdicts never count as outside confirmation, so a host cannot raise its own score.
                             </div>
                         </HelpSection>
 
-                        <HelpSection title="System Limits & Storage" icon={Cpu}>
+                        <HelpSection title="Data Retention" icon={Cpu}>
                             <p>
-                                Data persistence is handled via <strong>IndexedDB</strong>. 
-                                Large datasets (&gt;100MB JSON or &gt;500k graph nodes) may impact browser performance.
+                                Retention and limits depend on your plan. See Settings, Plan and Usage for honeypot slots, users and retention days.
                             </p>
                             <ul className="list-disc list-inside space-y-1 ml-2 text-[#888] text-xs mt-2">
-                                <li>Recommended Max Log Size: 50MB</li>
-                                <li>Recommended Max Nodes: 2,000</li>
-                                <li>Storage Quota: Dependent on Browser (typ. 50-80% disk)</li>
+                                <li>Exports: CSV on every plan, JSON on Pro</li>
+                                <li>Live pages refresh when you open them or press Refresh</li>
                             </ul>
                         </HelpSection>
                     </div>
@@ -103,71 +99,71 @@ export const HelpView: React.FC = () => {
 
                     {/* Module Breakdown */}
                     <h3 className="text-xl font-bold text-white mb-4 pl-2 border-l-4 border-neutral-500">System Modules</h3>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <HelpSection title="Dashboard & SOC Wall" icon={Activity}>
+                        <HelpSection title="Dashboard and SOC Wall" icon={Activity}>
                             <p>
-                                The central hub for monitoring active threats. The <strong>SOC Wall</strong> mode provides a cinematic, high-contrast view suitable for large screens in Security Operations Centers.
+                                The Dashboard summarises hosts, telemetry and plan usage. The SOC Wall is a full screen view for a large display.
                             </p>
                             <ul className="mt-2 text-xs space-y-1 text-[#888] font-mono">
-                                <li>• Live Attack Map</li>
-                                <li>• IOC Velocity Tracking</li>
-                                <li>• Critical Alert Feed</li>
+                                <li>• Risk distribution</li>
+                                <li>• Live telemetry</li>
+                                <li>• Vulnerability and IOC tabs</li>
                             </ul>
                         </HelpSection>
 
-                        <HelpSection title="Network Forensics" icon={Network}>
+                        <HelpSection title="Honeypot Logs and Log Analysis" icon={Network}>
                             <p>
-                                Analyze packet captures (PCAP) directly in-browser. Features include TCP stream reassembly, file extraction, TLS fingerprinting (JA3), and protocol breakdown.
+                                Honeypot Logs lists raw events with filters. Log Analysis groups them by attacking host with score, location, signatures and timeline.
                             </p>
                             <ul className="mt-2 text-xs space-y-1 text-[#888] font-mono">
-                                <li>• Stream Follow</li>
-                                <li>• Hex/ASCII Viewer</li>
-                                <li>• Geo-IP Correlation</li>
+                                <li>• Filter by risk level</li>
+                                <li>• Jump to events for a host</li>
+                                <li>• Send a host to Investigate</li>
                             </ul>
                         </HelpSection>
 
-                        <HelpSection title="Graph Investigation" icon={Share2}>
+                        <HelpSection title="Threat Map and Ransomware" icon={Share2}>
                             <p>
-                                Visual link analysis connecting IPs, Domains, Threat Actors, and Malware signatures. Supports physics-based force layout and structured "Kill Chain" layout modes.
+                                The Threat Map plots attack sources on a globe. Ransomware Monitor tracks leak site victims and groups from ransomware.live.
                             </p>
                             <ul className="mt-2 text-xs space-y-1 text-[#888] font-mono">
-                                <li>• STIX 2.1 Visualization</li>
-                                <li>• Entity Expansion</li>
-                                <li>• Cluster Detection</li>
+                                <li>• Country level activity</li>
+                                <li>• Recent victims</li>
+                                <li>• Evidence snapshots</li>
                             </ul>
                         </HelpSection>
 
-                        <HelpSection title="Rule Engineering" icon={FileCode}>
+                        <HelpSection title="Vulnerabilities and Exploit DB" icon={FileCode}>
                             <p>
-                                Create, edit, and convert detection rules (YARA, Sigma, Suricata). Integrated AI assistant helps generate rules from natural language or log samples.
+                                CVEs from CISA KEV and recent NVD entries, with public proof of concept exploits. CVSS scores appear when NVD has published them.
                             </p>
                             <ul className="mt-2 text-xs space-y-1 text-[#888] font-mono">
-                                <li>• Multi-format Converter</li>
-                                <li>• Syntax Highlighting</li>
-                                <li>• Simulation Engine</li>
+                                <li>• Search and advanced filters</li>
+                                <li>• Known exploited flag</li>
+                                <li>• CSV and JSON export</li>
                             </ul>
                         </HelpSection>
 
-                        <HelpSection title="Threat Intelligence" icon={Shield}>
+                        <HelpSection title="Intel Feed, IOC Manager, Intel Grounding" icon={Shield}>
                             <p>
-                                Aggregated feeds from CISA, ZDI, URLHaus, and MalwareBazaar. Search for IOCs (Hashes, IPs, Domains) across multiple providers instantly.
+                                Intel Feed collects security news. IOC Manager holds indicators from feeds and your honeypots. Intel Grounding writes AI research briefings that you should confirm against primary sources.
                             </p>
                             <ul className="mt-2 text-xs space-y-1 text-[#888] font-mono">
-                                <li>• TAXII Relay Support</li>
-                                <li>• CSV/JSON Export</li>
-                                <li>• Real-time Feed Sync</li>
+                                <li>• STIX 2.1 export</li>
+                                <li>• Source labels per indicator</li>
+                                <li>• Saved research history</li>
                             </ul>
                         </HelpSection>
 
-                        <HelpSection title="AI Assistant" icon={MessageSquare}>
+                        <HelpSection title="Tools, Infrastructure and Integrations" icon={MessageSquare}>
                             <p>
-                                Context-aware LLM integration (Gemini) that can explain alerts, suggest mitigation strategies, and summarize complex threat actor profiles.
+                                Network Tools and Web Check run passive lookups. Infrastructure manages servers and shippers. SIEM Connectors push telemetry to Splunk, Elastic, Sentinel, SOAR or TAXII.
                             </p>
                             <ul className="mt-2 text-xs space-y-1 text-[#888] font-mono">
-                                <li>• Contextual Chat</li>
-                                <li>• Rule Generation</li>
-                                <li>• Report Summarization</li>
+                                <li>• Access Control for users</li>
+                                <li>• Settings for plan and account</li>
+                                <li>• Write only connector secrets</li>
                             </ul>
                         </HelpSection>
                     </div>
@@ -184,29 +180,13 @@ export const HelpView: React.FC = () => {
                             </div>
                         </HelpSection>
 
-                        <HelpSection title="Technical JSON Format" icon={FileJson}>
-                            <p className="mb-2">For custom log ingestion, ensure your JSON follows this schema:</p>
-                            <pre className="bg-[#111] border border-[#333] p-3 rounded text-xs font-mono text-white overflow-x-auto">
-{`[
-  {
-    "timestamp": "2023-10-27T10:00:00Z",
-    "ip": "192.168.1.100",
-    "country": "US",
-    "commands": [
-      "powershell.exe -enc ...",
-      "whoami /all"
-    ]
-  }
-]`}
-                            </pre>
-                        </HelpSection>
-                        
+                                                
                         <HelpSection title="Troubleshooting" icon={AlertTriangle}>
                             <p>If you encounter issues:</p>
                             <ul className="list-disc list-inside space-y-2 ml-2 mt-2">
-                                <li>Use <strong>Settings {'>'} Clear Data</strong> to reset the local database if the app state becomes corrupted.</li>
-                                <li>Ensure CORS proxies are accessible if external lookups fail.</li>
-                                <li>Check the <strong>System Logs</strong> tab in Settings for error details.</li>
+                                <li>Press <strong>Refresh</strong> on a page if data looks out of date. The Vulnerabilities page can take up to 15 seconds to load.</li>
+                                <li>If an external lookup fails, try again in a minute. Some public services limit requests.</li>
+                                <li>Contact your ANTI AI account manager for plan, user or honeypot issues.</li>
                             </ul>
                         </HelpSection>
                     </div>

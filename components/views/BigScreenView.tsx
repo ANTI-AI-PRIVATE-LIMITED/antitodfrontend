@@ -19,6 +19,7 @@ import {
 import { AttackMapView, AttackTarget } from './AttackMapView';
 import { LiveThreatFeed } from '../widgets/LiveThreatFeed';
 import { isPublicDemo } from '../../src/utils/demoMode';
+import { dataProvider } from '../../src/services/dataProvider';
 import { ShieldAlert, Activity, Globe, Target, ArrowUp, ArrowDown, Zap, Skull, AlertTriangle, Siren, Bug, Database, Rss, Lock, Flame, Server, MonitorPlay, Wifi, Users, Layout, BarChart3, AlertCircle, Clock, Network, Share2, Layers } from 'lucide-react';
 
 interface BigScreenViewProps {
@@ -125,6 +126,7 @@ const StatTile = ({
             {value}
         </div>
 
+        {trendVal != null && (
         <div className="at-soc-stat-trend">
             <span
                 className={
@@ -142,6 +144,7 @@ const StatTile = ({
 
             <span>vs previous hour</span>
         </div>
+        )}
     </div>
 );
 
@@ -327,7 +330,14 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
     const criticalHosts = results.filter(h => h.riskLevel === 'CRITICAL').length;
     const highHosts = results.filter(h => h.riskLevel === 'HIGH').length;
     
-    const iocCounts = [
+    const [backendIoc, setBackendIoc] = useState<any>(null);
+    useEffect(() => {
+        let alive = true;
+        dataProvider.getIocStats().then((r: any) => { if (alive) setBackendIoc(r?.data ?? r); }).catch(() => undefined);
+        return () => { alive = false; };
+    }, []);
+
+    const externalIocCounts = [
         { label: 'URLHaus', value: urlHausItems.length, tone: 'neutral', color: 'text-neutral-400' },
         { label: 'Feodo C2', value: feodoItems.length, tone: 'danger', color: 'text-red-500' },
         { label: 'ThreatFox', value: threatFoxItems.length, tone: 'warning', color: 'text-amber-500' },
@@ -335,6 +345,14 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
         { label: 'SSLBL', value: sslBlItems.length, tone: 'neutral', color: 'text-neutral-400' },
         { label: 'JA3', value: ja3Items.length, tone: 'warning', color: 'text-amber-500' }
     ];
+    const iocCounts = externalIocCounts.some(c => c.value > 0)
+        ? externalIocCounts
+        : [
+            { label: 'Total indicators', value: backendIoc?.total_indicators ?? 0, tone: 'neutral', color: 'text-neutral-400' },
+            { label: 'Network IOCs', value: backendIoc?.active_network_iocs ?? 0, tone: 'danger', color: 'text-red-500' },
+            { label: 'File hashes', value: backendIoc?.file_hashes ?? 0, tone: 'warning', color: 'text-amber-500' },
+            { label: 'New in 24h', value: backendIoc?.new_24h ?? 0, tone: 'neutral', color: 'text-neutral-400' },
+        ];
 
     const iocStats = useMemo(() => {
         const malware: Record<string, number> = {};
@@ -418,7 +436,8 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
         const medium = cveData.filter(c => c.severity === 'MEDIUM').length;
         const low = cveData.filter(c => c.severity === 'LOW').length;
         const kev = cveData.filter(c => c.isKev).length;
-        const avgScore = total > 0 ? (cveData.reduce((acc, c) => acc + c.cvssScore, 0) / total).toFixed(1) : '0.0';
+        const scored = cveData.filter(c => c.cvssScore > 0);
+        const avgScore = scored.length > 0 ? (scored.reduce((acc, c) => acc + c.cvssScore, 0) / scored.length).toFixed(1) : '—';
         
         const cwes: Record<string, number> = {};
         cveData.forEach(c => {
@@ -450,7 +469,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
         return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0, 10).map(([label, count]) => ({label, count}));
     }, [cveData]);
 
-    const activeRansomGroups = ransomwareGroups.length;
+    const activeRansomGroups = ransomwareGroups.length || new Set(ransomwarePosts.map((p: any) => p.group_name).filter(Boolean)).size;
     const ransomVictims = ransomwarePosts.length;
 
     const scrollingNews = useMemo(() => {
@@ -537,8 +556,6 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                 <StatTile
                                     label="Critical Threats"
                                     value={criticalHosts}
-                                    trend="up"
-                                    trendVal={12}
                                     color="text-[#e56d72]"
                                     icon={Siren}
                                 />
@@ -548,8 +565,6 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                 <StatTile
                                     label="High Risks"
                                     value={highHosts}
-                                    trend="down"
-                                    trendVal={5}
                                     color="text-[#d49b45]"
                                     icon={AlertTriangle}
                                 />
@@ -576,7 +591,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                     </div>
 
                                     <div>
-                                        <span>Total victims</span>
+                                        <span>Recent victims</span>
                                         <strong className="danger">
                                             {ransomVictims}
                                         </strong>
@@ -623,9 +638,11 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                         </div>
 
                         <div className="at-soc-right-rail">
+                            {iocCounts.some(c => c.value > 0) && (
                             <div className="at-soc-panel at-soc-ioc-panel">
                                 <IocStatTile counts={iocCounts} stats={iocStats} />
                             </div>
+                            )}
                             <div className="at-soc-panel at-soc-vuln-panel">
                                 <VulnAnalyticsTile 
                                     exploitCount={exploitData.length} 
@@ -695,7 +712,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                             <div className="bg-[#111]/60 border border-white/20 rounded-lg p-4 flex items-center gap-4 hover:bg-[#111] transition-colors">
                                 <div className="p-3 bg-[#111] rounded-full border border-white/20 text-white"><BarChart3 size={24}/></div>
                                 <div>
-                                    <div className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Avg Severity</div>
+                                    <div className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Avg CVSS (scored)</div>
                                     <div className="text-3xl font-mono font-bold text-white">{vulnStats.avgScore}</div>
                                 </div>
                             </div>
@@ -821,6 +838,8 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                         </div>
 
                         {/* Recent IOC Ticker (New) */}
+                        {latestIocs.length > 0 && (
+
                         <div className="bg-[#111] border-y border-[#222] py-2 overflow-hidden flex items-center gap-4">
                             <div className="text-[10px] font-bold text-[#888] uppercase px-4 border-r border-[#333]">Recent Ingest</div>
                             <div className="flex-1 overflow-hidden">
@@ -835,6 +854,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                 </div>
                             </div>
                         </div>
+                        )}
 
                         <div className="grid grid-cols-4 gap-6 pb-4">
                             {iocCounts.map((ioc, idx) => (
@@ -847,6 +867,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                             ))}
                         </div>
 
+                        {(iocStats.malware.length > 0 || iocStats.asns.length > 0 || iocStats.countries.length > 0) && (
                         <div className="grid grid-cols-2 gap-6 flex-1 min-h-0">
                             <div className="col-span-1 bg-[#111] border border-[#222] p-6 rounded-lg flex flex-col">
                                 <h4 className="text-sm font-bold text-[#AAA] uppercase mb-4">Top Malware Families</h4>
@@ -908,6 +929,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                 </div>
                             </div>
                         </div>
+                        )}
                     </div>
                 )}
 

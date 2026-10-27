@@ -8,7 +8,9 @@ import { DEMO_RANSOMWARE_POSTS, DEMO_RANSOMWARE_GROUPS } from '../src/data/demo/
 const mapLiveVictims = (json: any): RansomWatchPost[] => {
     const items = json.victims || (Array.isArray(json) ? json : []);
     
-    return items.map((v: any) => ({
+    // Drop test and probe entries injected into the leak site feed (e.g. "zzq-test", "probe-<hex>").
+    const isTestEntry = (v: any) => /^(zzq-|probe-[0-9a-f]{8,}|test$)/i.test(String(v.victim || v.post_title || '').trim());
+    return items.filter((v: any) => !isTestEntry(v)).map((v: any) => ({
         post_title: v.victim || v.post_title,
         group_name: v.group || v.group_name,
         discovered: v.discovered,

@@ -1,82 +1,90 @@
-# ANTITODE
+# ANTITODE Frontend
 
-ANTITODE is the redesigned shell for the original Xyberah security-operations frontend.
+Web dashboard for the Xyberah / ANTITODE honeypot threat intelligence platform (ANTI AI Private Limited). It talks to the antitode-backend API and shows honeypot events, host scores, IOCs, vulnerabilities, ransomware activity and network tools.
 
-## What this version does
+Built with React 18, TypeScript, Vite 5, Tailwind CSS 3, Recharts, react-globe.gl / three.js, react-leaflet and reactflow.
 
-The redesign changes the application shell and presentation while retaining the original product modules, services, API clients, data models, and workflows.
+## Release 1.0 (what ships today)
 
-### Application shell
+| Area | Page (URL) |
+|------|-----------|
+| Overview | Dashboard (`/dashboard`), SOC Wall (`/soc-wall`), Threat Map (`/threat-map`) |
+| Honeypot data | Honeypot Logs (`/honeypot-logs`), Log Analysis (`/log-analysis`) |
+| Intelligence | Vulnerabilities (`/vulnerabilities`), Exploit DB (`/exploit-db`), Intel Feed (`/intel-feed`), IOC Manager (`/ioc-manager`), Ransomware Monitor (`/ransomware-monitor`) |
+| Tools | Network Tools (`/network-tools`), Web Check (`/web-check`) |
+| Admin | Infrastructure, SIEM Connectors, Access Control, Billing, Settings, System Guide |
 
-- Supabase-style collapsible left navigation.
-- Original Xyberah module taxonomy restored in the sidebar.
-- Global module command palette with `Ctrl/Cmd + K`.
-- Sidebar toggle with `Ctrl/Cmd + B`.
-- Settings is an in-app modal rather than a separate route.
+Not in v1: Intel Grounding (needs a Gemini key on the backend; hidden unless built with `VITE_AI_ENABLED=true`), Threat Actors (hidden outside demo mode), and a set of URL only modules that show "Module unavailable" (investigation bench, playbooks, graph investigation, network forensics, email forensic, dynamic sandbox, topology, threat canvas, MITRE navigator).
 
-### Routing & Navigation
+Navigation lives in `src/data/navigation.ts` (what appears in the sidebar and command palette) and URLs in `src/data/routes.ts`. Views are wired in `src/components/ViewRouter.tsx`.
 
-Unlike the original single-URL design, the application now utilizes a full client-side routing approach:
-- **Per-View Routes**: The application pushes real paths (`/dashboard`, `/cve`, `/rules`, `/investigate`, etc.) into the browser URL when navigating between modules.
-- **History API**: Navigation leverages `window.history.pushState` to dynamically update the URL and browser history without full page reloads (handled in `App.tsx`).
-- **Deep-Linkable**: Every module route is fully deep-linkable. This is enabled by a `vercel.json` rewrite rule that maps all incoming requests (`/(.*)`) back to `/index.html`, allowing the client-side router to correctly initialize the active view based on the URL.
+## Requirements
 
-### Functional source retained
+- Node 20+ and npm
+- A running antitode-backend (local or remote)
 
-The original implementation is retained for:
-
-- honeypot V1/V2/V3 APIs
-- IOC management
-- threat intelligence feeds
-- log analysis and enrichment
-- threat actors
-- CVE / vulnerability workflows
-- exploit intelligence
-- news / intelligence feed
-- ransomware monitoring
-- brand monitoring
-- graph investigation
-- investigation bench and playbooks
-- email forensics
-- network forensics
-- MITRE Navigator
-- SOC rules and rule testing/conversion
-- sandbox/browser workflows
-- CyberChef
-- network tools
-- network topology
-- threat canvas
-- infrastructure / agent management
-- Xyberah Recon
-- AI assistant and grounding workflows
-
-The original service layer, API client, types, hooks, and view components remain in the project rather than being replaced with generated mock functionality.
-
-## Environment & Security Architecture
-
-Copy `.env.example` to `.env` and specify `VITE_BACKEND_URL`.
-
-### Third-Party API Keys & Backend Proxies
-To prevent credential harvesting and protect against quota abuse, third-party provider keys are **never compiled into public client JavaScript**:
-- **Gemini AI**: Routed through `/AdminRoutes/proxy/gemini`. The backend server injects `GEMINI_API_KEY`.
-- **IPData Geo Enrichment**: Routed through `/AdminRoutes/proxy/ipdata/:ip`. The backend server injects `IPDATA_API_KEY`, with local MaxMind MMDB fallback.
-- **Ransomware.live Feed**: Routed through `/AdminRoutes/proxy/ransomware-live`. The backend server injects `RANSOMWARE_LIVE_API_KEY`, with public open-source RansomWatch fallback.
-
-The frontend bundle ships only with `VITE_BACKEND_URL` and delegates third-party calls to authenticated backend proxy routes.
-
-## Development
+## Run locally
 
 ```bash
-npm install
-npm run dev
+npm ci
+VITE_BACKEND_URL=http://localhost:3000 npm run dev
 ```
 
-The application opens at:
+The dev server also provides a small `/api/proxy` helper (see `vite.config.ts`).
 
-`http://localhost:5173/`
-
-## Build
+## Build and environment variables
 
 ```bash
-npm run build
+VITE_BACKEND_URL=https://<your-api-host> npm run build    # output in dist/
 ```
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_BACKEND_URL` | Base URL of the backend API. Set at build time. |
+| `VITE_AI_ENABLED` | `true` shows Intel Grounding. Also needs `GEMINI_API_KEY` on the API. Default off. |
+| `VITE_RAZORPAY_KEY_ID` | Razorpay Checkout key id (never the secret). Needed only for Billing checkout. |
+| `VITE_PUBLIC_DEMO` | `true` builds the public demo with sample data. Leave unset for real accounts. |
+
+No secrets belong in the frontend: provider keys stay on the backend proxy.
+
+## Application shell and routing
+
+- Collapsible left sidebar, command palette with `Ctrl/Cmd + K`, sidebar toggle with `Ctrl/Cmd + B`; Settings is an in-app modal.
+- Every module has a real URL (pushed with `history.pushState`, handled in `src/App.tsx`), so pages are deep linkable. The static host must send unknown paths to `/index.html`: `vercel.json` does this on Vercel, and on CloudFront map 403 and 404 to `/index.html` with status 200.
+- The original Xyberah service layer, API clients, types and views are retained in `services/`, `api/`, `types.ts` and `components/`; many of those modules are not exposed in v1 (see above).
+
+## Deploy (static hosting)
+
+Reference setup: S3 bucket behind CloudFront (Vercel also works, `vercel.json` is included).
+
+1. Build with the right `VITE_BACKEND_URL`.
+2. `index.html` carries a strict Content Security Policy meta tag. `connect-src` must list your API host and the CloudFront API domain, or the app cannot call the backend. Update it when the API domain changes.
+3. Upload `dist/assets/*` first (correct content types, JavaScript as `application/javascript`), then `index.html`.
+4. Invalidate `/index.html` and `/` on CloudFront.
+5. Check that every file referenced by `index.html` returns 200.
+
+Full migration steps (new AWS account) are in the backend repo: `docs/migration/MIGRATION_RUNBOOK.md`.
+
+## Project layout
+
+```
+src/            App, router, pages, layout, data (navigation, routes), contexts
+components/     Legacy and shared views (e.g. views/NetworkToolsView.tsx)
+services/       API clients and analysis helpers (dns, netTools, cve, ransomwatch ...)
+api/            Axios client (adds the authtoken header)
+config/         Endpoint paths
+public/         Static assets
+```
+
+## How the app talks to the backend
+
+- Login returns a token stored in `localStorage` as `admin-auth-token`; every request sends it in the `authtoken` header.
+- Third party data (NVD, CISA, DNS over HTTPS, crt.sh, ransomware.live ...) goes through the backend proxy `/AdminRoutes/proxy/fetch`, which only allows listed hosts.
+- Heavy requests are cached on the backend; the Vulnerabilities page loads in about a second when warm.
+
+## Notes for contributors
+
+- Line endings: this repo uses CRLF.
+- Longer background reading: `KNOWLEDGE_TRANSFER.md` and `FRONTEND_UNSUPPORTED_FEATURES_AUDIT.md` in this repo.
+- Run `npx tsc --noEmit -p .` before pushing.
+- Plan limits and billing text come from the backend (`/AdminRoutes/billing`).

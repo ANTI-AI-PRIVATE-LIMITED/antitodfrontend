@@ -119,7 +119,7 @@ export const HelpView: React.FC = () => {
                             <ul className="mt-2 text-xs space-y-1 text-[#888] font-mono">
                                 <li>• Filter by risk level</li>
                                 <li>• Jump to events for a host</li>
-                                <li>• Send a host to Investigate</li>
+                                <li>• Open a host in Log Analysis</li>
                             </ul>
                         </HelpSection>
 
@@ -145,14 +145,13 @@ export const HelpView: React.FC = () => {
                             </ul>
                         </HelpSection>
 
-                        <HelpSection title="Intel Feed, IOC Manager, Intel Grounding" icon={Shield}>
+                        <HelpSection title="Intel Feed and IOC Manager" icon={Shield}>
                             <p>
-                                Intel Feed collects security news. IOC Manager holds indicators from feeds and your honeypots. Intel Grounding writes AI research briefings that you should confirm against primary sources.
+                                Intel Feed collects security news. IOC Manager holds indicators from feeds and your honeypots.
                             </p>
                             <ul className="mt-2 text-xs space-y-1 text-[#888] font-mono">
                                 <li>• STIX 2.1 export</li>
                                 <li>• Source labels per indicator</li>
-                                <li>• Saved research history</li>
                             </ul>
                         </HelpSection>
 
@@ -184,7 +183,7 @@ export const HelpView: React.FC = () => {
                         <HelpSection title="Troubleshooting" icon={AlertTriangle}>
                             <p>If you encounter issues:</p>
                             <ul className="list-disc list-inside space-y-2 ml-2 mt-2">
-                                <li>Press <strong>Refresh</strong> on a page if data looks out of date. The Vulnerabilities page can take up to 15 seconds to load.</li>
+                                <li>Press <strong>Refresh</strong> on a page if data looks out of date. The Vulnerabilities page can take up to 30 seconds to load the first time, then loads quickly.</li>
                                 <li>If an external lookup fails, try again in a minute. Some public services limit requests.</li>
                                 <li>Contact your ANTI AI account manager for plan, user or honeypot issues.</li>
                             </ul>

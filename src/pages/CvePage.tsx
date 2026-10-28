@@ -254,6 +254,12 @@ function parseAdvancedQuery(
 /*                                CVE Page                                    */
 /* -------------------------------------------------------------------------- */
 
+function formatCveProduct(vendor?: string, product?: string): string {
+  const known = (v?: string) => (v && v.toLowerCase() !== 'unknown' ? v : '');
+  const text = [known(vendor), known(product)].filter(Boolean).join(' ');
+  return text || 'Not specified';
+}
+
 export default function CvePage() {
   const [MOCK_CVES, set_MOCK_CVES] = React.useState<any[]>([]);
   const [isCveLoading, setIsCveLoading] = React.useState(true);
@@ -1014,7 +1020,7 @@ export default function CvePage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8"><div className="at-cve-empty-state mx-auto max-w-sm bg-[#111] border border-[#222] rounded-xl shadow-lg"><FileWarning size={24} className="text-[#666] mb-2" /><strong className="text-white text-sm block">{isCveLoading ? 'Loading CVE feed…' : 'No CVEs found'}</strong><span className="text-[#888] text-xs block mt-1">{isCveLoading ? 'Fetching CISA KEV and NVD data. This can take up to 15 seconds.' : 'No vulnerabilities match the current search and filters.'}</span>{!isCveLoading && <button type="button" onClick={clearAllFilters} className="mt-4 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg text-xs text-white border border-neutral-700">Clear filters</button>}</div></td>
+                    <td colSpan={7} className="p-8"><div className="at-cve-empty-state mx-auto max-w-sm bg-[#111] border border-[#222] rounded-xl shadow-lg"><FileWarning size={24} className="text-[#666] mb-2" /><strong className="text-white text-sm block">{isCveLoading ? 'Loading CVE feed…' : 'No CVEs found'}</strong><span className="text-[#888] text-xs block mt-1">{isCveLoading ? 'Fetching CISA KEV and NVD data. The first load can take up to 30 seconds.' : 'No vulnerabilities match the current search and filters.'}</span>{!isCveLoading && <button type="button" onClick={clearAllFilters} className="mt-4 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-lg text-xs text-white border border-neutral-700">Clear filters</button>}</div></td>
                   </tr>
                 ) : (
                   filtered.slice(0, visibleCount).map((cve) => {
@@ -1129,8 +1135,7 @@ export default function CvePage() {
 
                         <td>
                           <span className="at-cve-product">
-                            {cve.vendor}{' '}
-                            {cve.product}
+                            {formatCveProduct(cve.vendor, cve.product)}
                           </span>
                         </td>
 
@@ -1205,8 +1210,7 @@ export default function CvePage() {
                   </strong>
 
                   <small>
-                    {selectedCve.vendor}{' '}
-                    {selectedCve.product}
+                    {formatCveProduct(selectedCve.vendor, selectedCve.product)}
                   </small>
                 </div>
               </div>

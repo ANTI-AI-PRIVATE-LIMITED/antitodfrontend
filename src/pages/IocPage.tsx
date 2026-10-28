@@ -1959,37 +1959,6 @@ export default function IocPage() {
                             />
                           </button>
 
-                          <button
-                            type="button"
-                            className="at-ioc-action"
-                            onClick={() =>
-                              onNavigate(
-                                'investigate',
-                              )
-                            }
-                          >
-                            <span className="at-ioc-action-icon">
-                              <Network
-                                size={12}
-                              />
-                            </span>
-
-                            <span>
-                              <strong>
-                                Pivot to investigation
-                              </strong>
-
-                              <small>
-                                Continue investigation
-                                in the relationship
-                                workspace.
-                              </small>
-                            </span>
-
-                            <ArrowUpRight
-                              size={12}
-                            />
-                          </button>
                         </div>
                       </section>
                     </div>
@@ -2050,20 +2019,6 @@ export default function IocPage() {
                   Export IOC
                 </button>
 
-                <button
-                  type="button"
-                  className="at-btn at-btn-primary"
-                  onClick={() =>
-                    onNavigate(
-                      'investigate',
-                    )
-                  }
-                >
-                  <ArrowUpRight
-                    size={12}
-                  />
-                  Investigate
-                </button>
               </div>
             </>
           )}

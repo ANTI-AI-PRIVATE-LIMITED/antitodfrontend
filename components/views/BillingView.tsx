@@ -385,7 +385,7 @@ export const BillingView: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                    <span>Up to {p.maxUsers} Analyst accounts</span>
+                    <span>Up to {p.maxUsers} {p.maxUsers === 1 ? 'analyst account' : 'analyst accounts'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500" />

@@ -9,6 +9,8 @@ import {
 import { searchThreatIntelligence } from '../../services/aiConverter';
 import { saveToStorage, loadFromStorage, STORES } from '../../services/storage';
 import { dataProvider } from '../../src/services/dataProvider';
+import { isPublicDemo } from '../../src/utils/demoMode';
+import { DEMO_INTEL_HISTORY } from '../../src/data/demo/intel';
 
 interface ResearchResult {
     query: string;
@@ -38,6 +40,14 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
             let loadedHistory = [];
             if (saved && Array.isArray(saved) && saved.length > 0) {
                 loadedHistory = saved;
+                // Drop sample entries left behind by an earlier demo-mode visit in this browser.
+                if (!isPublicDemo()) {
+                    const demoQueries = new Set(DEMO_INTEL_HISTORY.map(d => d.query.toLowerCase()));
+                    loadedHistory = saved.filter((h: any) => !demoQueries.has(String(h.query).toLowerCase()));
+                    if (loadedHistory.length !== saved.length) {
+                        await saveToStorage(STORES.INTEL_RESEARCH, loadedHistory, 'history');
+                    }
+                }
             } else {
                 loadedHistory = await dataProvider.getIntelHistory();
                 await saveToStorage(STORES.INTEL_RESEARCH, loadedHistory, 'history');

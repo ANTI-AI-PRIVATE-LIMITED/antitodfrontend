@@ -145,8 +145,10 @@ export const fetchCveUpdates = async (lastUpdate?: Date): Promise<CveEntry[]> =>
         const params = new URLSearchParams();
         params.append('resultsPerPage', '500');
         params.append('startIndex', String(startIndex));
-        const end = new Date();
-        const start = lastUpdate ? lastUpdate : new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+        // Round to the hour so identical requests share one backend cache entry.
+        const HOUR = 60 * 60 * 1000;
+        const end = new Date(Math.floor(Date.now() / HOUR) * HOUR);
+        const start = lastUpdate ? lastUpdate : new Date(end.getTime() - 10 * 24 * 60 * 60 * 1000);
         const fmt = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, '');
         if (lastUpdate) {
             params.append('lastModStartDate', fmt(start));
@@ -158,7 +160,7 @@ export const fetchCveUpdates = async (lastUpdate?: Date): Promise<CveEntry[]> =>
         try {
             const data = await Promise.race([
                 fetchJsonWithProxy(`${NVD_API_URL}?${params.toString()}`),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('NVD timeout')), 20000)),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('NVD timeout')), 28000)),
             ]);
             return data?.vulnerabilities || [];
         } catch (e) {

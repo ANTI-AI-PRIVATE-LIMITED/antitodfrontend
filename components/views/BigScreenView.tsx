@@ -160,7 +160,7 @@ const IocStatTile = ({
         reasons: {label: string, count: number}[] 
     } 
 }) => {
-    const total = counts.reduce((acc, c) => acc + c.value, 0);
+    const total = counts.find(c => c.label === 'Total indicators')?.value ?? counts.reduce((acc, c) => acc + c.value, 0);
     const [tab, setTab] = useState<'OVERVIEW' | 'MALWARE' | 'ASNS'>('OVERVIEW');
 
     useEffect(() => {

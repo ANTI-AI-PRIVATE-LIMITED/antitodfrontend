@@ -45,7 +45,7 @@ import type {
 import { useAnalysisData } from '../../hooks/useAnalysisData';
 
 import { AppDataProvider } from '../contexts/AppDataContext';
-import { findNavItem, isPreview as isNavPreview, canonicalViewId } from '../data/navigation';
+import { findNavItem, isPreview as isNavPreview, canonicalViewId, AI_ENABLED } from '../data/navigation';
 
 /* -------------------------------------------------------------------------- */
 /*                                New Pages                                   */
@@ -362,6 +362,15 @@ export default function ViewRouter({
       break;
 
     case 'intel_search':
+      if (!AI_ENABLED) {
+        renderedView = (
+          <PlaceholderPage
+            title="Module unavailable"
+            description="This module is not enabled for your workspace."
+          />
+        );
+        break;
+      }
       renderedView = (
         <LegacyWrapper>
           <IntelSearchView initialQuery={initialIntelQuery} />
@@ -506,4 +515,4 @@ export default function ViewRouter({
       </PreviewBanner>
     </AppDataProvider>
   );
-}
+}

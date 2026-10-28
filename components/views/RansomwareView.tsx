@@ -31,12 +31,42 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
             .slice(0, 5);
     }, [groupVictimCounts]);
 
+    // The live feed has no separate group profiles, so build them from the victim posts we do have.
+    const profileGroups = useMemo<RansomWatchGroup[]>(() => {
+        if (groups.length > 0) return groups;
+        const byGroup = new Map<string, RansomWatchPost[]>();
+        posts.forEach(p => {
+            if (!p.group_name) return;
+            const list = byGroup.get(p.group_name) || [];
+            list.push(p);
+            byGroup.set(p.group_name, list);
+        });
+        const top = (items: (string | undefined)[]) => {
+            const counts: Record<string, number> = {};
+            items.forEach(i => { if (i) counts[i] = (counts[i] || 0) + 1; });
+            return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+        };
+        return Array.from(byGroup.entries())
+            .sort((a, b) => b[1].length - a[1].length)
+            .map(([name, list]) => {
+                const sector = top(list.map(p => p.activity));
+                const country = top(list.map(p => p.country));
+                const last = list.map(p => new Date(p.discovered).getTime()).filter(t => !isNaN(t)).sort((a, b) => b - a)[0];
+                const parts = [
+                    sector ? `Most targeted sector: ${sector}` : '',
+                    country ? `Most targeted country: ${country}` : '',
+                    last ? `Last post: ${new Date(last).toLocaleDateString()}` : '',
+                ].filter(Boolean);
+                return { name, locations: [], meta: parts.join(' · ') || null };
+            });
+    }, [groups, posts]);
+
     // Filtered Groups for List
     const filteredGroups = useMemo(() => {
-        if (!searchTerm) return groups;
+        if (!searchTerm) return profileGroups;
         const lower = searchTerm.toLowerCase();
-        return groups.filter(g => g.name.toLowerCase().includes(lower) || (g.meta && g.meta.toLowerCase().includes(lower)));
-    }, [groups, searchTerm]);
+        return profileGroups.filter(g => g.name.toLowerCase().includes(lower) || (g.meta && g.meta.toLowerCase().includes(lower)));
+    }, [profileGroups, searchTerm]);
 
     // Filtered Posts for Feed (Optimized)
     const filteredPosts = useMemo(() => {
@@ -248,6 +278,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                                         </div>
                                     )}
 
+                                    {group.locations.length > 0 && (
                                     <div className="mt-auto space-y-2">
                                         <div className="text-[10px] font-bold text-[#888] uppercase">Darkweb Locations</div>
                                         <div className="space-y-1">
@@ -260,9 +291,9 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                                                     <span className="text-[9px] text-neutral-600 font-mono ml-2 whitespace-nowrap">v{loc.version}</span>
                                                 </div>
                                             ))}
-                                            {group.locations.length === 0 && <span className="text-neutral-600 text-xs italic">No known leaksites.</span>}
                                         </div>
                                     </div>
+                                    )}
                                 </div>
                             ))
                         )}

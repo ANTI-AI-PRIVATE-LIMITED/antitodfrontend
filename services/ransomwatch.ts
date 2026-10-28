@@ -5,16 +5,29 @@ import api from '../api/client';
 import { isPublicDemo } from '../src/utils/demoMode';
 import { DEMO_RANSOMWARE_POSTS, DEMO_RANSOMWARE_GROUPS } from '../src/data/demo/ransomware';
 
+// Leak site text is written by criminals and scraped as is. Repair broken encoding and mask the worst
+// language so it does not appear unfiltered on a customer facing screen.
+const MASKED_WORDS = /\b(fuck\w*|shit\w*|nigg\w*|bitch\w*|cunt\w*|faggot\w*|retard\w*)\b/gi;
+export const cleanLeakText = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return undefined;
+    return value
+        .replace(/Â·/g, '·')
+        .replace(/Â\u00a0/g, ' ')
+        .replace(/â€™/g, "'")
+        .replace(/â€“/g, '–')
+        .replace(MASKED_WORDS, (w) => w[0] + '*'.repeat(Math.max(w.length - 1, 2)));
+};
+
 const mapLiveVictims = (json: any): RansomWatchPost[] => {
     const items = json.victims || (Array.isArray(json) ? json : []);
     
     // Drop test and probe entries injected into the leak site feed (e.g. "zzq-test", "probe-<hex>").
     const isTestEntry = (v: any) => /^(zzq-|probe-[0-9a-f]{8,}|test$)/i.test(String(v.victim || v.post_title || '').trim());
     return items.filter((v: any) => !isTestEntry(v)).map((v: any) => ({
-        post_title: v.victim || v.post_title,
+        post_title: cleanLeakText(v.victim || v.post_title) ?? '',
         group_name: v.group || v.group_name,
         discovered: v.discovered,
-        description: v.description,
+        description: cleanLeakText(v.description),
         website: v.website,
         country: v.country,
         activity: v.activity,

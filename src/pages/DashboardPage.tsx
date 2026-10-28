@@ -189,7 +189,7 @@ export default function DashboardPage({
       ]);
       setMetrics(m);
       setResults(h || []);
-      dataProvider.getBlocklistMatches((h || []).map((x: any) => x.ip)).then(setBlocklisted).catch(() => undefined);
+      dataProvider.getBlocklistMatches([...(h || [])].sort((a: any, b: any) => (b.totalScore ?? 0) - (a.totalScore ?? 0)).map((x: any) => x.ip)).then(setBlocklisted).catch(() => undefined);
       setNewsItems(n || []);
       setCveFeedItems(c || []);
       setEvents(e || []);
@@ -205,7 +205,7 @@ export default function DashboardPage({
     void fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const honeypotStats = { total_events: events.length };
+  const honeypotStats = { total_events: metrics?.metrics?.totalEvents ?? events.length };
   const isLoadingEvents = isLoading;
   const refresh = () => fetchDashboardData(true);
 
@@ -255,19 +255,8 @@ export default function DashboardPage({
 
   const timeline = useMemo<TimelineBucket[]>(
     () => {
-      if (activityTimeline?.buckets && activityTimeline.buckets.length > 0) {
-        return activityTimeline.buckets.map((b: any) => {
-          const timeStr = b.time ? (b.time.length > 5 ? b.time.slice(11, 16) : b.time) : '00:00';
-          return {
-            hour: timeStr,
-            critical: b.critical ?? 0,
-            high: b.high ?? (b.total_events > 0 ? b.total_events : 0),
-            medium: b.medium ?? 0,
-            low: b.low ?? 0,
-          };
-        });
-      }
-
+      // Always build 24 contiguous local-time hourly buckets with severity taken from each event's score.
+      // (The API timeline only returns hours that have data, in UTC, with no severity split.)
       const buckets = new Map<
         string,
         TimelineBucket
@@ -660,7 +649,7 @@ export default function DashboardPage({
 
               <div className="at-overview-bottomline">
                 <span>
-                  Observed in active window
+                  Total stored events
                 </span>
                 <ChevronRight size={13} />
               </div>
@@ -1794,35 +1783,6 @@ export default function DashboardPage({
               <ArrowUpRight size={14} />
             </button>
 
-            <button
-              type="button"
-              className="at-intel-module-card"
-              onClick={() =>
-                onNavigate('topology')
-              }
-            >
-              <span className="at-intel-module-icon">
-                <Network size={16} />
-              </span>
-
-              <span className="at-intel-module-copy">
-                <small>
-                  Infrastructure
-                </small>
-
-                <strong>
-                  {numberFormatter.format(
-                    topAsns.length,
-                  )}
-                </strong>
-
-                <em>
-                  Observed source ASN groups
-                </em>
-              </span>
-
-              <ArrowUpRight size={14} />
-            </button>
 
             <button
               type="button"
@@ -1872,17 +1832,6 @@ export default function DashboardPage({
             </div>
 
             <div className="at-dashboard-utility-actions">
-              <button
-                type="button"
-                onClick={() =>
-                  onNavigate(
-                    'investigation_bench',
-                  )
-                }
-              >
-                <Target size={14} />
-                Investigation Bench
-              </button>
 
               <button
                 type="button"
@@ -1904,15 +1853,6 @@ export default function DashboardPage({
                 Vulnerabilities
               </button>
 
-              <button
-                type="button"
-                onClick={() =>
-                  onNavigate('topology')
-                }
-              >
-                <Network size={14} />
-                Network Topology
-              </button>
 
               <button
                 type="button"

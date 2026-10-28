@@ -98,7 +98,7 @@ export const searchThreatIntelligence = async (query: string) => {
         return { text: text || "No intelligence returned.", sources: [] };
     } catch (error: any) {
         console.warn("[AI] Grounding Search via proxy failed", error);
-        return { text: `Threat intelligence query for "${query}" completed locally. Connect to backend to enable cloud reasoning.`, sources: [] };
+        return { text: `The AI assistant is not available right now, so no briefing was generated for "${query}". Please try again later or ask your administrator to check the AI service.`, sources: [] };
     }
 };
 

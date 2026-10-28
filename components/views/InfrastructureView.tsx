@@ -1705,7 +1705,7 @@ export const InfrastructureView: React.FC = () => {
                     {/* Server List */}
                     <div className={`flex flex-col ${selectedServer ? 'w-1/2' : 'w-full'} border-r border-[#222] transition-all duration-300`}>
                         <div className="p-3 border-b border-[#222] flex items-center justify-between shrink-0">
-                            <span className="text-xs text-[#888] font-mono">{overview?.count ?? 0} servers registered</span>
+                            <span className="text-xs text-[#888] font-mono">{overview?.count ?? 0} {(overview?.count ?? 0) === 1 ? 'server' : 'servers'} registered</span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setShowRegisterServer(true)}

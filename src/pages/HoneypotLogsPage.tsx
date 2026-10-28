@@ -123,6 +123,9 @@ function prettyEventType(
     .toLowerCase()
     .replace(/\b\w/g, (letter) =>
       letter.toUpperCase(),
+    )
+    .replace(/\b(Ssh|Http|Https|Ftp|Smb|Tcp|Udp|Dns|Sql|Tls|Rdp|Sip|Mqtt|Telnet)\b/g, (w) =>
+      w === 'Telnet' ? w : w.toUpperCase(),
     );
 }
 
@@ -739,7 +742,7 @@ export default function HoneypotLogsPage({
               </strong>
 
               <small>
-                Current filtered result set
+                Events on this page
               </small>
             </div>
 

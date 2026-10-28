@@ -108,12 +108,19 @@ export default function AnalysisPage({
 }: AnalysisPageProps) {
     const [MOCK_HOSTS, setMockHosts] = useState<AnalyzedHost[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [blocklisted, setBlocklisted] = useState<string[]>([]);
+    const isListed = (host: AnalyzedHost) =>
+        host.rblStatus === 'LISTED' || blocklisted.includes(host.ip);
 
     const fetchHosts = async () => {
         setIsLoading(true);
         try {
             const hosts = await dataProvider.getHosts();
             setMockHosts(hosts || []);
+            const topIps = [...(hosts || [])]
+                .sort((a: AnalyzedHost, b: AnalyzedHost) => (b.totalScore ?? 0) - (a.totalScore ?? 0))
+                .map((h: AnalyzedHost) => h.ip);
+            dataProvider.getBlocklistMatches(topIps).then(setBlocklisted).catch(() => undefined);
         } catch (err) {
             console.error('Failed to load analyzed hosts:', err);
             setMockHosts([]);
@@ -214,7 +221,7 @@ export default function AnalysisPage({
                     return true;
                 }
 
-                return host.rblStatus === 'LISTED';
+                return isListed(host);
             })
             .sort(
                 (a, b) =>
@@ -226,6 +233,7 @@ export default function AnalysisPage({
         query,
         riskFilter,
         blacklistedOnly,
+        blocklisted,
     ]);
 
     /* ------------------------------------------------------------------------ */
@@ -243,12 +251,12 @@ export default function AnalysisPage({
             ).length,
 
             blacklisted: filteredHosts.filter(
-                (host) => host.rblStatus === 'LISTED',
+                (host) => isListed(host),
             ).length,
 
             total: filteredHosts.length,
         }),
-        [filteredHosts],
+        [filteredHosts, blocklisted],
     );
 
     const hasActiveFilters =
@@ -345,19 +353,6 @@ export default function AnalysisPage({
                 title="Host Analysis"
                 description={`${summary.total} analyzed ${summary.total === 1 ? 'host' : 'hosts'
                     } · sorted by risk`}
-                actions={
-                    <button
-                        type="button"
-                        className="at-btn at-btn-secondary at-btn-sm"
-                        onClick={() =>
-                            onNavigate('investigate')
-                        }
-                    >
-                        <Network size={13} />
-                        Investigation
-                        <ArrowUpRight size={12} />
-                    </button>
-                }
                 filters={
                     <div className="at-analysis-filterbar">
                         {/* Search */}
@@ -756,7 +751,7 @@ export default function AnalysisPage({
                       </strong>
                     </div>
 
-                    {selectedHost.isBlacklisted ? (
+                    {selectedHost.isBlacklisted || isListed(selectedHost) ? (
                       <span className="at-analysis-blacklisted-badge">
                         <ShieldAlert size={11} />
                         BLACKLISTED
@@ -953,16 +948,6 @@ export default function AnalysisPage({
                 /* ======================================================== */}
 
                 <div className="at-analysis-actions">
-                  <button
-                    type="button"
-                    className="at-btn at-btn-primary"
-                    onClick={() =>
-                      onNavigate('investigate')
-                    }
-                  >
-                    <Network size={14} />
-                    Investigate
-                  </button>
 
                   <button
                     type="button"
@@ -982,4 +967,4 @@ export default function AnalysisPage({
             </div>
         </div>
     );
-}
+}

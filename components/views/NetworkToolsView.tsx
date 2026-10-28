@@ -431,7 +431,7 @@ export const NetworkToolsView: React.FC = () => {
                 setIsLoading(false);
             } else if (activeCategory === 'CRT') {
                 if (isIp) throw new Error("Certificate logs require a domain.");
-                const logs = await performCrtLookup(target);
+                const logs = await performCrtLookup(target, true);
                 if (logs.length === 0) throw new Error("No certificates found.");
                 const unique = Array.from(new Map(logs.map(item => [item.id, item])).values());
                 setCrtResults(unique.sort((a, b) => new Date(b.not_after).getTime() - new Date(a.not_after).getTime()));
@@ -609,7 +609,7 @@ export const NetworkToolsView: React.FC = () => {
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>IP</span> <span className="text-white">{ipApiResult.ip}</span></div>
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>ASN</span> <span className="text-red-400">AS{ipApiResult.asn?.asn ?? "-"}</span></div>
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>Org</span> <span className="truncate max-w-[200px]">{ipApiResult.asn?.org}</span></div>
-                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>Route</span> <span>{ipApiResult.asn?.domain}</span></div>
+                                    {ipApiResult.asn?.domain && <div className="flex justify-between border-b border-[#222] pb-1"><span>Domain</span> <span>{ipApiResult.asn.domain}</span></div>}
                                 </div>
                             </div>
                             <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
@@ -618,7 +618,7 @@ export const NetworkToolsView: React.FC = () => {
                                 </h3>
                                 <div className="space-y-2 text-xs font-mono text-neutral-300">
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>City</span> <span>{ipApiResult.location?.city}</span></div>
-                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>Country</span> <span>{ipApiResult.location?.country} ({ipApiResult.location?.country_code})</span></div>
+                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>Country</span> <span>{ipApiResult.location?.country}{ipApiResult.location?.country_code ? ` (${ipApiResult.location.country_code})` : ''}</span></div>
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>Timezone</span> <span>{ipApiResult.location?.timezone}</span></div>
                                     {ipApiResult.abuse && (
                                         <div className="mt-2 pt-2 border-t border-[#222]">
@@ -1126,15 +1126,15 @@ export const NetworkToolsView: React.FC = () => {
 
                                         <div className="grid grid-cols-3 gap-4 mb-8">
                                             <div className="bg-[#111] p-4 rounded border border-[#222] text-center">
-                                                <div className="text-2xl font-bold text-white">{asnResult.peers}</div>
+                                                <div className="text-2xl font-bold text-white">{asnResult.peers ?? 'N/A'}</div>
                                                 <div className="text-[10px] text-[#888] uppercase font-bold">IPv4 Peers</div>
                                             </div>
                                             <div className="bg-[#111] p-4 rounded border border-[#222] text-center">
-                                                <div className="text-2xl font-bold text-white">{asnResult.upstreams}</div>
+                                                <div className="text-2xl font-bold text-white">{asnResult.upstreams ?? 'N/A'}</div>
                                                 <div className="text-[10px] text-[#888] uppercase font-bold">Upstreams</div>
                                             </div>
                                             <div className="bg-[#111] p-4 rounded border border-[#222] text-center">
-                                                <div className="text-2xl font-bold text-white">{asnResult.downstreams}</div>
+                                                <div className="text-2xl font-bold text-white">{asnResult.downstreams ?? 'N/A'}</div>
                                                 <div className="text-[10px] text-[#888] uppercase font-bold">Downstreams</div>
                                             </div>
                                         </div>

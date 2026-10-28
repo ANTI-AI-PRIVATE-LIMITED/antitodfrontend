@@ -112,7 +112,7 @@ export default function ActorsPage() {
                 description: ma.description || '',
                 country: ma.meta?.country || 'Unknown',
                 motivation: ma.sophistication === 'Critical' ? 'Financial / Espionage' : 'Unknown',
-                aliases: ma.meta?.synonyms || [],
+                aliases: ((ma.meta?.synonyms || []) as string[]).filter((a) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(a))),
                 targets: ma.malwareFamilies || [],
                 ttps: ma.mitreIds || [],
                 firstSeen: 'Unknown',
@@ -849,7 +849,7 @@ export default function ActorsPage() {
                                 {actor.name}
                               </button>
 
-                              <span>{actor.id}</span>
+                              <span>{/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(actor.id) ? '' : actor.id}</span>
                             </div>
                           </div>
                         </td>

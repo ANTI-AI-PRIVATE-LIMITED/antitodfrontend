@@ -58,9 +58,9 @@ export interface AsnDetails {
     description: string;
     country_code: string;
     prefixes: { prefix: string; description: string }[]; // Subnets
-    peers: number;
-    upstreams: number;
-    downstreams: number;
+    peers: number | null;
+    upstreams: number | null;
+    downstreams: number | null;
 }
 
 // Helper for RIPEStat that tries direct fetch first (CORS friendly)
@@ -242,9 +242,9 @@ export const fetchAsnDetails = async (asn: string): Promise<AsnDetails | null> =
     }
 
     // --- Counts Logic ---
-    let peers = 0;
-    let upstreams = 0;
-    let downstreams = 0;
+    let peers: number | null = null;
+    let upstreams: number | null = null;
+    let downstreams: number | null = null;
 
     // Priority: BGPView (Complete) > RIPE (Partial)
     if (bgpData && bgpData.status === 'ok' && bgpData.data) {
@@ -266,7 +266,7 @@ export const fetchAsnDetails = async (asn: string): Promise<AsnDetails | null> =
     if (ripePrefixes && ripePrefixes.data && ripePrefixes.data.prefixes) {
         prefixes = ripePrefixes.data.prefixes.map((p: any) => ({
             prefix: p.prefix,
-            description: p.timelines?.[0]?.starttime ? `Active since ${p.timelines[0].starttime.split('T')[0]}` : 'Active'
+            description: 'Currently announced'
         }));
     } else if (bgpData && bgpData.status === 'ok' && bgpData.data && bgpData.data.iana_assignment?.prefixes) {
         // Fallback to BGPView if RIPE failed
@@ -894,7 +894,7 @@ export const performPortScan = async (target: string): Promise<PortResult[]> => 
     return [];
 };
 
-export const performCrtLookup = async (domain: string): Promise<CrtShEntry[]> => {
+export const performCrtLookup = async (domain: string, strict = false): Promise<CrtShEntry[]> => {
     const query = `%.${domain}`;
     const url = `https://crt.sh/?q=${encodeURIComponent(query)}&output=json`;
     try {
@@ -904,6 +904,7 @@ export const performCrtLookup = async (domain: string): Promise<CrtShEntry[]> =>
         }
         return [];
     } catch (error) {
+        if (strict) throw new Error('The certificate log service (crt.sh) did not respond. It is often slow, please try again in a minute.');
         return [];
     }
 };

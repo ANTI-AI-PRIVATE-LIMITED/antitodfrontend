@@ -1764,11 +1764,6 @@ export const XyberahReconView: React.FC = () => {
                   .toLowerCase()
                   .replace(/^\w/, (c) => c.toUpperCase())}
           </span>
-          {selectedWorkspaceId && (
-            <span className="text-xs text-[#888] font-mono">
-              X-Workspace-Id: <span className="text-red-400">{selectedWorkspaceId}</span>
-            </span>
-          )}
         </div>
       </div>
 

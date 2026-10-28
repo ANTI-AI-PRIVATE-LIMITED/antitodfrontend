@@ -107,10 +107,7 @@ const DOMAIN_BLOCKLISTS = [
     'dob.sibl.support-intelligence.net',
     'rhsbl.sorbs.net',
     'rhsbl.abuseat.org',
-    'rhsbl.rbl.polspam.pl',
-    'rhsbl-h.rbl.polspam.pl',
-    'rhsbl.rymsho.ru',
-    'rhsbl.zapbl.net',
+    'rhsbl-h.rbl.polspam.pl', // note: rhsbl.rbl.polspam.pl, rhsbl.rymsho.ru and rhsbl.zapbl.net answer 127.x for every query from public resolvers, so they were removed (false positives)
     'dnsbl.spfbl.net'
 ];
 

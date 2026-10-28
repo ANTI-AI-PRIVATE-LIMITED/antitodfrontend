@@ -207,7 +207,7 @@ export default function PlanUsageBanner({
             <div className="at-plan-meter-top">
               <span className="at-plan-meter-label">
                 <Zap size={14} />
-                Monthly Ingestion
+                Events Stored
               </span>
               <span className="at-plan-meter-val">
                 <strong>{eventCount.toLocaleString()}</strong> /{' '}
@@ -261,7 +261,7 @@ export default function PlanUsageBanner({
                   Upgrade for JSON exports →
                 </span>
               )}
-              {isPro && <span>JSON exports unlocked (Task #78)</span>}
+              {isPro && <span>JSON exports unlocked</span>}
               {!isBasic && !isPro && <span>Full TAXII &amp; PDF suite active</span>}
             </div>
           </div>

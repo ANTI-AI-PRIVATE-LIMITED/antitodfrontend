@@ -251,7 +251,7 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                                 </div>
                                 <div className="text-center">
                                     <div className="text-[10px] uppercase text-neutral-600 mb-1">ISP</div>
-                                    <div className="text-white">{result.ipInfo?.asn?.name ? result.ipInfo.asn.name.substring(0, 15) + '..' : '-'}</div>
+                                    <div className="text-white" title={result.ipInfo?.asn?.name || ''}>{result.ipInfo?.asn?.name ? (result.ipInfo.asn.name.length > 18 ? result.ipInfo.asn.name.substring(0, 17).trim() + '…' : result.ipInfo.asn.name) : '-'}</div>
                                 </div>
                             </div>
                         </div>
@@ -260,8 +260,8 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                     {/* 3. DNS Firewall (DoT) */}
                     <Card title="DNS Firewall Analysis" icon={Shield} color="text-red-400" loading={loading && result.dnsSecurity.length === 0}>
                         <div className="space-y-3">
-                            {result.dnsSecurity && result.dnsSecurity.length > 0 ? (
-                                result.dnsSecurity.map((res, i) => (
+                            {result.dnsSecurity && result.dnsSecurity.some(r => r.status !== 'FAILED') ? (
+                                result.dnsSecurity.filter(r => r.status !== 'FAILED').map((res, i) => (
                                     <div key={i} className="flex items-center justify-between p-2 rounded bg-[#111]/30 border border-[#222] text-xs">
                                         <span className="text-[#AAA] font-mono">{res.provider}</span>
                                         {res.status === 'BLOCKED' ? (
@@ -279,11 +279,11 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                                 ))
                             ) : (
                                 <div className="text-[#888] italic text-xs">
-                                    {loading ? "Querying security providers..." : "No DNS Firewall data available."}
+                                    {loading ? "Querying security providers..." : "No DNS firewall provider answered this time, please scan again."}
                                 </div>
                             )}
                             <div className="text-[10px] text-[#888] mt-2 pt-2 border-t border-[#222]/50">
-                                Checks domain resolution against major security DNS providers (Quad9, Cloudflare Malware, OpenDNS).
+                                Checks domain resolution against the security DNS providers that answered. Providers that could not be reached are not shown.
                             </div>
                         </div>
                     </Card>

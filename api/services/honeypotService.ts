@@ -80,6 +80,7 @@ export interface GetLogEventsV2Params {
     src_ip?: string;
     start_time?: string;
     end_time?: string;
+    search?: string;
 }
 
 export interface GetLogEventsV2Response {

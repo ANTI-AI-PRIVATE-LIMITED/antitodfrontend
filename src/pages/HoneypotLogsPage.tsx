@@ -232,12 +232,29 @@ export default function HoneypotLogsPage({
   const [offset, setOffset] = useState<number>(0);
   const limit = 50;
 
-  const fetchLogs = useCallback(async (currentOffset = offset) => {
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sevFilter, setSevFilter] =
+    useState<'ALL' | Severity>('ALL');
+  const [honeypotFilter, setHoneypotFilter] =
+    useState('ALL');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setOffset(0);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const fetchLogs = useCallback(async (currentOffset = offset, currentSearch = debouncedSearch, currentHoneypot = honeypotFilter) => {
     setIsLoadingEvents(true);
     try {
       const resp = await dataProvider.getLogEventsPaged({
         limit,
         offset: currentOffset,
+        search: currentSearch || undefined,
+        honeypot: currentHoneypot !== 'ALL' ? currentHoneypot : undefined,
       });
       setEvents(resp?.events || []);
       setTotal(resp?.total ?? resp?.events?.length ?? 0);
@@ -248,25 +265,19 @@ export default function HoneypotLogsPage({
     } finally {
       setIsLoadingEvents(false);
     }
-  }, [offset, limit]);
+  }, [offset, limit, debouncedSearch, honeypotFilter]);
 
   useEffect(() => {
-    void fetchLogs(offset);
-  }, [offset, fetchLogs]);
+    void fetchLogs(offset, debouncedSearch, honeypotFilter);
+  }, [offset, debouncedSearch, honeypotFilter, fetchLogs]);
 
   const refresh = async () => {
-    await fetchLogs(offset);
+    await fetchLogs(offset, debouncedSearch, honeypotFilter);
   };
 
   const setPage = (newPageOffset: number) => {
     setOffset(newPageOffset);
   };
-
-  const [search, setSearch] = useState('');
-  const [sevFilter, setSevFilter] =
-    useState<'ALL' | Severity>('ALL');
-  const [honeypotFilter, setHoneypotFilter] =
-    useState('ALL');
 
   const [selectedEventId, setSelectedEventId] =
     useState<string | null>(null);
@@ -305,13 +316,9 @@ export default function HoneypotLogsPage({
   );
 
   const uniqueHoneypots = useMemo(() => {
-    return Array.from(
-      new Set(
-        events
-          .map((event) => event.honeypot)
-          .filter(Boolean),
-      ),
-    ).sort((a, b) =>
+    const fromEvents = events.map((event) => event.honeypot).filter(Boolean);
+    const standard = ['cowrie', 'dionaea', 'heralding', 'glastopf'];
+    return Array.from(new Set([...standard, ...fromEvents])).sort((a, b) =>
       a.localeCompare(b),
     );
   }, [events]);
@@ -1005,9 +1012,9 @@ export default function HoneypotLogsPage({
                                     'Unknown'}
                                 </strong>
 
-                                {event.asn && (
+                                {(event.asn || event.asn_org) && (
                                   <span>
-                                    {event.asn}
+                                    {event.asn || event.asn_org}
                                   </span>
                                 )}
                               </div>
@@ -1275,6 +1282,17 @@ export default function HoneypotLogsPage({
                               '—'}
                           </code>
                         </div>
+
+                        {selectedEvent.password && (
+                          <div>
+                            <span>
+                              Password
+                            </span>
+                            <code>
+                              {selectedEvent.password}
+                            </code>
+                          </div>
+                        )}
                       </div>
                     </section>
 

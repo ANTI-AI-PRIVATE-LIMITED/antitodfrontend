@@ -148,16 +148,22 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
     // Initialize Attack Queue (Real local honeypot targets; globalThreats only in public demo mode)
     useEffect(() => {
         const localTargets: AttackTarget[] = results
-            .filter(h => h.enrichmentData?.latitude && h.enrichmentData?.longitude)
-            .map(h => ({
-                type: 'LOCAL',
-                lat: h.enrichmentData!.latitude!,
-                lon: h.enrichmentData!.longitude!,
-                country: h.country,
-                label: h.signatures[0]?.name || 'Suspicious Activity',
-                subLabel: h.ip,
-                risk: h.riskLevel
-            }));
+            .map(h => {
+                const code = (h.countryCode || h.country || '').toUpperCase();
+                const coords = COUNTRY_COORDS[code];
+                const lat = h.enrichmentData?.latitude ?? coords?.[1] ?? (h as any).geo_lat ?? 0;
+                const lon = h.enrichmentData?.longitude ?? coords?.[0] ?? (h as any).geo_lon ?? 0;
+                return {
+                    type: 'LOCAL',
+                    lat,
+                    lon,
+                    country: h.country,
+                    label: h.signatures?.[0]?.name || 'Suspicious Activity',
+                    subLabel: h.ip,
+                    risk: h.riskLevel
+                };
+            })
+            .filter(t => t.lat !== 0 || t.lon !== 0);
         
         const combined = isPublicDemo() ? [...localTargets, ...globalThreats] : localTargets;
         attackQueueRef.current = combined.sort(() => Math.random() - 0.5);

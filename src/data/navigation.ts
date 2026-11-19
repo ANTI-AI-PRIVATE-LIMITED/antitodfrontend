@@ -52,11 +52,16 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+export const AI_ENABLED = (import.meta as any)?.env?.VITE_AI_ENABLED === 'true';
+
 /** Resolve the effective status of a nav item (defaults to 'live'). */
 export function viewStatus(item: NavItem): ViewStatus {
   // Threat Actors is empty for real accounts (the Malpedia feed has names only), so hide it
   // outside the public demo until profiles are enriched with MITRE ATT&CK group data.
   if (item.id === 'actors') return isPublicDemo() ? 'live' : 'hidden';
+  // Intel Grounding needs a Gemini API key on the backend. Until one is configured it stays hidden
+  // everywhere; set VITE_AI_ENABLED=true at build time (and GEMINI_API_KEY on the API) to bring it back.
+  if (item.id === 'intel_search' && !AI_ENABLED) return 'hidden';
   return item.status ?? 'live';
 }
 
@@ -105,7 +110,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'nettools', icon: HardDrive, label: 'Network Tools', desc: 'DNS lookup, Whois, Traceroute, and more.' },
       { id: 'webcheck', icon: Globe, label: 'Web Check', desc: 'Deep website analysis and header inspection.' },
-      { id: 'sandbox', icon: HardDrive, label: 'Security Sandbox', desc: 'Secure web browser for inspecting malicious sites.', status: 'hidden' },
     ],
   },
   {

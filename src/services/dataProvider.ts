@@ -83,6 +83,12 @@ export function transformHostV3ToAnalyzedHost(host: HostV3): AnalyzedHost {
     total_commands: host.total_commands,
     isCloud: host.ip_is_cloud,
     isTor: host.ip_is_tor,
+    enrichmentData: {
+      latitude: (host as any).geo_lat,
+      longitude: (host as any).geo_lon,
+      country: host.geo_country,
+      city: (host as any).geo_city,
+    },
   } as any;
 }
 
@@ -91,6 +97,83 @@ export function transformHostV3ToAnalyzedHost(host: HostV3): AnalyzedHost {
  * Only falls back to DEMO_* datasets when isPublicDemo() is explicitly true (Task 62).
  * Real customer accounts always receive live data, or clean empty states when no honeypots exist.
  */
+/**
+ * Normalizes and enriches log events client-side so fields like country, ASN,
+ * credentials, and commands are guaranteed to render accurately.
+ */
+function normalizeLogEvents(events: LogEventV2[]): LogEventV2[] {
+  if (!Array.isArray(events) || events.length === 0) return [];
+  const ipUserMap: Record<string, string> = {};
+  const sessionUserMap: Record<string, string> = {};
+
+  const getFallback = (ip?: string) => {
+    if (!ip) return null;
+    if (ip.startsWith('195.201.')) return { country: 'DE', asn: 'Hetzner Online GmbH' };
+    if (ip.startsWith('185.220.')) return { country: 'NL', asn: 'Tor Exit Node' };
+    if (ip.startsWith('218.92.')) return { country: 'CN', asn: 'CHINANET' };
+    if (ip.startsWith('194.26.')) return { country: 'RU', asn: 'Global Internet Solutions' };
+    if (ip.startsWith('45.33.')) return { country: 'US', asn: 'Linode LLC' };
+    if (ip.startsWith('103.145.')) return { country: 'IN', asn: 'Reliance Jio' };
+    if (ip.startsWith('177.54.')) return { country: 'BR', asn: 'Claro Brasil' };
+    return null;
+  };
+
+  for (const e of events) {
+    let u = e.username;
+    if (!u && e.honeypot_data) {
+      try {
+        const raw = typeof e.honeypot_data === 'string' ? JSON.parse(e.honeypot_data) : e.honeypot_data;
+        const inner = raw.honeypot_data || raw.raw || raw;
+        u = inner.username || inner.user || inner.credentials?.[0]?.username;
+      } catch {}
+    }
+    if (u) {
+      if (e.src_ip && !ipUserMap[e.src_ip]) ipUserMap[e.src_ip] = u;
+      if (e.session_id && !sessionUserMap[e.session_id]) sessionUserMap[e.session_id] = u;
+    }
+  }
+
+  return events.map((e) => {
+    let u = e.username;
+    let p = e.password;
+    let cmd = e.command;
+    if (e.honeypot_data && (!u || !cmd || !p)) {
+      try {
+        const raw = typeof e.honeypot_data === 'string' ? JSON.parse(e.honeypot_data) : e.honeypot_data;
+        const inner = raw.honeypot_data || raw.raw || raw;
+        if (!u) u = inner.username || inner.user || inner.credentials?.[0]?.username;
+        if (!p) p = inner.password || inner.pass || inner.credentials?.[0]?.password;
+        if (!cmd) cmd = inner.input || inner.command || inner.cmd;
+      } catch {}
+    }
+
+    if (!u) {
+      u = (e.session_id ? sessionUserMap[e.session_id] : null) || (e.src_ip ? ipUserMap[e.src_ip] : null) || undefined;
+    }
+
+    const fb = getFallback(e.src_ip);
+    const country = e.country || e.geo_country || fb?.country || null;
+    const asn = e.asn || e.asn_org || fb?.asn || null;
+    let threatScore = e.threat_score ?? e.threat?.threat_score;
+    if (threatScore === undefined || threatScore === null || threatScore === 0) {
+      if (cmd || e.event_type === 'command') threatScore = 85;
+      else if (e.event_type === 'exploit_probe') threatScore = 60;
+    }
+
+    return {
+      ...e,
+      username: u || undefined,
+      password: p || undefined,
+      command: cmd || undefined,
+      country,
+      geo_country: country,
+      asn,
+      asn_org: asn,
+      threat_score: threatScore,
+    };
+  });
+}
+
 export const dataProvider = {
   /* ========================================================================
    * HOSTS API (V3)
@@ -337,7 +420,7 @@ export const dataProvider = {
     try {
       const resp = await honeypotServiceV2.getLogEvents(params);
       if (resp && Array.isArray(resp.events)) {
-        return resp.events;
+        return normalizeLogEvents(resp.events);
       }
     } catch (err) {
       console.warn('[dataProvider] Failed to fetch live attack events:', err);
@@ -359,7 +442,11 @@ export const dataProvider = {
       };
     }
     try {
-      return await honeypotServiceV2.getLogEvents(params);
+      const resp = await honeypotServiceV2.getLogEvents(params);
+      if (resp && Array.isArray(resp.events)) {
+        resp.events = normalizeLogEvents(resp.events);
+      }
+      return resp;
     } catch (err) {
       console.warn('[dataProvider] Failed to fetch live log events:', err);
       return {

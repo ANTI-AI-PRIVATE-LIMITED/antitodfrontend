@@ -1462,15 +1462,29 @@ const THEME_PALETTES: Record<
 
         try {
             // Real authenticated account: strictly query backend APIs and authenticated proxies
+            // Show ransomware, news and exploits as soon as each arrives. The CVE feed can take 15s or more
+            // and must not hold them back.
+            const ransomwarePostsPromise = fetchRansomwarePosts();
+            const newsPromise = fetchThreatNews();
+            const exploitsPromise = fetchExploits();
+            ransomwarePostsPromise.then((v) => setRansomwarePosts(v)).catch(() => undefined);
+            newsPromise
+                .then((v) => {
+                    setNewsItems(v);
+                    setNewsLastUpdated(new Date());
+                })
+                .catch(() => undefined);
+            exploitsPromise.then((v) => { if (v.length > 0) setExploitData(v); }).catch(() => undefined);
+
             const results = await Promise.allSettled([
                 dataProvider.getHosts(),
                 dataProvider.getAttackEvents(),
                 dataProvider.getIocs(),
-                fetchRansomwarePosts(),
+                ransomwarePostsPromise,
                 fetchRansomwareGroups(),
-                fetchThreatNews(),
+                newsPromise,
                 fetchCveUpdates(),
-                fetchExploits(),
+                exploitsPromise,
             ]);
 
             const [

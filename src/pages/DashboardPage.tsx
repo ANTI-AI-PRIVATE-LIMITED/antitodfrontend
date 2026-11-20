@@ -41,6 +41,7 @@ import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 import PlanUsageBanner from '../components/dashboard/PlanUsageBanner';
 import { billingService } from '../../api/services/billingService';
+import { agentService } from '../../api/services/agentService';
 
 interface DashboardProps {
   onNavigate: (id: string) => void;
@@ -184,12 +185,28 @@ export default function DashboardPage({
       .getUsage()
       .then((d) => {
         if (!mounted || !d) return;
+        if (d.platform) {
+          setHasConnectedServers(true);
+          return;
+        }
         const s = d.usage?.honeypots || d.usage?.servers;
         if (s && typeof s.used === 'number' && s.used > 0) {
           setHasConnectedServers(true);
         }
       })
       .catch(() => {});
+
+    agentService
+      .getServersOverview()
+      .then((res) => {
+        if (!mounted || !res) return;
+        const list = (res as any)?.servers || (res as any)?.data || [];
+        if (Array.isArray(list) && list.length > 0) {
+          setHasConnectedServers(true);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       mounted = false;
     };
@@ -610,7 +627,7 @@ export default function DashboardPage({
           />
 
           {/* Real Customer 0-Data Onboarding Prompt */}
-          {!isPublicDemo() && !hasConnectedServers && results.length === 0 && events.length === 0 && (
+          {!isPublicDemo() && !hasConnectedServers && deployedHoneypotCount === 0 && results.length === 0 && events.length === 0 && (
             <EmptyState
               title="No Honeypots Connected Yet"
               description="Deploy your first honeypot shipper or connect a server node to begin intercepting live adversary traffic, scanning attacks, and compiling threat intelligence."
@@ -1115,7 +1132,9 @@ export default function DashboardPage({
                         marginBottom: '6px',
                       }}
                     >
-                      No Honeypot Activity Yet
+                      {hasConnectedServers || deployedHoneypotCount > 0
+                        ? 'Awaiting Inbound Adversary Traffic'
+                        : 'No Honeypot Activity Yet'}
                     </div>
                     <div
                       style={{
@@ -1126,15 +1145,45 @@ export default function DashboardPage({
                         lineHeight: 1.5,
                       }}
                     >
-                      Once your honeypots begin receiving traffic, hourly attack distribution and threat severity spikes will appear here.
+                      {hasConnectedServers || deployedHoneypotCount > 0
+                        ? 'Your honeypot node is connected and listening on network interfaces. Once adversary traffic or port scans hit your honeypot, hourly attack volume will graph here.'
+                        : 'Once your honeypots begin receiving traffic, hourly attack distribution and threat severity spikes will appear here.'}
                     </div>
-                    <button
-                      type="button"
-                      className="at-btn at-btn-primary at-btn-sm"
-                      onClick={() => onNavigate('infrastructure')}
-                    >
-                      Connect Your First Honeypot
-                    </button>
+                    {hasConnectedServers || deployedHoneypotCount > 0 ? (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                          fontSize: '12px',
+                          fontFamily: 'monospace',
+                          color: '#e2e8f0',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: '#34d399',
+                            boxShadow: '0 0 8px #34d399',
+                          }}
+                        />
+                        SENSOR ACTIVE &amp; LISTENING
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="at-btn at-btn-primary at-btn-sm"
+                        onClick={() => onNavigate('infrastructure')}
+                      >
+                        Connect Your First Honeypot
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <ResponsiveContainer

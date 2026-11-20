@@ -28,7 +28,6 @@ import type { AnalyzedHost } from '../../types';
 
 import { dataProvider } from '../services/dataProvider';
 import { isPublicDemo } from '../utils/demoMode';
-import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 
 /* -------------------------------------------------------------------------- */
@@ -291,41 +290,7 @@ export default function AnalysisPage({
     /*                                  Render                                  */
     /* ------------------------------------------------------------------------ */
 
-    if (!isLoading && MOCK_HOSTS.length === 0 && !isPublicDemo()) {
-        return (
-            <div className="at-analysis-page">
-                <PageHeader
-                    breadcrumbs={[
-                        { label: 'Investigate' },
-                        { label: 'Analysis' },
-                    ]}
-                    title="Host Analysis"
-                    description="Scored host intelligence, behavioral profiles, and RBL status."
-                    actions={
-                        <button
-                            type="button"
-                            className="at-btn at-btn-secondary at-btn-sm"
-                            onClick={() => void fetchHosts()}
-                            disabled={isLoading}
-                        >
-                            <RefreshCw size={13} className={isLoading ? 'at-spin' : ''} />
-                            Refresh
-                        </button>
-                    }
-                />
-                <div style={{ padding: '24px' }}>
-                    <EmptyState
-                        title="No Attacking Hosts Detected"
-                        description="External IP addresses probing your infrastructure will be analyzed, reverse-resolved, scored, and fingerprinted here."
-                        actionLabel="Connect Your First Honeypot"
-                        onAction={() => onNavigate('infrastructure')}
-                        secondaryLabel="Explore SOC Documentation"
-                        onSecondaryAction={() => onNavigate('help')}
-                    />
-                </div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="at-analysis-page">
@@ -570,21 +535,25 @@ export default function AnalysisPage({
                                             <Filter size={20} />
 
                                             <strong>
-                                                No hosts match the current
-                                                filters
+                                                {hasActiveFilters
+                                                    ? 'No hosts match the current filters'
+                                                    : 'Sensor active — Awaiting inbound attack telemetry'}
                                             </strong>
 
                                             <span>
-                                                Try changing the search,
-                                                risk, or blacklist filters.
+                                                {hasActiveFilters
+                                                    ? 'Try changing the search, risk, or blacklist filters.'
+                                                    : 'External IPs probing your honeypot nodes will be profiled, scored, and fingerprinted here.'}
                                             </span>
 
-                                            <button
-                                                type="button"
-                                                onClick={clearFilters}
-                                            >
-                                                Clear filters
-                                            </button>
+                                            {hasActiveFilters && (
+                                                <button
+                                                    type="button"
+                                                    onClick={clearFilters}
+                                                >
+                                                    Clear filters
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ) : (

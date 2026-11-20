@@ -6,7 +6,6 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { isPublicDemo } from '../utils/demoMode';
-import EmptyState from '../components/common/EmptyState';
 
 import {
   Activity,
@@ -524,41 +523,7 @@ export default function HoneypotLogsPage({
     )
     : null;
 
-  if (!isLoadingEvents && events.length === 0 && !isPublicDemo()) {
-    return (
-      <div className="at-honeypot-page-v2">
-        <PageHeader
-          breadcrumbs={[
-            { label: 'Operations' },
-            { label: 'Honeypot Logs' },
-          ]}
-          title="Honeypot Logs"
-          description="Live attack telemetry and adversary command sessions."
-          actions={
-            <button
-              type="button"
-              className="at-btn at-btn-secondary at-btn-sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw size={13} className={isRefreshing ? 'at-spin' : ''} />
-              {isRefreshing ? 'Refreshing' : 'Refresh'}
-            </button>
-          }
-        />
-        <div style={{ padding: '24px' }}>
-          <EmptyState
-            title="No Honeypot Events Logged Yet"
-            description="Your honeypot network is ready. Once a sensor node is deployed and exposed to traffic, connection logs, commands, and attacker probes will stream here in real time."
-            actionLabel="Connect Your First Honeypot"
-            onAction={() => onNavigate('infrastructure')}
-            secondaryLabel="Explore SOC Documentation"
-            onSecondaryAction={() => onNavigate('help')}
-          />
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="at-honeypot-page-v2">
@@ -902,14 +867,15 @@ export default function HoneypotLogsPage({
                           <ShieldAlert size={20} />
 
                           <strong>
-                            No events match the
-                            current filters
+                            {hasFilters
+                              ? 'No events match the current filters'
+                              : 'Sensor active — Awaiting inbound attack telemetry'}
                           </strong>
 
                           <span>
-                            Try changing the
-                            search or severity
-                            filters.
+                            {hasFilters
+                              ? 'Try changing the search or severity filters.'
+                              : 'Your honeypot node is connected and listening. Incoming adversary traffic will stream here in real time.'}
                           </span>
 
                           {hasFilters && (

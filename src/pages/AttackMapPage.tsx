@@ -37,7 +37,6 @@ const ThreeGlobeView = React.lazy(() =>
         );
     })
 );
-import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 
 interface AttackMapPageProps {
@@ -536,41 +535,7 @@ export default function AttackMapPage({
 
     const hasData = MOCK_EVENTS.length > 0 || (threatMapData?.points && threatMapData.points.length > 0);
 
-    if (!isLoading && !hasData && !isPublicDemo()) {
-        return (
-            <div className="at-attack-map-page-v2">
-                <PageHeader
-                    breadcrumbs={[
-                        { label: 'Operations' },
-                        { label: 'Attack Map' },
-                    ]}
-                    title="Live Threat Map"
-                    description="Geospatial distribution of honeypot sensor alerts and active attack vectors."
-                    actions={
-                        <button
-                            type="button"
-                            className="at-btn at-btn-secondary at-btn-sm"
-                            onClick={() => void fetchEvents()}
-                            disabled={isLoading}
-                        >
-                            <RefreshCw size={13} className={isLoading ? 'at-spin' : ''} />
-                            Refresh
-                        </button>
-                    }
-                />
-                <div style={{ padding: '24px' }}>
-                    <EmptyState
-                        title="No Inbound Attacks Detected"
-                        description="Global attack paths and originating ASNs will plot dynamically once malicious connections hit your honeypot nodes."
-                        actionLabel="Connect Your First Honeypot"
-                        onAction={() => onNavigate('infrastructure')}
-                        secondaryLabel="Explore SOC Documentation"
-                        onSecondaryAction={() => onNavigate('help')}
-                    />
-                </div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="at-attack-map-page-v2">

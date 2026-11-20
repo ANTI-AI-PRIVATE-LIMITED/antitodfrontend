@@ -67,7 +67,12 @@ export default function PlanUsageBanner({
   const plan = PLAN_TIERS[currentPlan];
   const maxHoneypots = serverUsage?.limit ?? plan.maxHoneypots;
   const maxEvents = plan.maxEventsPerMonth;
-  const honeypotUsed = serverUsage?.used ?? honeypotCount;
+  const honeypotUsed =
+    serverUsage && serverUsage.used > 0
+      ? serverUsage.used
+      : honeypotCount > 0
+        ? honeypotCount
+        : (serverUsage?.used ?? 0);
 
   // Usage ratios
   const honeypotRatio = Math.min(100, Math.round((honeypotUsed / maxHoneypots) * 100));

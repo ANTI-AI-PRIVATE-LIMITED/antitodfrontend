@@ -40,6 +40,7 @@ import { isPublicDemo } from '../utils/demoMode';
 import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 import PlanUsageBanner from '../components/dashboard/PlanUsageBanner';
+import { billingService } from '../../api/services/billingService';
 
 interface DashboardProps {
   onNavigate: (id: string) => void;
@@ -174,6 +175,25 @@ export default function DashboardPage({
   const [events, setEvents] = useState<any[]>([]);
   const [activityTimeline, setActivityTimeline] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasConnectedServers, setHasConnectedServers] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isPublicDemo()) return;
+    let mounted = true;
+    billingService
+      .getUsage()
+      .then((d) => {
+        if (!mounted || !d) return;
+        const s = d.usage?.honeypots || d.usage?.servers;
+        if (s && typeof s.used === 'number' && s.used > 0) {
+          setHasConnectedServers(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const fetchDashboardData = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setIsLoading(true);
@@ -590,7 +610,7 @@ export default function DashboardPage({
           />
 
           {/* Real Customer 0-Data Onboarding Prompt */}
-          {!isPublicDemo() && results.length === 0 && events.length === 0 && (
+          {!isPublicDemo() && !hasConnectedServers && results.length === 0 && events.length === 0 && (
             <EmptyState
               title="No Honeypots Connected Yet"
               description="Deploy your first honeypot shipper or connect a server node to begin intercepting live adversary traffic, scanning attacks, and compiling threat intelligence."

@@ -906,7 +906,7 @@ export default function IocPage() {
   };
 
   const hasActiveFilters = Boolean(
-    activeSearch.trim() ||
+    search.trim() ||
     typeFilter !== 'ALL' ||
     severityFilter !== 'ALL' ||
     sourceFilter

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import {
   PLAN_TIERS,
+  formatInr,
   getStoredPlan,
   setStoredPlan,
   type PlanTier,
@@ -125,7 +126,7 @@ export default function PlanUsageBanner({
               onClick={openUpgradeModal}
             >
               <Zap size={13} />
-              Upgrade to Pro — ${PLAN_TIERS.pro.priceMonthly}/mo
+              Upgrade to Pro — {formatInr(PLAN_TIERS.pro.priceMonthly)}/mo
             </button>
             <button
               type="button"

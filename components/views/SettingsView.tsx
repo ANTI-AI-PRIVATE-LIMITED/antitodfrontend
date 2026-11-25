@@ -9,6 +9,7 @@ import {
 } from '../../api/services/billingService';
 import { AccessControlView } from './AccessControlView';
 import type { AppSettings, AppTheme } from '../../types';
+import { formatInr, planPriceInr } from '../../src/data/planTiering';
 
 type Tab = 'account' | 'team' | 'plan' | 'appearance';
 
@@ -190,14 +191,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
                       {current && <Check size={14} className="text-red-400" />}
                     </div>
                     <div className="text-2xl font-bold my-2">
-                      ${p.priceUsdPerMonth}
-                      <span className="text-xs text-neutral-500">/mo</span>
+                      {planPriceInr(p) === null ? (
+                        'Contact Sales'
+                      ) : (
+                        <>
+                          {formatInr(planPriceInr(p)!)}
+                          <span className="text-xs text-neutral-500">/mo</span>
+                        </>
+                      )}
                     </div>
                     <ul className="text-xs text-neutral-400 space-y-1">
-                      <li>{p.maxServers >= 9999 ? 'Unlimited' : p.maxServers} honeypots</li>
-                      <li>{p.maxUsers >= 9999 ? 'Unlimited' : p.maxUsers} users</li>
-                      <li>{p.retentionDays}-day retention</li>
-                      <li>Exports: {p.exportFormats.join(', ')}</li>
+                      {p.contactSales ? (
+                        <li>Custom limits, STIX / PDF / TAXII, SOC connectors</li>
+                      ) : (
+                        <>
+                          <li>{(p.maxServers ?? 0) >= 9999 ? 'Unlimited' : p.maxServers} honeypots</li>
+                          <li>{(p.maxUsers ?? 0) >= 9999 ? 'Unlimited' : p.maxUsers} users</li>
+                          <li>{p.retentionDays}-day retention</li>
+                          <li>Exports: {(p.exportFormats ?? []).join(', ')}</li>
+                        </>
+                      )}
                     </ul>
                   </div>
                 );

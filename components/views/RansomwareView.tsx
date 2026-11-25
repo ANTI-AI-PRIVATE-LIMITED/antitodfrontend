@@ -1,7 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { RansomWatchPost, RansomWatchGroup } from '../../types';
-import { Skull, AlertTriangle, Globe, Lock, ExternalLink, RefreshCw, Search, Target, Users, Calendar, Activity, Zap, ImageIcon, Eye } from 'lucide-react';
+import { Skull, AlertTriangle, Globe, Lock, ExternalLink, RefreshCw, Search, Target, Users, Calendar, Activity, Zap, ImageIcon, Eye, ShieldAlert, Copy, Check, X } from 'lucide-react';
+import { resolveValidFlagIsoCode } from '../../src/utils/geoCountries';
+import { inspectRansomwareTargetUrl, type ExternalTargetInspection } from '../../src/utils/externalLinks';
 
 interface RansomwareViewProps {
     posts: RansomWatchPost[];
@@ -12,7 +14,20 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
     const [searchTerm, setSearchTerm] = useState('');
     const [victimSearch, setVictimSearch] = useState('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [failedFlags, setFailedFlags] = useState<Record<string, true>>({});
+    const [pendingExternalLink, setPendingExternalLink] = useState<ExternalTargetInspection | null>(null);
+    const [copiedUrl, setCopiedUrl] = useState(false);
     const lastUpdated = useMemo(() => new Date(), [posts]);
+
+    const handleCopyTarget = async (urlText: string) => {
+        try {
+            await navigator.clipboard?.writeText(urlText);
+            setCopiedUrl(true);
+            setTimeout(() => setCopiedUrl(false), 1800);
+        } catch {
+            // Clipboard blocked in headless/restricted context
+        }
+    };
 
     // Calculate Victim Counts per Group based on posts
     const groupVictimCounts = useMemo(() => {
@@ -71,9 +86,79 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                     <div className="relative max-w-4xl w-full bg-[#111] border border-[#333] rounded-lg overflow-hidden shadow-2xl">
                         <div className="p-2 bg-[#111] flex justify-between items-center border-b border-[#222]">
                             <span className="text-xs font-mono text-[#AAA]">EVIDENCE SNAPSHOT</span>
-                            <button className="text-white hover:text-red-400"><ExternalLink size={16}/></button>
+                            <button type="button" aria-label="Close preview" onClick={() => setPreviewImage(null)} className="text-white hover:text-red-400"><X size={16}/></button>
                         </div>
                         <img src={previewImage} alt="Victim Site" className="w-full h-auto max-h-[80vh] object-contain"/>
+                    </div>
+                </div>
+            )}
+
+            {/* OPSEC External Link Warning Interstitial */}
+            {pendingExternalLink && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="OPSEC External Link Warning"
+                    onClick={() => { setPendingExternalLink(null); setCopiedUrl(false); }}
+                >
+                    <div
+                        className="max-w-lg w-full bg-[#111] border border-red-500/40 rounded-xl p-6 shadow-2xl space-y-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-lg bg-red-900/20 border border-red-500/30 text-red-400">
+                                    <ShieldAlert size={20}/>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                                        {pendingExternalLink.isOnion ? 'Dark Web (.onion) Link Blocked' : 'External Adversary Link Warning'}
+                                    </h3>
+                                    <p className="text-[11px] text-[#888] font-mono mt-0.5">Analyst OPSEC Protection Gate</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                aria-label="Dismiss OPSEC warning"
+                                onClick={() => { setPendingExternalLink(null); setCopiedUrl(false); }}
+                                className="text-[#888] hover:text-white p-1"
+                            >
+                                <X size={16}/>
+                            </button>
+                        </div>
+
+                        <div className="p-3 rounded-lg bg-[#0a0a0a] border border-[#222] font-mono text-xs text-amber-300 break-all">
+                            {pendingExternalLink.defanged}
+                        </div>
+
+                        <p className="text-xs text-[#AAA] leading-relaxed">
+                            {pendingExternalLink.isOnion
+                                ? 'Direct opening of .onion dark web links is disabled in standard clearnet browsers. Copy the URL to inspect it inside Tor Browser or an isolated analysis VM.'
+                                : 'Navigating directly to threat-actor or compromised victim infrastructure exposes your IP address and browser fingerprint. Copy the indicator for an isolated sandbox or proceed intentionally.'}
+                        </p>
+
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#222]">
+                            <button
+                                type="button"
+                                onClick={() => void handleCopyTarget(pendingExternalLink.href)}
+                                className="px-3 py-1.5 rounded bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-xs font-mono text-white flex items-center gap-1.5"
+                            >
+                                {copiedUrl ? <Check size={13} className="text-emerald-400"/> : <Copy size={13}/>}
+                                {copiedUrl ? 'Copied' : 'Copy URL'}
+                            </button>
+                            {!pendingExternalLink.isOnion && (
+                                <a
+                                    href={pendingExternalLink.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => { setPendingExternalLink(null); setCopiedUrl(false); }}
+                                    className="px-3 py-1.5 rounded bg-red-600/20 hover:bg-red-600/40 border border-red-500/40 text-xs font-bold text-red-300 flex items-center gap-1.5"
+                                >
+                                    <ExternalLink size={13}/> Open Clearnet URL
+                                </a>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -162,7 +247,28 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-[10px] font-mono text-[#888]">{new Date(post.discovered).toLocaleString()}</span>
-                                            {post.country && <img src={`https://flagcdn.com/w20/${post.country.toLowerCase()}.png`} className="w-4 h-3 rounded-sm opacity-80" alt={post.country} title={post.country}/>}
+                                            {(() => {
+                                                const iso = resolveValidFlagIsoCode(post.country);
+                                                if (iso && !failedFlags[iso]) {
+                                                    return (
+                                                        <img
+                                                            src={`https://flagcdn.com/w20/${iso}.png`}
+                                                            className="w-4 h-3 rounded-sm opacity-80"
+                                                            alt={post.country}
+                                                            title={post.country}
+                                                            onError={() => setFailedFlags(prev => ({ ...prev, [iso]: true }))}
+                                                        />
+                                                    );
+                                                }
+                                                if (post.country) {
+                                                    return (
+                                                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#1a1a1a] border border-[#333] text-[#AAA]" title={post.country}>
+                                                            {post.country}
+                                                        </span>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
                                         <div className="flex gap-2 items-center">
                                             {post.source === 'Ransomware.live' && <span className="text-[9px] bg-[#111] text-red-400 border border-neutral-500/30 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Zap size={8} fill="currentColor"/> LIVE</span>}
@@ -184,11 +290,21 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                                         </div>
                                         
                                         <div className="flex gap-2">
-                                            {post.website && (
-                                                <a href={post.website.startsWith('http') ? post.website : `http://${post.website}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded bg-[#151515] text-[#AAA] hover:text-red-500 hover:bg-[#1C1C1C] transition-colors" title="Visit Site">
-                                                    <Globe size={12}/>
-                                                </a>
-                                            )}
+                                            {(() => {
+                                                const linkInfo = inspectRansomwareTargetUrl(post.website);
+                                                if (!linkInfo.valid) return null;
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setCopiedUrl(false); setPendingExternalLink(linkInfo); }}
+                                                        className="p-1.5 rounded bg-[#151515] text-[#AAA] hover:text-red-500 hover:bg-[#1C1C1C] transition-colors"
+                                                        title={linkInfo.isOnion ? 'Inspect Dark Web (.onion) Link Safely' : 'Inspect External Link (OPSEC Warning)'}
+                                                        aria-label={`Inspect external URL for ${post.post_title}`}
+                                                    >
+                                                        {linkInfo.isOnion ? <Lock size={12}/> : <Globe size={12}/>}
+                                                    </button>
+                                                );
+                                            })()}
                                             {post.screenshot && (
                                                 <button 
                                                     onClick={() => setPreviewImage(post.screenshot!)}

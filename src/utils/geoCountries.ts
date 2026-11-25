@@ -87,6 +87,18 @@ export function normalizeCountryCode(countryCode?: string): string {
   return COUNTRY_ALIASES[raw] ?? raw;
 }
 
+/**
+ * Returns lowercased ISO-3166 alpha-2 code suitable for flagcdn.com only when the string
+ * maps to a recognized country; returns null for non-ISO values ('Global', 'Multi', etc.).
+ */
+export function resolveValidFlagIsoCode(rawCountry?: string): string | null {
+  const code = normalizeCountryCode(rawCountry);
+  if (!/^[A-Z]{2}$/.test(code) || !COUNTRY_COORDS[code]) {
+    return null;
+  }
+  return code.toLowerCase();
+}
+
 /** Projects geographic [longitude, latitude] onto clamped (left%, top%) overlay positions for world-map.svg. */
 export function projectLonLatToPercent(lon: number, lat: number): { left: number; top: number } {
   return {

@@ -3,8 +3,9 @@ import { queryDoH, enrichIP } from './dns';
 import { fetchShodanInternetDb } from './dns'; 
 import { CrtShEntry, WaybackResult } from '../types';
 import { fetchJsonWithCors } from './http';
-import { toProxyUrl, pingTargetViaProxy } from './proxy';
+import { toProxyUrl, pingTargetViaProxy, inspectWebTargetViaProxy } from './proxy';
 import { isPublicDemo } from '../src/utils/demoMode';
+import { evaluateSecurityHeaders } from '../src/utils/httpSecurityHeaders';
 
 // --- IpApiIs Result Interface ---
 export interface IpApiIsResult {
@@ -649,12 +650,66 @@ export interface HttpHeaderResult {
     serverInfo: { server?: string; poweredBy?: string; aspNet?: string; via?: string };
     status: number;
     statusText: string;
+    redirects?: string[];
+    error?: string;
 }
 
-export const analyzeHttpHeaders = async (_target: string): Promise<HttpHeaderResult | null> => {
-    // Task 101: Tools that fetch a URL the user types cannot work through an allowlist.
-    // Labeled 'coming soon' in v1.1. Do not fall back to direct browser fetch.
-    return null;
+export const analyzeHttpHeaders = async (target: string): Promise<HttpHeaderResult> => {
+    const clean = target.trim();
+    if (!clean) {
+        return {
+            headers: {},
+            security: [],
+            cookies: [],
+            serverInfo: {},
+            status: 0,
+            statusText: 'Invalid target',
+            error: 'A target domain or URL is required for HTTP header inspection.',
+        };
+    }
+
+    if (isPublicDemo()) {
+        return {
+            headers: {},
+            security: [],
+            cookies: [],
+            serverInfo: {},
+            status: 0,
+            statusText: 'Unavailable in demo',
+            error: 'Authenticated session required for live HTTP header inspection.',
+        };
+    }
+
+    const targetUrl = /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+    const inspection = await inspectWebTargetViaProxy(targetUrl);
+    if (!inspection.ok) {
+        return {
+            headers: {},
+            security: [],
+            cookies: [],
+            serverInfo: {},
+            status: inspection.status,
+            statusText: inspection.message,
+            error: inspection.message,
+        };
+    }
+
+    const { data } = inspection;
+    const headers = data.headers || {};
+    return {
+        headers,
+        security: evaluateSecurityHeaders(headers),
+        cookies: [],
+        serverInfo: {
+            server: headers['server'],
+            poweredBy: headers['x-powered-by'],
+            aspNet: headers['x-aspnet-version'],
+            via: headers['via'],
+        },
+        status: data.status,
+        statusText: data.statusText || (data.status >= 200 && data.status < 400 ? 'OK' : `HTTP ${data.status}`),
+        redirects: Array.isArray(data.redirects) ? data.redirects : [],
+    };
 };
 
 // --- Email Header Analysis ---
@@ -860,37 +915,33 @@ export interface TraceHop {
 }
 
 export const performTrace = async (target: string): Promise<TraceHop[]> => {
-    const hops: TraceHop[] = [];
-    const maxHops = 8 + Math.floor(Math.random() * 5);
-    
-    for (let i = 1; i < maxHops; i++) {
-        const latency = i * (5 + Math.random() * 10);
-        hops.push({
-            hop: i,
-            ip: `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-            time: Math.round(latency),
-            status: 'OK',
-            details: i === 1 ? 'Gateway' : 'ISP Backbone'
-        });
-    }
+    const clean = target.trim();
+    let finalIp = clean;
 
-    let finalIp = target;
-    if (!target.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)) {
-        const dns = await queryDoH(target, 'A');
-        if (dns?.Answer?.[0]?.data) {
-            finalIp = dns.Answer[0].data;
+    if (!/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(clean) && !clean.includes(':')) {
+        try {
+            const dns = await queryDoH(clean, 'A');
+            if (dns?.Answer?.[0]?.data) {
+                finalIp = dns.Answer[0].data;
+            }
+        } catch {
+            // Retain original target when DoH resolution fails
         }
     }
 
-    hops.push({
-        hop: maxHops,
-        ip: finalIp,
-        time: Math.round(maxHops * 15),
-        status: 'OK',
-        details: 'Target (Final)'
-    });
-
-    return hops;
+    const ping = await performPing(finalIp, 1);
+    return [
+        {
+            hop: 1,
+            ip: ping.ip || finalIp,
+            time: ping.time,
+            status: ping.status === 'OK' ? 'OK' : 'TIMEOUT',
+            details:
+                ping.status === 'OK'
+                    ? `Direct TCP reachability verified (port ${ping.port ?? 443})`
+                    : ping.message || 'ICMP/multi-hop trace unavailable; destination TCP probe did not succeed',
+        },
+    ];
 };
 
 export interface PortResult {

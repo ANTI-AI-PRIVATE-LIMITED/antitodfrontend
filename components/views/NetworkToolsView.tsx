@@ -394,7 +394,7 @@ export const NetworkToolsView: React.FC = () => {
                                             ip,
                                             rbl: rbl.status,
                                             country: geo?.country_code || 'XX',
-                                            score: geo?.threat.scores?.threat_score || 0,
+                                            score: geo?.threat?.scores?.threat_score || 0,
                                             flag: geo?.flag
                                         }];
                                     });
@@ -496,9 +496,13 @@ export const NetworkToolsView: React.FC = () => {
                 securityResults.forEach(s => content += `${s.provider}: ${s.status}\n`);
                 content += '\n';
             }
-            if (httpResult) content += `[HTTP]\nServer: ${httpResult.serverInfo.server}\nHeaders: ${Object.keys(httpResult.headers).length} captured\n`;
+            if (httpResult) {
+                content += httpResult.error
+                    ? `[HTTP]\nUnavailable: ${httpResult.error}\n`
+                    : `[HTTP]\nServer: ${httpResult.serverInfo.server || 'Unknown'}\nStatus: ${httpResult.status} ${httpResult.statusText}\nHeaders: ${Object.keys(httpResult.headers).length} captured\n`;
+            }
             if (otxResult) {
-                 content += `\n[ALIENVAULT OTX]\nPulses: ${otxResult.pulse_count}\nTags: ${otxResult.tags.join(', ')}\nMalware: ${otxResult.malware_families.join(', ')}\n`;
+                 content += `\n[ALIENVAULT OTX]\nPulses: ${otxResult.pulse_count}\nTags: ${(otxResult.tags ?? []).join(', ')}\nMalware: ${(otxResult.malware_families ?? []).join(', ')}\n`;
             }
         }
 
@@ -892,7 +896,7 @@ export const NetworkToolsView: React.FC = () => {
                                                 <div className="flex justify-between border-b border-[#222] pb-1"><span>Hosting Org</span> <span className="text-white truncate max-w-[200px]">{enrichmentResult.asn?.name || 'N/A'}</span></div>
                                                 <div className="flex justify-between border-b border-[#222] pb-1"><span>ASN</span> <span className="text-red-500">{enrichmentResult.asn?.asn || 'N/A'}</span></div>
                                                 <div className="flex justify-between border-b border-[#222] pb-1"><span>Location</span> <span>{enrichmentResult.city}, {enrichmentResult.country_name}</span></div>
-                                                <div className="flex justify-between border-b border-[#222] pb-1"><span>Type</span> <span>{enrichmentResult.threat.is_datacenter ? 'Datacenter' : 'Residential/ISP'}</span></div>
+                                                <div className="flex justify-between border-b border-[#222] pb-1"><span>Type</span> <span>{enrichmentResult.threat?.is_datacenter ? 'Datacenter' : 'Residential/ISP'}</span></div>
                                             </div>
                                         ) : <div className="text-[#888] text-xs italic mb-4">{isLoading ? "Enriching IP..." : "No infrastructure data."}</div>}
                                         
@@ -921,14 +925,14 @@ export const NetworkToolsView: React.FC = () => {
                                                 <div className="grid grid-cols-2 gap-2 text-xs">
                                                     <div className="bg-[#111] p-2 rounded border border-[#222]">
                                                         <div className="text-[10px] text-[#888] uppercase">Threat Score</div>
-                                                        <div className={`font-mono font-bold ${enrichmentResult.threat.scores?.threat_score && enrichmentResult.threat.scores.threat_score > 50 ? 'text-red-400' : 'text-white'}`}>
-                                                            {enrichmentResult.threat.scores?.threat_score ?? 0} / 100
+                                                        <div className={`font-mono font-bold ${enrichmentResult.threat?.scores?.threat_score && enrichmentResult.threat.scores.threat_score > 50 ? 'text-red-400' : 'text-white'}`}>
+                                                            {enrichmentResult.threat?.scores?.threat_score ?? 0} / 100
                                                         </div>
                                                     </div>
                                                     <div className="bg-[#111] p-2 rounded border border-[#222]">
                                                         <div className="text-[10px] text-[#888] uppercase">Trust Score</div>
                                                         <div className="font-mono font-bold text-red-400">
-                                                            {enrichmentResult.threat.scores?.trust_score ?? 0} / 100
+                                                            {enrichmentResult.threat?.scores?.trust_score ?? 0} / 100
                                                         </div>
                                                     </div>
                                                 </div>
@@ -938,9 +942,9 @@ export const NetworkToolsView: React.FC = () => {
                                                     <div className="space-y-2">
                                                         <div className="text-[10px] text-[#888] uppercase font-bold border-b border-[#222] pb-1">Shodan Exposure</div>
                                                         
-                                                        {enrichmentResult.shodan.ports.length > 0 ? (
+                                                        {(enrichmentResult.shodan.ports?.length ?? 0) > 0 ? (
                                                             <div className="flex flex-wrap gap-1">
-                                                                {enrichmentResult.shodan.ports.map(p => (
+                                                                {(enrichmentResult.shodan.ports ?? []).map(p => (
                                                                     <span key={p} className="text-[10px] bg-[#151515] text-neutral-300 px-1.5 py-0.5 rounded border border-[#333] font-mono">
                                                                         {p}
                                                                     </span>
@@ -948,11 +952,11 @@ export const NetworkToolsView: React.FC = () => {
                                                             </div>
                                                         ) : <span className="text-xs text-[#888] italic">No open ports detected.</span>}
 
-                                                        {enrichmentResult.shodan.vulns.length > 0 && (
+                                                        {(enrichmentResult.shodan.vulns?.length ?? 0) > 0 && (
                                                             <div className="mt-2">
                                                                 <div className="text-[10px] text-red-400 uppercase font-bold mb-1">Vulnerabilities</div>
                                                                 <div className="flex flex-wrap gap-1">
-                                                                    {enrichmentResult.shodan.vulns.map(v => (
+                                                                    {(enrichmentResult.shodan.vulns ?? []).map(v => (
                                                                         <span key={v} className="text-[10px] bg-red-900/20 text-red-300 px-1.5 py-0.5 rounded border border-red-500/30 font-mono">
                                                                             {v}
                                                                         </span>
@@ -961,9 +965,9 @@ export const NetworkToolsView: React.FC = () => {
                                                             </div>
                                                         )}
                                                         
-                                                        {enrichmentResult.shodan.tags && enrichmentResult.shodan.tags.length > 0 && (
+                                                        {(enrichmentResult.shodan.tags?.length ?? 0) > 0 && (
                                                             <div className="mt-2 flex flex-wrap gap-1">
-                                                                 {enrichmentResult.shodan.tags.map(t => (
+                                                                 {(enrichmentResult.shodan.tags ?? []).map(t => (
                                                                      <span key={t} className="text-[10px] bg-[#111] text-red-300 px-1.5 py-0.5 rounded border border-red-500/30">
                                                                          {t}
                                                                      </span>
@@ -982,23 +986,56 @@ export const NetworkToolsView: React.FC = () => {
                                             <Lock size={16}/> Web Security & Headers
                                         </h3>
                                         {httpResult ? (
-                                            <div className="space-y-2 text-xs font-mono text-neutral-300">
-                                                <div className="flex justify-between border-b border-[#222] pb-1"><span>Server</span> <span className="text-white">{httpResult.serverInfo.server || 'Unknown'}</span></div>
-                                                <div className="flex justify-between border-b border-[#222] pb-1"><span>Status</span> <span className={httpResult.status === 200 ? 'text-white' : 'text-white'}>{httpResult.status} {httpResult.statusText}</span></div>
-                                                
-                                                <div className="mt-4">
-                                                    <div className="text-[#888] mb-2 uppercase font-bold text-[10px]">Response Headers</div>
-                                                    <div className="max-h-32 overflow-y-auto custom-scrollbar bg-[#111] p-2 rounded border border-[#222] space-y-1">
-                                                        {Object.entries(httpResult.headers).map(([k, v], i) => (
-                                                            <div key={i} className="flex gap-2">
-                                                                <span className="text-red-400 w-1/3 truncate" title={k}>{k}:</span>
-                                                                <span className="text-[#AAA] break-all w-2/3">{v}</span>
-                                                            </div>
-                                                        ))}
+                                            httpResult.error ? (
+                                                <div className="p-3 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono flex items-start gap-2">
+                                                    <AlertTriangle size={14} className="shrink-0 mt-0.5"/>
+                                                    <div>
+                                                        <div className="font-bold uppercase text-[10px] mb-1">
+                                                            HTTP Probe Unavailable{httpResult.status > 0 ? ` (${httpResult.status})` : ''}
+                                                        </div>
+                                                        <div>{httpResult.error}</div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ) : <div className="text-[#888] text-xs italic">{isLoading ? "Analyzing headers..." : "HTTP probe failed or not applicable."}</div>}
+                                            ) : (
+                                                <div className="space-y-3 text-xs font-mono text-neutral-300">
+                                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>Server</span> <span className="text-white">{httpResult.serverInfo.server || 'Unknown'}</span></div>
+                                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>Status</span> <span className={httpResult.status < 400 ? 'text-emerald-400' : 'text-red-400'}>{httpResult.status} {httpResult.statusText}</span></div>
+
+                                                    {httpResult.security.length > 0 && (
+                                                        <div>
+                                                            <div className="text-[#888] mb-1.5 uppercase font-bold text-[10px]">Security Headers</div>
+                                                            <div className="space-y-1">
+                                                                {httpResult.security.map((h, i) => (
+                                                                    <div key={i} className="flex items-center justify-between px-2 py-1 rounded bg-[#111] border border-[#222] text-[11px]">
+                                                                        <span className="text-[#AAA] truncate pr-2">{h.name}</span>
+                                                                        <span className={`font-bold flex items-center gap-1 shrink-0 ${h.valid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                                            {h.valid ? <CheckCircle size={10}/> : <AlertTriangle size={10}/>}
+                                                                            {h.valid ? 'PRESENT' : 'MISSING'}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div>
+                                                        <div className="text-[#888] mb-2 uppercase font-bold text-[10px]">Response Headers</div>
+                                                        <div className="max-h-32 overflow-y-auto custom-scrollbar bg-[#111] p-2 rounded border border-[#222] space-y-1">
+                                                            {Object.keys(httpResult.headers).length > 0 ? (
+                                                                Object.entries(httpResult.headers).map(([k, v], i) => (
+                                                                    <div key={i} className="flex gap-2">
+                                                                        <span className="text-red-400 w-1/3 truncate" title={k}>{k}:</span>
+                                                                        <span className="text-[#AAA] break-all w-2/3">{v}</span>
+                                                                    </div>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-[#888] italic">No response headers returned.</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        ) : <div className="text-[#888] text-xs italic">{isLoading ? "Analyzing headers..." : "HTTP probe skipped (IP target or no scan run)."}</div>}
                                     </div>
 
                                     {/* AlienVault OTX Intelligence */}
@@ -1012,24 +1049,24 @@ export const NetworkToolsView: React.FC = () => {
                                                     <span className="text-xs text-[#AAA] font-mono">Pulse Count</span>
                                                     <span className="text-white font-bold">{otxResult.pulse_count}</span>
                                                 </div>
-                                                {otxResult.malware_families.length > 0 && (
+                                                {(otxResult.malware_families?.length ?? 0) > 0 && (
                                                     <div>
                                                         <div className="text-[10px] text-[#888] uppercase font-bold mb-1">Malware Families</div>
                                                         <div className="flex flex-wrap gap-1">
-                                                            {otxResult.malware_families.map((m, i) => (
+                                                            {(otxResult.malware_families ?? []).map((m, i) => (
                                                                 <span key={i} className="text-[10px] bg-red-900/20 text-red-300 px-1.5 py-0.5 rounded border border-red-500/20">{m}</span>
                                                             ))}
                                                         </div>
                                                     </div>
                                                 )}
-                                                {otxResult.tags.length > 0 && (
+                                                {(otxResult.tags?.length ?? 0) > 0 && (
                                                     <div>
                                                         <div className="text-[10px] text-[#888] uppercase font-bold mb-1">Tags</div>
                                                         <div className="flex flex-wrap gap-1">
-                                                            {otxResult.tags.slice(0, 10).map((t, i) => (
+                                                            {(otxResult.tags ?? []).slice(0, 10).map((t, i) => (
                                                                 <span key={i} className="text-[10px] bg-[#151515] text-[#AAA] px-1.5 py-0.5 rounded border border-[#333]">{t}</span>
                                                             ))}
-                                                            {otxResult.tags.length > 10 && <span className="text-[9px] text-neutral-600">+{otxResult.tags.length - 10}</span>}
+                                                            {(otxResult.tags?.length ?? 0) > 10 && <span className="text-[9px] text-neutral-600">+{(otxResult.tags?.length ?? 0) - 10}</span>}
                                                         </div>
                                                     </div>
                                                 )}

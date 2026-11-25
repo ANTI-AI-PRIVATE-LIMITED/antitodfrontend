@@ -5,6 +5,7 @@ import { performCrtLookup, checkWaybackAvailability } from './netTools';
 import { fetchOtxIndicator } from './otx';
 import { inspectWebTargetViaProxy } from './proxy';
 import { isPublicDemo } from '../src/utils/demoMode';
+import { evaluateSecurityHeaders } from '../src/utils/httpSecurityHeaders';
 
 // Task 101: Removed public relays (ThingProxy, AllOrigins, CORSProxy, VercelProxy).
 // Feeds run through backend allowlisted proxy or direct APIs.
@@ -166,31 +167,7 @@ const fetchHttpInfo = async (targetUrl: string, result: WebCheckResult) => {
 };
 
 export const analyzeSecurityHeaders = (result: WebCheckResult) => {
-    const h = result.http.headers;
-    const metaTags = result.page.metaTags; 
-
-    const checks = [
-        { name: 'Strict-Transport-Security', key: 'strict-transport-security' },
-        { name: 'Content-Security-Policy', key: 'content-security-policy', meta: 'Content-Security-Policy' },
-        { name: 'X-Frame-Options', key: 'x-frame-options' },
-        { name: 'X-Content-Type-Options', key: 'x-content-type-options' },
-        { name: 'Referrer-Policy', key: 'referrer-policy', meta: 'referrer' },
-        { name: 'Permissions-Policy', key: 'permissions-policy' }
-    ];
-
-    result.http.securityHeaders = checks.map(c => {
-        let val = h[c.key];
-        if (!val && c.meta) {
-            const metaKey = Object.keys(metaTags).find(k => k.toLowerCase() === c.meta?.toLowerCase());
-            if (metaKey) val = metaTags[metaKey];
-        }
-
-        return {
-            name: c.name,
-            value: val || 'Missing',
-            valid: !!val && val !== 'Missing'
-        };
-    });
+    result.http.securityHeaders = evaluateSecurityHeaders(result.http.headers, result.page.metaTags);
 };
 
 export const analyzeHtml = (html: string, result: WebCheckResult, baseUrl?: string) => {

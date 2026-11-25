@@ -156,7 +156,6 @@ export const fetchThreatNews = async (): Promise<ThreatNewsItem[]> => {
             const parsed = JSON.parse(cached);
             const age = Date.now() - parsed.timestamp;
             if (age < CACHE_TTL && Array.isArray(parsed.data) && parsed.data.length > 0) {
-                console.log(`[NEWS] Loaded ${parsed.data.length} items from cache (${Math.round(age / 60000)}m old)`);
                 return parsed.data;
             }
         }

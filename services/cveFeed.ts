@@ -76,7 +76,6 @@ export const fetchCveFeeds = async (): Promise<CveFeedItem[]> => {
             const parsed = JSON.parse(cached);
             const age = Date.now() - parsed.timestamp;
             if (age < CACHE_TTL && Array.isArray(parsed.data) && parsed.data.length > 0) {
-                console.log(`[CVE] Loaded ${parsed.data.length} items from cache (${Math.round(age / 60000)}m old)`);
                 return parsed.data;
             }
         }

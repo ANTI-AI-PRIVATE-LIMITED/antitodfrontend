@@ -46,7 +46,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error("[API] Request error:", error);
+    console.error("[API] Request error:", error?.message || "Unknown request failure");
     return Promise.reject(error);
   },
 );
@@ -130,7 +130,7 @@ api.interceptors.response.use(
     // Handle 402 Payment Required / Plan Inactive
     if (error.response && error.response.status === 402) {
       const data = error.response.data as any;
-      console.warn("[API] 402 Plan inactive:", data);
+      console.warn("[API] 402 Plan inactive:", data?.code || "PLAN_INACTIVE");
       window.dispatchEvent(
         new CustomEvent("plan-inactive", {
           detail: {
@@ -148,7 +148,7 @@ api.interceptors.response.use(
     // Handle 403 Forbidden / Plan Limit / Feature Unavailable
     if (error.response && error.response.status === 403) {
       const data = error.response.data as any;
-      console.warn("[API] 403 Forbidden / Limit reached:", data);
+      console.warn("[API] 403 Forbidden / Limit reached:", data?.code || "FORBIDDEN");
 
       if (data?.code === "PLAN_LIMIT_REACHED") {
         window.dispatchEvent(
@@ -195,7 +195,7 @@ api.interceptors.response.use(
     // Handle 409 Conflict (e.g. duplicate ServerId or taken resource)
     if (error.response && error.response.status === 409) {
       const data = error.response.data as any;
-      console.warn("[API] 409 Conflict:", data);
+      console.warn("[API] 409 Conflict:", data?.code || "CONFLICT");
       window.dispatchEvent(
         new CustomEvent("api-conflict", {
           detail: {
@@ -210,7 +210,7 @@ api.interceptors.response.use(
     // Handle 429 Too Many Requests / Account Lockout / Rescan Cooldown
     if (error.response && error.response.status === 429) {
       const data = error.response.data as any;
-      console.warn("[API] 429 Rate limited / Account locked / Rescan cooldown:", data);
+      console.warn("[API] 429 Rate limited:", data?.code || "TOO_MANY_REQUESTS");
       window.dispatchEvent(
         new CustomEvent("rate-limited", {
           detail: {

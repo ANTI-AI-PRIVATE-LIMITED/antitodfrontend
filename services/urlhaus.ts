@@ -52,7 +52,6 @@ export const fetchUrlHaus = async (): Promise<UrlHausEntry[]> => {
             }
 
             if (entries.length > 0) {
-                console.log(`[URLHaus] Fetched ${entries.length} entries.`);
                 return entries;
             }
         } catch (e) {

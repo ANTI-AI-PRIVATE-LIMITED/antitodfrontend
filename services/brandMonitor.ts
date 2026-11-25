@@ -10,9 +10,7 @@ let model: mobilenet.MobileNet | null = null;
 export const loadModel = async () => {
   if (!model) {
     try {
-        console.log("Loading MobileNet...");
         model = await mobilenet.load();
-        console.log("MobileNet loaded.");
     } catch (e) {
         console.warn("Failed to load MobileNet", e);
     }
@@ -178,7 +176,6 @@ export class CertStreamObserver {
             
             this.socket.onopen = () => {
                 this.isConnected = true;
-                console.log('[BrandIntel] Connected to CertStream');
             };
 
             this.socket.onmessage = (message) => {

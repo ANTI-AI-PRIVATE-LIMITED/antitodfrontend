@@ -489,7 +489,7 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
     const toggleFullscreen = () => {
         if (!containerRef.current) return;
         if (!document.fullscreenElement) {
-            containerRef.current.requestFullscreen().catch(err => console.log(err));
+            containerRef.current.requestFullscreen().catch((err: any) => console.warn('Fullscreen request blocked:', err?.message || 'Unavailable'));
             setIsFullscreen(true);
         } else {
             document.exitFullscreen();

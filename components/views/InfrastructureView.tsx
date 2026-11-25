@@ -24,6 +24,7 @@ import {
 import { handleApiError } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { isPublicDemo } from '../../src/utils/demoMode';
+import { isValidAllowedIp, isValidIpAddress } from '../../src/utils/networkValidation';
 
 // ── Utility helpers ────────────────────────────────────────────────────────
 
@@ -437,14 +438,39 @@ const RegisterServerModal: React.FC<{
     const [form, setForm] = useState({ ServerId: '', Hostname: '', PublicIp: '', Region: '', PrivateIp: '', Provider: 'aws', Os: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<Partial<Record<'PublicIp' | 'PrivateIp', string>>>({});
 
-    const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
+    const set = (k: string, v: string) => {
+        setForm(prev => ({ ...prev, [k]: v }));
+        if (k === 'PublicIp' || k === 'PrivateIp') {
+            setFieldErrors(prev => {
+                if (!prev[k]) return prev;
+                const next = { ...prev };
+                delete next[k];
+                return next;
+            });
+        }
+        if (error) setError('');
+    };
 
     const submit = async () => {
+        const nextFieldErrors: Partial<Record<'PublicIp' | 'PrivateIp', string>> = {};
         if (!form.ServerId.trim() || !form.Hostname.trim() || !form.PublicIp.trim() || !form.Region.trim()) {
             setError('Server ID, Hostname, Public IP and Region are required.');
             return;
         }
+        if (!isValidIpAddress(form.PublicIp)) {
+            nextFieldErrors.PublicIp = 'Enter a valid IPv4 or IPv6 address (e.g. 13.233.163.244).';
+        }
+        if (form.PrivateIp.trim() && !isValidIpAddress(form.PrivateIp)) {
+            nextFieldErrors.PrivateIp = 'Enter a valid IPv4 or IPv6 address (e.g. 10.0.1.50).';
+        }
+        if (nextFieldErrors.PublicIp || nextFieldErrors.PrivateIp) {
+            setFieldErrors(nextFieldErrors);
+            setError(nextFieldErrors.PublicIp || nextFieldErrors.PrivateIp || 'Invalid IP address.');
+            return;
+        }
+        setFieldErrors({});
         setLoading(true); setError('');
         try {
             await adminService.registerServer({
@@ -500,19 +526,26 @@ const RegisterServerModal: React.FC<{
                     <button onClick={onClose} className="p-2 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><X size={18}/></button>
                 </div>
                 <div className="p-5 space-y-3">
-                    {fields.map(f => (
-                        <div key={f.key}>
-                            <label className="text-xs text-[#AAA] font-mono block mb-1">
-                                {f.label}{f.required && <span className="text-red-400"> *</span>}
-                            </label>
-                            <input
-                                value={(form as any)[f.key]}
-                                onChange={e => set(f.key, e.target.value)}
-                                placeholder={f.placeholder}
-                                className="w-full bg-[#151515] border border-[#333] text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500"
-                            />
-                        </div>
-                    ))}
+                    {fields.map(f => {
+                        const fieldErr = f.key === 'PublicIp' || f.key === 'PrivateIp' ? fieldErrors[f.key] : undefined;
+                        return (
+                            <div key={f.key}>
+                                <label className="text-xs text-[#AAA] font-mono block mb-1">
+                                    {f.label}{f.required && <span className="text-red-400"> *</span>}
+                                </label>
+                                <input
+                                    value={(form as any)[f.key]}
+                                    onChange={e => set(f.key, e.target.value)}
+                                    placeholder={f.placeholder}
+                                    aria-invalid={fieldErr ? true : undefined}
+                                    className={`w-full bg-[#151515] border ${fieldErr ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500`}
+                                />
+                                {fieldErr && (
+                                    <p className="text-[11px] text-red-400 font-mono mt-1">{fieldErr}</p>
+                                )}
+                            </div>
+                        );
+                    })}
                     {error && (
                         <div className="flex flex-col gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded p-3">
                             <div className="flex items-start gap-2">
@@ -687,6 +720,10 @@ const RegisterShipperModal: React.FC<{
 
     const submit = async () => {
         if (!allowedIp.trim()) { setError('Allowed IP is required.'); return; }
+        if (!isValidAllowedIp(allowedIp)) {
+            setError('Allowed IP must be a valid IPv4/IPv6 address (e.g. 13.233.163.244) or localhost.');
+            return;
+        }
         setLoading(true); setError('');
         try {
             const res = await adminService.registerShipper({
@@ -715,9 +752,10 @@ const RegisterShipperModal: React.FC<{
                         <label className="text-xs text-[#AAA] font-mono block mb-1">Allowed IP <span className="text-red-400">*</span></label>
                         <input
                             value={allowedIp}
-                            onChange={e => setAllowedIp(e.target.value)}
+                            onChange={e => { setAllowedIp(e.target.value); if (error) setError(''); }}
                             placeholder="13.233.163.244"
-                            className="w-full bg-[#151515] border border-[#333] text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500"
+                            aria-invalid={error ? true : undefined}
+                            className={`w-full bg-[#151515] border ${error ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500`}
                         />
                         <p className="text-[10px] text-neutral-600 mt-1 font-mono">Only requests from this IP will be accepted.</p>
                     </div>

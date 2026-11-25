@@ -93,12 +93,20 @@ export const NetworkToolsView: React.FC = () => {
         setIsPinging(true);
         setPingResults([]);
         let seq = 1;
+        let stopped = false;
         const doPing = async () => {
+            if (stopped) return;
             const res = await performPing(target, seq++);
             setPingResults(prev => [...prev, res].slice(-20));
+            if (res.fatal) {
+                stopped = true;
+                stopPing();
+            }
         };
-        doPing();
-        pingRef.current = setInterval(doPing, 1000);
+        await doPing();
+        if (!stopped) {
+            pingRef.current = setInterval(doPing, 1000);
+        }
     };
 
     const runDnsLookup = async (target: string) => {
@@ -476,7 +484,7 @@ export const NetworkToolsView: React.FC = () => {
         } else if (activeCategory === 'SUBNET' && subnetResult) {
             content += `Network: ${subnetResult.networkAddress}\nBroadcast: ${subnetResult.broadcastAddress}\nNetmask: ${subnetResult.netmask}\nHost Range: ${subnetResult.firstHost} - ${subnetResult.lastHost}\nTotal Hosts: ${subnetResult.totalHosts}\n`;
         } else if (activeCategory === 'PING') {
-            pingResults.forEach(p => content += `SEQ ${p.seq}: ${p.status} (${p.time}ms) from ${p.ip}\n`);
+            pingResults.forEach(p => content += `SEQ ${p.seq}: ${p.status} (${p.time}ms) target=${p.ip}${p.message ? ` — ${p.message}` : ''}\n`);
         } else if (activeCategory === 'SCAN') {
             scanResults.forEach(p => content += `Port ${p.port}/${p.transport}: ${p.service}\n`);
         } else if (activeCategory === 'CRT') {
@@ -1306,8 +1314,13 @@ export const NetworkToolsView: React.FC = () => {
                     {activeCategory === 'PING' && (
                         <div className="bg-[#111] border border-[#222] rounded-lg p-4 font-mono text-xs h-[400px] overflow-y-auto custom-scrollbar text-white">
                             {pingResults.map((p, i) => (
-                                <div key={i} className="mb-1">
-                                    <span className="text-[#888]">[{new Date().toLocaleTimeString()}]</span> 64 bytes from {p.ip}: seq={p.seq} time={p.time}ms status={p.status}
+                                <div key={i} className={`mb-1 ${p.status === 'OK' ? 'text-white' : p.status === 'TIMEOUT' ? 'text-amber-400' : 'text-red-400'}`}>
+                                    <span className="text-[#888]">[{new Date().toLocaleTimeString()}]</span>{' '}
+                                    {p.status === 'OK' ? (
+                                        <>Reply from {p.ip}: seq={p.seq} port={p.port ?? 443} time={p.time}ms status=OK</>
+                                    ) : (
+                                        <>Probe failed for {p.ip}: seq={p.seq} status={p.status}{p.message ? ` — ${p.message}` : ''}</>
+                                    )}
                                 </div>
                             ))}
                             {isPinging && <div className="animate-pulse mt-2">_</div>}

@@ -3,7 +3,8 @@ import { queryDoH, enrichIP } from './dns';
 import { fetchShodanInternetDb } from './dns'; 
 import { CrtShEntry, WaybackResult } from '../types';
 import { fetchJsonWithCors } from './http';
-import { toProxyUrl } from './proxy';
+import { toProxyUrl, pingTargetViaProxy } from './proxy';
+import { isPublicDemo } from '../src/utils/demoMode';
 
 // --- IpApiIs Result Interface ---
 export interface IpApiIsResult {
@@ -793,40 +794,61 @@ export interface PingResult {
     time: number;
     status: 'OK' | 'TIMEOUT' | 'ERROR';
     ip: string;
+    port?: number;
+    message?: string;
+    fatal?: boolean;
 }
 
 export const performPing = async (target: string, seq: number): Promise<PingResult> => {
-    const startTime = performance.now();
-    let url = target.startsWith('http') ? target : `http://${target}`;
-    
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const proxyEndpoint = toProxyUrl(url);
-        
-        await fetch(proxyEndpoint, { 
-            method: 'HEAD', 
-            cache: 'no-store', 
-            signal: controller.signal 
-        });
-        
-        clearTimeout(timeoutId);
-        const endTime = performance.now();
-        
-        return {
-            seq,
-            time: Math.round(endTime - startTime),
-            status: 'OK',
-            ip: target
-        };
-    } catch (e: any) {
+    const cleanTarget = target.trim();
+    if (!cleanTarget) {
         return {
             seq,
             time: 0,
-            status: e.name === 'AbortError' ? 'TIMEOUT' : 'ERROR',
-            ip: target
+            status: 'ERROR',
+            ip: target,
+            message: 'A target IP or domain is required',
+            fatal: true,
         };
     }
+
+    if (isPublicDemo()) {
+        return {
+            seq,
+            time: 0,
+            status: 'ERROR',
+            ip: cleanTarget,
+            message: 'Authenticated session required for live network ping',
+            fatal: true,
+        };
+    }
+
+    const res = await pingTargetViaProxy(cleanTarget);
+    if (!res.ok) {
+        const isValidationOrPolicyError =
+            res.status === 400 ||
+            res.status === 401 ||
+            res.status === 403 ||
+            res.code === 'BAD_TARGET' ||
+            res.code === 'HOST_NOT_ALLOWED';
+        return {
+            seq,
+            time: 0,
+            status: 'ERROR',
+            ip: cleanTarget,
+            message: res.message,
+            fatal: isValidationOrPolicyError,
+        };
+    }
+
+    return {
+        seq,
+        time: res.data.rttMs,
+        status: res.data.status,
+        ip: res.data.resolvedIp || cleanTarget,
+        port: res.data.port,
+        message: res.data.message,
+    };
 };
 
 export interface TraceHop {

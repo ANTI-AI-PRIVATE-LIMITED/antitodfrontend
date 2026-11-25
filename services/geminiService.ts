@@ -66,7 +66,7 @@ export const createThreatChat = (context: string): ThreatChatSession => {
     parts: [
       {
         text: `You are ANTI.AI, an elite cybersecurity threat intelligence assistant.
-Embedded in ANTI.AI Threat Processor SOC platform.
+Embedded in ANTITODE Security Operations platform.
 
 CURRENT SESSION CONTEXT:
 ${context}

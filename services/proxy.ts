@@ -1,6 +1,7 @@
 import { BACKEND_URL, AUTH_CONFIG } from '../config/config';
 
 export const PROXY_ROUTE = '/AdminRoutes/proxy/fetch';
+export const WEBCHECK_PROXY_ROUTE = '/AdminRoutes/proxy/webcheck';
 
 /**
  * Transforms an arbitrary target URL into a proxied URL routed through the backend.
@@ -80,7 +81,7 @@ export function installProxyFetchInterceptor(force: boolean = false): void {
             urlStr = (input as Request).url;
         }
 
-        if (urlStr.includes(PROXY_ROUTE)) {
+        if (urlStr.includes(PROXY_ROUTE) || urlStr.includes(WEBCHECK_PROXY_ROUTE)) {
             const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
             const headers = new Headers(
                 init?.headers || (typeof input !== 'string' && !(input instanceof URL) ? (input as Request).headers : undefined)
@@ -156,5 +157,56 @@ export async function fetchTextViaProxy(targetUrl: string, init?: RequestInit): 
     } catch (err: any) {
         console.warn(`[ProxyFetch] Request failed for ${targetUrl}:`, err.message);
         return null;
+    }
+}
+
+export interface WebCheckProxyResponse {
+    targetUrl: string;
+    finalUrl: string;
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    redirects: string[];
+    htmlSample: string;
+    bodyBytes: number;
+    hasRobotsTxt: boolean;
+    hasSitemap: boolean;
+}
+
+export type WebCheckProxyResult =
+    | { ok: true; data: WebCheckProxyResponse }
+    | { ok: false; status: number; code?: string; message: string };
+
+/**
+ * Inspects a user-supplied URL via GET /AdminRoutes/proxy/webcheck using SSRF-safe server fetch.
+ */
+export async function inspectWebTargetViaProxy(targetUrl: string): Promise<WebCheckProxyResult> {
+    const base = (BACKEND_URL || '').replace(/\/+$/, '');
+    const endpoint = `${base}${WEBCHECK_PROXY_ROUTE}?url=${encodeURIComponent(targetUrl.trim())}`;
+    try {
+        const response = await fetch(endpoint, { headers: getProxyHeaders() });
+        if (!response.ok) {
+            let errorPayload: ProxyErrorPayload | null = null;
+            try {
+                errorPayload = await response.json();
+            } catch {
+                // Non-JSON error response
+            }
+            return {
+                ok: false,
+                status: response.status,
+                code: errorPayload?.code,
+                message: formatProxyErrorMessage(response.status, errorPayload),
+            };
+        }
+        const data = (await response.json()) as WebCheckProxyResponse;
+        return { ok: true, data };
+    } catch (err: any) {
+        return {
+            ok: false,
+            status: 0,
+            code: 'NETWORK_ERROR',
+            message: err?.message ? `Inspection request failed: ${err.message}` : 'Inspection request failed',
+        };
     }
 }

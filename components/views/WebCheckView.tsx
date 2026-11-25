@@ -76,12 +76,12 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
             lines.push(`Location:     ${result.ipInfo.city}, ${result.ipInfo.country_name} (${result.ipInfo.country_code})`);
             lines.push(`ASN:          ${result.ipInfo.asn?.asn} - ${result.ipInfo.asn?.name}`);
             lines.push(`Organization: ${result.ipInfo.company?.name || 'N/A'}`);
-            lines.push(`Risk Score:   ${result.ipInfo.threat.scores?.threat_score || 0}/100`);
+            lines.push(`Risk Score:   ${result.ipInfo.threat?.scores?.threat_score || 0}/100`);
             
             const threats = [];
-            if (result.ipInfo.threat.is_tor) threats.push("TOR Node");
-            if (result.ipInfo.threat.is_proxy) threats.push("Proxy/VPN");
-            if (result.ipInfo.threat.is_known_attacker) threats.push("Known Attacker");
+            if (result.ipInfo.threat?.is_tor) threats.push("TOR Node");
+            if (result.ipInfo.threat?.is_proxy) threats.push("Proxy/VPN");
+            if (result.ipInfo.threat?.is_known_attacker) threats.push("Known Attacker");
             if (threats.length > 0) lines.push(`Flags:        ${threats.join(', ')}`);
             lines.push("");
         }
@@ -99,11 +99,17 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
             lines.push("[ HTTP ANALYSIS ]");
             lines.push(`Status:       ${result.http.status} ${result.http.statusText}`);
             if (result.http.server) lines.push(`Server:       ${result.http.server}`);
-            
-            lines.push("\n-- Security Headers --");
-            result.http.securityHeaders.forEach(h => {
-                lines.push(`${h.name.padEnd(30)}: ${h.valid ? 'PRESENT' : 'MISSING'}`);
-            });
+            if (result.http.redirects.length > 0) lines.push(`Redirects:    ${result.http.redirects.join(' -> ')}`);
+
+            if (result.http.securityHeaders.length > 0) {
+                lines.push("\n-- Security Headers --");
+                result.http.securityHeaders.forEach(h => {
+                    lines.push(`${h.name.padEnd(30)}: ${h.valid ? 'PRESENT' : 'MISSING'}`);
+                });
+            } else {
+                lines.push("\n-- Security Headers --");
+                lines.push(`Not evaluated (${result.http.statusText || 'Inspection unavailable'})`);
+            }
             lines.push("");
         }
 
@@ -229,9 +235,11 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                                     <div className="flex gap-2 mt-1">
                                         <span className="px-2 py-0.5 rounded bg-[#151515] border border-[#333] text-xs text-[#AAA] font-mono">{result.inputType}</span>
                                         {result.http.status > 0 ? (
-                                            <span className={`px-2 py-0.5 rounded border text-xs font-mono ${result.http.status === 200 ? 'bg-neutral-900/30 border-neutral-500/30 text-white' : 'bg-neutral-900/30 border-neutral-500/30 text-white'}`}>HTTP {result.http.status}</span>
-                                        ) : loading && (
+                                            <span className={`px-2 py-0.5 rounded border text-xs font-mono ${result.http.status < 400 ? 'bg-neutral-900/30 border-neutral-500/30 text-white' : 'bg-red-900/20 border-red-500/40 text-red-400'}`}>HTTP {result.http.status}</span>
+                                        ) : loading && result.http.statusText === 'Pending...' ? (
                                             <span className="px-2 py-0.5 rounded border border-[#333] bg-[#151515]/50 text-[#888] text-xs flex items-center gap-1"><Loader2 className="animate-spin" size={10}/> Connecting...</span>
+                                        ) : (
+                                            <span className="px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-mono">HTTP UNAVAILABLE</span>
                                         )}
                                         {result.blocklist?.summary === 'MALICIOUS' && <span className="px-2 py-0.5 rounded border border-red-500 bg-red-900 text-white text-xs font-bold animate-pulse">THREAT DETECTED</span>}
                                     </div>
@@ -399,24 +407,24 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                                     <span className="text-xs text-[#AAA] font-mono">Pulse Count</span>
                                     <span className="text-white font-bold">{result.otx.pulse_count}</span>
                                 </div>
-                                {result.otx.malware_families.length > 0 && (
+                                {(result.otx.malware_families?.length ?? 0) > 0 && (
                                     <div>
                                         <div className="text-[10px] text-[#888] uppercase font-bold mb-1">Malware Families</div>
                                         <div className="flex flex-wrap gap-1">
-                                            {result.otx.malware_families.map((m, i) => (
+                                            {(result.otx.malware_families ?? []).map((m, i) => (
                                                 <span key={i} className="text-[10px] bg-red-900/20 text-red-300 px-1.5 py-0.5 rounded border border-red-500/20">{m}</span>
                                             ))}
                                         </div>
                                     </div>
                                 )}
-                                {result.otx.tags.length > 0 && (
+                                {(result.otx.tags?.length ?? 0) > 0 && (
                                     <div>
                                         <div className="text-[10px] text-[#888] uppercase font-bold mb-1">Tags</div>
                                         <div className="flex flex-wrap gap-1">
-                                            {result.otx.tags.slice(0, 10).map((t, i) => (
+                                            {(result.otx.tags ?? []).slice(0, 10).map((t, i) => (
                                                 <span key={i} className="text-[10px] bg-[#151515] text-[#AAA] px-1.5 py-0.5 rounded border border-[#333]">{t}</span>
                                             ))}
-                                            {result.otx.tags.length > 10 && <span className="text-[9px] text-neutral-600">+{result.otx.tags.length - 10}</span>}
+                                            {(result.otx.tags?.length ?? 0) > 10 && <span className="text-[9px] text-neutral-600">+{(result.otx.tags?.length ?? 0) - 10}</span>}
                                         </div>
                                     </div>
                                 )}
@@ -477,7 +485,87 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                         )}
                     </Card>
 
-                    {/* 12. Carbon Footprint */}
+                    {/* 12. HTTP Security Headers */}
+                    <Card title="HTTP Security Headers" icon={Lock} color="text-red-400" loading={loading && result.http.statusText === 'Pending...'}>
+                        {result.http.securityHeaders.length > 0 ? (
+                            <div className="space-y-2 font-mono text-xs">
+                                <div className="flex justify-between items-center text-[11px] pb-1 border-b border-[#222]">
+                                    <span className="text-[#888]">Status</span>
+                                    <span className="text-white">{result.http.status} {result.http.statusText}</span>
+                                </div>
+                                {result.http.securityHeaders.map((h, i) => (
+                                    <div key={i} className="flex items-center justify-between p-1.5 rounded bg-[#111]/30 border border-[#222]">
+                                        <span className="text-[#AAA] truncate pr-2">{h.name}</span>
+                                        {h.valid ? (
+                                            <span className="text-emerald-400 font-bold flex items-center gap-1 shrink-0">
+                                                <CheckCircle size={10}/> PRESENT
+                                            </span>
+                                        ) : (
+                                            <span className="text-amber-400 font-bold flex items-center gap-1 shrink-0">
+                                                <AlertTriangle size={10}/> MISSING
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center px-2 py-4">
+                                <AlertTriangle size={20} className="text-amber-400/70 mb-2"/>
+                                <div className="text-xs text-neutral-300 font-mono">
+                                    {loading && result.http.statusText === 'Pending...' ? 'Inspecting HTTP headers...' : (result.http.statusText || 'HTTP header inspection unavailable.')}
+                                </div>
+                            </div>
+                        )}
+                    </Card>
+
+                    {/* 13. Page Metadata & Tech Stack */}
+                    <Card title="Page & Tech Stack" icon={Code} color="text-red-400" loading={loading && result.http.statusText === 'Pending...'}>
+                        <div className="space-y-3 text-xs font-mono">
+                            {result.page.title && (
+                                <div className="bg-[#151515]/50 p-2 rounded border border-[#222]">
+                                    <div className="text-[10px] text-[#888] uppercase mb-0.5">Page Title</div>
+                                    <div className="text-white truncate" title={result.page.title}>{result.page.title}</div>
+                                </div>
+                            )}
+                            <div className="flex gap-2">
+                                <div className="flex-1 flex items-center justify-between p-2 rounded bg-[#111]/30 border border-[#222]">
+                                    <span className="text-[#888]">robots.txt</span>
+                                    <span className={result.page.hasRobotsTxt ? 'text-emerald-400 font-bold' : 'text-neutral-500'}>
+                                        {result.page.hasRobotsTxt ? 'FOUND' : 'N/A'}
+                                    </span>
+                                </div>
+                                <div className="flex-1 flex items-center justify-between p-2 rounded bg-[#111]/30 border border-[#222]">
+                                    <span className="text-[#888]">sitemap.xml</span>
+                                    <span className={result.page.hasSitemap ? 'text-emerald-400 font-bold' : 'text-neutral-500'}>
+                                        {result.page.hasSitemap ? 'FOUND' : 'N/A'}
+                                    </span>
+                                </div>
+                            </div>
+                            {result.page.techStack.length > 0 ? (
+                                <div>
+                                    <div className="text-[10px] text-[#888] uppercase font-bold mb-1">Detected Technologies</div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {result.page.techStack.map((tech, i) => (
+                                            <span key={i} className="text-[10px] bg-red-500/10 text-red-300 px-2 py-0.5 rounded border border-red-500/30">
+                                                {tech}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-[#888] italic">
+                                    {loading && result.http.statusText === 'Pending...' ? 'Detecting technologies...' : 'No page signatures detected.'}
+                                </div>
+                            )}
+                            {Object.keys(result.page.metaTags).length > 0 && (
+                                <div className="text-[10px] text-[#888] pt-1 border-t border-[#222]">
+                                    Meta tags parsed: <span className="text-white">{Object.keys(result.page.metaTags).length}</span>
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+
+                    {/* 14. Carbon Footprint */}
                     {result.carbon && (
                         <Card title="Carbon Footprint" icon={Leaf} color="text-white">
                             <div className="flex items-center justify-center flex-col h-full">
@@ -502,16 +590,16 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                                 </div>
                                 <div className="flex justify-between border-b border-[#222] pb-1">
                                     <span className="text-[#888]">Threat Score</span>
-                                    <span className="text-red-400">{result.ipInfo.threat.scores?.threat_score || 0}</span>
+                                    <span className="text-red-400">{result.ipInfo.threat?.scores?.threat_score || 0}</span>
                                 </div>
                                 <div className="flex justify-between border-b border-[#222] pb-1">
                                     <span className="text-[#888]">Datacenter</span>
-                                    <span className={result.ipInfo.threat.is_datacenter ? "text-white" : "text-[#AAA]"}>{result.ipInfo.threat.is_datacenter ? 'YES' : 'NO'}</span>
+                                    <span className={result.ipInfo.threat?.is_datacenter ? "text-white" : "text-[#AAA]"}>{result.ipInfo.threat?.is_datacenter ? 'YES' : 'NO'}</span>
                                 </div>
                                 <div className="flex justify-between border-b border-[#222] pb-1">
                                     <span className="text-[#888]">Tor / Proxy</span>
-                                    <span className={result.ipInfo.threat.is_tor || result.ipInfo.threat.is_proxy ? "text-red-400" : "text-[#AAA]"}>
-                                        {result.ipInfo.threat.is_tor || result.ipInfo.threat.is_proxy ? 'YES' : 'NO'}
+                                    <span className={result.ipInfo.threat?.is_tor || result.ipInfo.threat?.is_proxy ? "text-red-400" : "text-[#AAA]"}>
+                                        {result.ipInfo.threat?.is_tor || result.ipInfo.threat?.is_proxy ? 'YES' : 'NO'}
                                     </span>
                                 </div>
                                 
@@ -520,23 +608,23 @@ export const WebCheckView: React.FC<WebCheckViewProps> = ({ logoUrl }) => {
                                     <div className="pt-2 mt-2 border-t border-[#222]">
                                         <div className="text-[10px] text-white font-bold mb-1 flex items-center gap-1"><Zap size={10}/> SHODAN</div>
                                         
-                                        {result.ipInfo.shodan.ports.length > 0 && (
+                                        {(result.ipInfo.shodan.ports?.length ?? 0) > 0 && (
                                             <div className="flex flex-wrap gap-1 mb-2">
-                                                {result.ipInfo.shodan.ports.map(p => (
+                                                {(result.ipInfo.shodan.ports ?? []).map(p => (
                                                     <span key={p} className="text-[9px] bg-[#151515] text-neutral-300 px-1 rounded border border-[#333]">{p}</span>
                                                 ))}
                                             </div>
                                         )}
                                         
-                                        {result.ipInfo.shodan.vulns.length > 0 && (
+                                        {(result.ipInfo.shodan.vulns?.length ?? 0) > 0 && (
                                             <div className="flex flex-wrap gap-1">
-                                                {result.ipInfo.shodan.vulns.map(v => (
+                                                {(result.ipInfo.shodan.vulns ?? []).map(v => (
                                                     <span key={v} className="text-[9px] bg-red-900/20 text-red-400 px-1 rounded border border-red-500/30">{v}</span>
                                                 ))}
                                             </div>
                                         )}
                                         
-                                        {!result.ipInfo.shodan.ports.length && !result.ipInfo.shodan.vulns.length && (
+                                        {!(result.ipInfo.shodan.ports?.length) && !(result.ipInfo.shodan.vulns?.length) && (
                                             <span className="text-[#888] italic">No open ports found.</span>
                                         )}
                                     </div>

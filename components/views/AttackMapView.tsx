@@ -5,6 +5,9 @@ import { AnalyzedHost } from '../../types';
 import { Map as MapIcon, Target, Maximize2, Minimize2, Play, Pause, Globe, Activity, Terminal, MousePointer2, Plus, Minus, Loader2 } from 'lucide-react';
 import { ThreeGlobeArc, ThreeGlobeRing, ThreeGlobePoint, ThreeGlobeLabel, ThreeGlobeViewHandle } from './ThreeGlobeView';
 import { isPublicDemo } from '../../src/utils/demoMode';
+import { COUNTRY_COORDS } from '../../src/utils/geoCountries';
+
+export { COUNTRY_COORDS };
 
 const ThreeGlobeView = React.lazy(() => import('./ThreeGlobeView'));
 
@@ -95,20 +98,7 @@ interface AttackLabel {
 }
 
 // Fixed HQ location (Default to US East / N. Virginia)
-export const DEFAULT_HQ: [number, number] = [-77.48, 39.04]; 
-
-// Approximate Country Centers for mapping codes to coordinates
-export const COUNTRY_COORDS: Record<string, [number, number]> = {
-    'CN': [104.1, 35.8], 'RU': [105.3, 61.5], 'US': [-95.7, 37.0],
-    'BR': [-51.9, -14.2], 'IN': [78.9, 20.5], 'DE': [10.4, 51.1],
-    'IR': [53.6, 32.4], 'KP': [127.5, 40.3], 'KR': [127.7, 35.9],
-    'GB': [-3.4, 55.3], 'FR': [2.2, 46.2], 'JP': [138.2, 36.2],
-    'UA': [31.1, 48.3], 'BY': [27.9, 53.7], 'VN': [108.2, 14.0],
-    'TR': [35.2, 38.9], 'RO': [24.9, 45.9], 'NL': [5.2, 52.1],
-    'CA': [-106.3, 56.1], 'AU': [133.7, -25.2], 'IT': [12.5, 41.8],
-    'ES': [-3.7, 40.4], 'PL': [19.1, 51.9], 'ID': [113.9, -0.7],
-    'MX': [-102.5, 23.6], 'SA': [45.0, 23.8], 'ZA': [22.9, -30.5]
-};
+export const DEFAULT_HQ: [number, number] = [-77.48, 39.04];
 
 export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThreats = [], cinematic = false, allowInteraction = false }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);

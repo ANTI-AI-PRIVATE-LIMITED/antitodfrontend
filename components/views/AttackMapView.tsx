@@ -20,6 +20,21 @@ export interface AttackTarget {
     risk: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 }
 
+/** Maps attack severity to ANTITODE dark cyber palette colors (no corporate blue). */
+export function getAttackRiskColor(risk?: string): string {
+    switch (risk) {
+        case 'CRITICAL':
+            return '#ef4444';
+        case 'HIGH':
+            return '#f97316';
+        case 'MEDIUM':
+            return '#eab308';
+        case 'LOW':
+        default:
+            return '#4d8760';
+    }
+}
+
 interface AttackMapViewProps {
     results: AnalyzedHost[];
     globalThreats?: AttackTarget[];
@@ -194,10 +209,7 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
                 return;
             }
 
-            let color = '#3b82f6';
-            if (target.risk === 'CRITICAL') color = '#ef4444';
-            else if (target.risk === 'HIGH') color = '#f97316';
-            else if (target.risk === 'MEDIUM') color = '#eab308';
+            const color = getAttackRiskColor(target.risk);
 
             const newArc: ThreeGlobeArc = {
                 id: Math.random(),
@@ -384,10 +396,7 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
 
                 if (!start) start = [(Math.random() * 360) - 180, (Math.random() * 120) - 60];
 
-                let color = '#3b82f6';
-                if (target.risk === 'CRITICAL') color = '#ef4444';
-                else if (target.risk === 'HIGH') color = '#f97316';
-                else if (target.risk === 'MEDIUM') color = '#eab308';
+                const color = getAttackRiskColor(target.risk);
 
                 projectilesRef.current.push({
                     id: Math.random(),

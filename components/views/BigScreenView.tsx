@@ -884,7 +884,7 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                     {iocStats.types.map((t, i) => (
                                         <div key={i} className="flex flex-col items-center gap-2">
                                             <div className="h-32 w-10 bg-[#151515] rounded-t relative overflow-hidden flex items-end">
-                                                <div className="w-full bg-[#151515] shadow-[0_0_10px_#3b82f6]" style={{ height: `${(t.count / Math.max(1, iocStats.types[0].count)) * 100}%` }}></div>
+                                                <div className="w-full bg-amber-500/80 shadow-[0_0_10px_rgba(245,158,11,0.45)]" style={{ height: `${(t.count / Math.max(1, iocStats.types[0].count)) * 100}%` }}></div>
                                             </div>
                                             <div className="mt-1 text-xs font-bold text-white">{t.count}</div>
                                             <div className="text-[10px] text-[#888] uppercase">{t.label}</div>

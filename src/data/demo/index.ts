@@ -14,3 +14,4 @@ export * from './intel';
 export * from './exploits';
 export * from './iocFeeds';
 export * from './ransomware';
+export * from './infrastructure';

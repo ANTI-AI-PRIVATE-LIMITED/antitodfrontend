@@ -25,6 +25,16 @@ import { handleApiError } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { isPublicDemo } from '../../src/utils/demoMode';
 import { isValidAllowedIp, isValidIpAddress } from '../../src/utils/networkValidation';
+import {
+    DEMO_INFRA_TOOLTIP,
+    DEMO_SERVERS_OVERVIEW,
+    DEMO_SHIPPERS,
+    DEMO_TEMPLATES,
+    getDemoAgentMetrics,
+    getDemoContainers,
+    getDemoDeployments,
+    getDemoServerDetail,
+} from '../../src/data/demo/infrastructure';
 
 // ── Utility helpers ────────────────────────────────────────────────────────
 
@@ -460,7 +470,7 @@ const RegisterServerModal: React.FC<{
             return;
         }
         if (!isValidIpAddress(form.PublicIp)) {
-            nextFieldErrors.PublicIp = 'Enter a valid IPv4 or IPv6 address (e.g. 13.233.163.244).';
+            nextFieldErrors.PublicIp = 'Enter a valid IPv4 or IPv6 address (e.g. 203.0.113.10).';
         }
         if (form.PrivateIp.trim() && !isValidIpAddress(form.PrivateIp)) {
             nextFieldErrors.PrivateIp = 'Enter a valid IPv4 or IPv6 address (e.g. 10.0.1.50).';
@@ -506,10 +516,10 @@ const RegisterServerModal: React.FC<{
     };
 
     const fields: { key: string; label: string; placeholder: string; required?: boolean }[] = [
-        { key: 'ServerId',  label: 'Server ID',   placeholder: 'deqoy-prod-1',         required: true },
-        { key: 'Hostname',  label: 'Hostname',    placeholder: 'deqoy',                required: true },
-        { key: 'PublicIp',  label: 'Public IP',   placeholder: '13.233.163.244',       required: true },
-        { key: 'Region',    label: 'Region',      placeholder: 'ap-south-1',           required: true },
+        { key: 'ServerId',  label: 'Server ID',   placeholder: 'edge-sensor-01',       required: true },
+        { key: 'Hostname',  label: 'Hostname',    placeholder: 'honeypot-node-01',     required: true },
+        { key: 'PublicIp',  label: 'Public IP',   placeholder: '203.0.113.10',         required: true },
+        { key: 'Region',    label: 'Region',      placeholder: 'us-west-2',            required: true },
         { key: 'PrivateIp', label: 'Private IP',  placeholder: '10.0.1.50 (optional)' },
         { key: 'Provider',  label: 'Provider',    placeholder: 'aws' },
         { key: 'Os',        label: 'OS',          placeholder: 'Ubuntu 24.04 (optional)' },
@@ -721,7 +731,7 @@ const RegisterShipperModal: React.FC<{
     const submit = async () => {
         if (!allowedIp.trim()) { setError('Allowed IP is required.'); return; }
         if (!isValidAllowedIp(allowedIp)) {
-            setError('Allowed IP must be a valid IPv4/IPv6 address (e.g. 13.233.163.244) or localhost.');
+            setError('Allowed IP must be a valid IPv4/IPv6 address (e.g. 203.0.113.10) or localhost.');
             return;
         }
         setLoading(true); setError('');
@@ -753,7 +763,7 @@ const RegisterShipperModal: React.FC<{
                         <input
                             value={allowedIp}
                             onChange={e => { setAllowedIp(e.target.value); if (error) setError(''); }}
-                            placeholder="13.233.163.244"
+                            placeholder="203.0.113.10"
                             aria-invalid={error ? true : undefined}
                             className={`w-full bg-[#151515] border ${error ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500`}
                         />
@@ -809,8 +819,13 @@ const ServerDetailPanel: React.FC<{
 
     const agentId = server.agent.isRegistered ? server.agent.agentId : null;
     const isOnline = server.agent.isRegistered && server.agent.status === 'online';
+    const demoMode = isPublicDemo();
 
     const loadDetail = useCallback(async () => {
+        if (isPublicDemo()) {
+            setDetail(getDemoServerDetail(server.ServerId));
+            return;
+        }
         setLoading(true); setError('');
         try {
             const d = await agentService.getServerOverview(server.ServerId);
@@ -822,6 +837,10 @@ const ServerDetailPanel: React.FC<{
 
     const loadContainers = useCallback(async () => {
         if (!agentId) return;
+        if (isPublicDemo()) {
+            setContainers(getDemoContainers(server.ServerId));
+            return;
+        }
         containersListAbortRef.current?.abort();
         const ac = new AbortController();
         containersListAbortRef.current = ac;
@@ -839,10 +858,14 @@ const ServerDetailPanel: React.FC<{
                 setLoading(false);
             }
         }
-    }, [agentId]);
+    }, [agentId, server.ServerId]);
 
     const loadDeployments = useCallback(async () => {
         if (!agentId) return;
+        if (isPublicDemo()) {
+            setDeployments(getDemoDeployments(server.ServerId));
+            return;
+        }
         setLoading(true); setError('');
         try {
             const d = await agentService.listDeployments(agentId);
@@ -850,10 +873,14 @@ const ServerDetailPanel: React.FC<{
         } catch (e: any) {
             setError(e?.response?.data?.message ?? 'Failed to load deployments');
         } finally { setLoading(false); }
-    }, [agentId]);
+    }, [agentId, server.ServerId]);
 
     const loadMetrics = useCallback(async () => {
         if (!agentId) return;
+        if (isPublicDemo()) {
+            setMetrics(getDemoAgentMetrics(server.ServerId));
+            return;
+        }
         setLoading(true); setError('');
         try {
             const m = await agentService.getMetrics(agentId);
@@ -861,7 +888,7 @@ const ServerDetailPanel: React.FC<{
         } catch (e: any) {
             setError(e?.response?.data?.message ?? 'Failed to load metrics');
         } finally { setLoading(false); }
-    }, [agentId]);
+    }, [agentId, server.ServerId]);
 
     useEffect(() => {
         if (tab === 'overview') loadDetail();
@@ -996,8 +1023,15 @@ const ServerDetailPanel: React.FC<{
                             <Upload size={12}/> Deploy
                         </button>
                     )}
-                    {can('infrastructure.servers.manage') && !server.agent.isRegistered && (
-                        <button onClick={() => onRegisterAgent(server.ServerId)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-red-400 text-xs font-mono hover:bg-neutral-500/20 transition-colors">
+                    {(demoMode || can('infrastructure.servers.manage')) && !server.agent.isRegistered && (
+                        <button
+                            type="button"
+                            disabled={demoMode}
+                            aria-disabled={demoMode || undefined}
+                            title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register monitoring agent'}
+                            onClick={() => { if (!demoMode) onRegisterAgent(server.ServerId); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-red-400 text-xs font-mono hover:bg-neutral-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             <Plus size={12}/> Register Agent
                         </button>
                     )}
@@ -1099,9 +1133,18 @@ const ServerDetailPanel: React.FC<{
                             ) : (
                                 <div className="flex flex-col items-center gap-3 py-4">
                                     <p className="text-xs text-[#888] font-mono">No agent registered for this server.</p>
-                                    {can('infrastructure.servers.manage') && (<button onClick={() => onRegisterAgent(server.ServerId)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-red-400 text-xs font-mono hover:bg-neutral-500/20 transition-colors">
-                                        <Plus size={13}/> Register Agent
-                                    </button>)}
+                                    {(demoMode || can('infrastructure.servers.manage')) && (
+                                        <button
+                                            type="button"
+                                            disabled={demoMode}
+                                            aria-disabled={demoMode || undefined}
+                                            title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register monitoring agent'}
+                                            onClick={() => { if (!demoMode) onRegisterAgent(server.ServerId); }}
+                                            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-red-400 text-xs font-mono hover:bg-neutral-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Plus size={13}/> Register Agent
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1110,8 +1153,15 @@ const ServerDetailPanel: React.FC<{
                         <div className="bg-[#111] border border-[#222] rounded-xl p-4 space-y-3">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-bold text-[#AAA] uppercase tracking-widest font-mono">Log Shipper</h4>
-                                {can('infrastructure.shippers.manage') && !detail.shipper.isRegistered && (
-                                    <button onClick={() => setShowRegisterShipper(true)} className="flex items-center gap-1 px-2.5 py-1 rounded bg-neutral-500/10 border border-neutral-500/30 text-white text-[10px] font-mono hover:bg-neutral-500/20 transition-colors">
+                                {(demoMode || can('infrastructure.shippers.manage')) && !detail.shipper.isRegistered && (
+                                    <button
+                                        type="button"
+                                        disabled={demoMode}
+                                        aria-disabled={demoMode || undefined}
+                                        title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register log shipper'}
+                                        onClick={() => { if (!demoMode) setShowRegisterShipper(true); }}
+                                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-neutral-500/10 border border-neutral-500/30 text-white text-[10px] font-mono hover:bg-neutral-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
                                         <Plus size={10}/> Register
                                     </button>
                                 )}
@@ -1617,10 +1667,14 @@ export const InfrastructureView: React.FC = () => {
     const [showRegisterServer, setShowRegisterServer] = useState(false);
     // Portainer health is a platform-staff endpoint (403 for customer accounts), so only query it for staff.
     const { admin, permissionsLoaded } = useAuth();
-    const isPlatformUser = !admin?.CustomerID;
+    const demoMode = isPublicDemo();
+    const isPlatformUser = !demoMode && !admin?.CustomerID;
 
     const loadShippers = useCallback(async () => {
-        if (isPublicDemo()) return;
+        if (isPublicDemo()) {
+            setShippers(DEMO_SHIPPERS);
+            return;
+        }
         setLoadingShippers(true);
         try {
             const res = await adminService.listShippers();
@@ -1630,7 +1684,10 @@ export const InfrastructureView: React.FC = () => {
     }, []);
 
     const loadOverview = useCallback(async () => {
-        if (isPublicDemo()) return;
+        if (isPublicDemo()) {
+            setOverview(DEMO_SERVERS_OVERVIEW);
+            return;
+        }
         setLoadingOverview(true); setOverviewError('');
         try {
             const d = await agentService.getServersOverview();
@@ -1646,7 +1703,10 @@ export const InfrastructureView: React.FC = () => {
     }, [selectedServer]);
 
     const loadTemplates = useCallback(async () => {
-        if (isPublicDemo()) return;
+        if (isPublicDemo()) {
+            setTemplates(DEMO_TEMPLATES);
+            return;
+        }
         setLoadingTemplates(true);
         try {
             const t = await agentService.listTemplates();
@@ -1655,7 +1715,7 @@ export const InfrastructureView: React.FC = () => {
     }, []);
 
     const checkPortainerHealth = useCallback(async () => {
-        if (!permissionsLoaded || !isPlatformUser) return;
+        if (!permissionsLoaded || !isPlatformUser || isPublicDemo()) return;
         try {
             const h = await agentService.getPortainerHealth();
             setPortainerHealth(h.status);
@@ -1673,6 +1733,7 @@ export const InfrastructureView: React.FC = () => {
     }, [checkPortainerHealth]);
 
     const handleRegisterAgent = async (serverId: string) => {
+        if (demoMode) return;
         setRegisterLoading(true); setRegisterError('');
         try {
             const res = await agentService.registerAgent({ ServerId: serverId });
@@ -1697,6 +1758,11 @@ export const InfrastructureView: React.FC = () => {
                     <div>
                         <h2 className="text-lg font-bold text-white font-cyber flex items-center gap-2">
                             INFRASTRUCTURE <span className="text-red-500">MANAGER</span>
+                            {demoMode && (
+                                <span className="px-2 py-0.5 rounded border border-amber-500/35 bg-amber-500/10 text-amber-300 text-[10px] font-mono font-bold tracking-wider">
+                                    DEMO SANDBOX
+                                </span>
+                            )}
                         </h2>
                         <p className="text-xs text-[#888] font-mono">Servers · Agents · Shippers · Deployments</p>
                     </div>
@@ -1725,6 +1791,13 @@ export const InfrastructureView: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {demoMode && (
+                <div className="mx-4 mt-3 flex items-center gap-2 text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 font-mono">
+                    <ShieldCheck size={14} className="shrink-0 text-amber-400"/>
+                    <span>Read-only preview with sample infrastructure nodes. Sign in with a customer account to register live servers, agents, and shippers.</span>
+                </div>
+            )}
 
             {/* Section Tab Bar */}
             <div className="flex border-b border-[#222] bg-[#111]/30 shrink-0">
@@ -1755,12 +1828,18 @@ export const InfrastructureView: React.FC = () => {
                         <div className="p-3 border-b border-[#222] flex items-center justify-between shrink-0">
                             <span className="text-xs text-[#888] font-mono">{overview?.count ?? 0} servers registered</span>
                             <div className="flex items-center gap-2">
-                                {can('infrastructure.servers.manage') && (<button
-                                    onClick={() => setShowRegisterServer(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-mono font-bold hover:bg-red-500/20 transition-colors"
-                                >
-                                    <Plus size={12}/> Register Server
-                                </button>)}
+                                {(demoMode || can('infrastructure.servers.manage')) && (
+                                    <button
+                                        type="button"
+                                        disabled={demoMode}
+                                        aria-disabled={demoMode || undefined}
+                                        title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register a new server node'}
+                                        onClick={() => { if (!demoMode) setShowRegisterServer(true); }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-mono font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Plus size={12}/> Register Server
+                                    </button>
+                                )}
                                 <button onClick={loadOverview} disabled={loadingOverview} className="p-1.5 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><RefreshCw size={13} className={loadingOverview ? 'animate-spin' : ''}/></button>
                             </div>
                         </div>

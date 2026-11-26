@@ -1688,6 +1688,10 @@ const THEME_PALETTES: Record<
     }, []);
 
     useEffect(() => {
+        setSearchOpen(false);
+    }, [activeView, isStorageLoaded]);
+
+    useEffect(() => {
         const desiredPath =
             routeForView(activeView);
 

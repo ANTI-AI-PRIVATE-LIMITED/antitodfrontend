@@ -819,7 +819,7 @@
 .at-command-overlay {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 600;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -865,6 +865,26 @@
   min-width: 24px;
   justify-content: center;
   padding: 4px 6px;
+}
+
+.at-command-close {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #707070;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.at-command-close:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ededed;
 }
 
 .at-command-results {
@@ -2788,7 +2808,7 @@
 
 /* Command palette */
 .at-command-overlay {
-  z-index: 300;
+  z-index: 600;
   background: rgba(0, 0, 0, 0.68) !important;
   backdrop-filter: blur(9px);
 }

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Command, Search } from 'lucide-react';
-import { NAV_GROUPS, VISIBLE_NAV_ITEMS, canonicalViewId, findNavGroup, isPreview, type NavItem } from '../../data/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRight, Command, Search, X } from 'lucide-react';
+import { VISIBLE_NAV_ITEMS, canonicalViewId, isPreview, type NavItem } from '../../data/navigation';
 import { routeForView } from '../../data/routes';
 
 interface CommandPaletteProps {
@@ -12,6 +12,7 @@ interface CommandPaletteProps {
 export default function CommandPalette({ isOpen, onClose, onNavigate }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
+  const startedInsideModalRef = useRef(false);
 
   const items = useMemo<NavItem[]>(() => {
     const value = query.trim().toLowerCase();
@@ -27,21 +28,28 @@ export default function CommandPalette({ isOpen, onClose, onNavigate }: CommandP
     const keyHandler = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        event.stopPropagation();
         onClose();
+        return;
       }
 
       if (event.key === 'ArrowDown') {
         event.preventDefault();
+        event.stopPropagation();
         setCursor((current) => Math.min(current + 1, Math.max(items.length - 1, 0)));
+        return;
       }
 
       if (event.key === 'ArrowUp') {
         event.preventDefault();
+        event.stopPropagation();
         setCursor((current) => Math.max(current - 1, 0));
+        return;
       }
 
       if (event.key === 'Enter') {
         event.preventDefault();
+        event.stopPropagation();
         const item = items[cursor];
         if (item) {
           onNavigate(canonicalViewId(item.id));
@@ -50,22 +58,37 @@ export default function CommandPalette({ isOpen, onClose, onNavigate }: CommandP
       }
     };
 
-    document.addEventListener('keydown', keyHandler);
-    return () => document.removeEventListener('keydown', keyHandler);
+    document.addEventListener('keydown', keyHandler, true);
+    return () => document.removeEventListener('keydown', keyHandler, true);
   }, [isOpen, items, cursor, onClose, onNavigate]);
 
   useEffect(() => {
     if (isOpen) {
       setQuery('');
       setCursor(0);
+      startedInsideModalRef.current = false;
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="at-command-overlay" role="presentation" onMouseDown={onClose}>
-      <div className="at-command-modal" role="dialog" aria-modal="true" aria-label="Global navigation" onMouseDown={(event) => event.stopPropagation()}>
+    <div
+      className="at-command-overlay"
+      role="presentation"
+      onMouseDown={(event) => {
+        startedInsideModalRef.current = event.target !== event.currentTarget;
+      }}
+      onClick={(event) => {
+        const clickedBackdrop = event.target === event.currentTarget;
+        const startedInside = startedInsideModalRef.current;
+        startedInsideModalRef.current = false;
+        if (clickedBackdrop && !startedInside) {
+          onClose();
+        }
+      }}
+    >
+      <div className="at-command-modal" role="dialog" aria-modal="true" aria-label="Global navigation">
         <div className="at-command-input-row">
           <Search size={16} />
           <input
@@ -79,6 +102,15 @@ export default function CommandPalette({ isOpen, onClose, onNavigate }: CommandP
             aria-label="Search modules"
           />
           <kbd><Command size={10} />K</kbd>
+          <button
+            type="button"
+            className="at-command-close"
+            onClick={onClose}
+            aria-label="Close global search"
+            title="Close (Esc)"
+          >
+            <X size={15} />
+          </button>
         </div>
 
         <div className="at-command-results">

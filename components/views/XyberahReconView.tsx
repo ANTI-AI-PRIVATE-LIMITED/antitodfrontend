@@ -498,6 +498,7 @@ export const XyberahReconView: React.FC = () => {
 
   const [targetsRefreshing, setTargetsRefreshing] = useState(false);
   const [targetSettingsOpen, setTargetSettingsOpen] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState(false);
   const [workers, setWorkers] = useState<AsmWorker[]>([]);
   const [workersMeta, setWorkersMeta] = useState<{ total?: number; page?: number; limit?: number; pageCount?: number; hasNextPage?: boolean }>({});
   const [workersRefreshing, setWorkersRefreshing] = useState(false);
@@ -1453,16 +1454,18 @@ export const XyberahReconView: React.FC = () => {
 
   const handleDeleteTarget = async () => {
     if (!selectedWorkspaceId || !targetDetail?.id) return;
-    if (!window.confirm(`Delete target "${targetDetail.value}" from workspace?`)) return;
     setSubmitting(true);
     try {
       const result = await openasm.deleteTargetFromWorkspace(targetDetail.id, selectedWorkspaceId);
+      setConfirmDeleteTarget(false);
+      setTargetSettingsOpen(false);
       setNotice(result.message ?? 'Target deleted from workspace.');
       setSelectedTargetId(null);
       setTargetDetail(null);
       setTargetRoute(null);
       await loadTargets(selectedWorkspaceId);
     } catch (e) {
+      setConfirmDeleteTarget(false);
       setError(formatApiError(e));
     } finally {
       setSubmitting(false);
@@ -2368,6 +2371,7 @@ export const XyberahReconView: React.FC = () => {
                             setSelectedTargetId(null);
                             setTargetDetail(null);
                             setTargetRoute(null);
+                            setConfirmDeleteTarget(false);
                             setTargetSettingsOpen(false);
                           }}
                           className="rounded bg-[#151515] px-2 py-1 text-xs font-mono text-white hover:bg-[#1C1C1C]"
@@ -2401,6 +2405,7 @@ export const XyberahReconView: React.FC = () => {
                               setSelectedTargetId(null);
                               setTargetDetail(null);
                               setTargetRoute(null);
+                              setConfirmDeleteTarget(false);
                               setTargetSettingsOpen(false);
                             }}
                             className="rounded-lg p-2 text-[#AAA] hover:bg-[#151515] hover:text-white"
@@ -2480,7 +2485,10 @@ export const XyberahReconView: React.FC = () => {
                     {targetSettingsOpen && targetDetail ? (
                       <div
                         className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111]/70 p-4 backdrop-blur-sm"
-                        onClick={() => setTargetSettingsOpen(false)}
+                        onClick={() => {
+                          setConfirmDeleteTarget(false);
+                          setTargetSettingsOpen(false);
+                        }}
                       >
                         <div
                           className="w-full max-w-md rounded-2xl border border-[#222] bg-[#0c1220] p-6 shadow-2xl"
@@ -2490,7 +2498,10 @@ export const XyberahReconView: React.FC = () => {
                             <h2 className="text-lg font-semibold text-white">{targetDetail.value}</h2>
                             <button
                               type="button"
-                              onClick={() => setTargetSettingsOpen(false)}
+                              onClick={() => {
+                                setConfirmDeleteTarget(false);
+                                setTargetSettingsOpen(false);
+                              }}
                               className="rounded-lg p-1 text-[#AAA] hover:bg-[#151515] hover:text-white"
                             >
                               <X size={20} />
@@ -2549,16 +2560,47 @@ export const XyberahReconView: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          <div className="flex justify-center border-t border-[#222] pt-6">
-                            <button
-                              type="button"
-                              onClick={handleDeleteTarget}
-                              disabled={submitting}
-                              className="inline-flex items-center gap-2 rounded-xl border border-neutral-600 bg-[#111]/30 px-5 py-2.5 text-sm font-medium text-red-400 hover:border-red-500/40 hover:bg-red-950/20 disabled:opacity-50"
-                            >
-                              <Trash2 size={16} />
-                              Delete target
-                            </button>
+                          <div className="flex flex-col items-center gap-3 border-t border-[#222] pt-6">
+                            {confirmDeleteTarget ? (
+                              <div
+                                role="alertdialog"
+                                aria-label="Confirm target deletion"
+                                className="w-full rounded-xl border border-red-500/35 bg-red-950/25 p-3.5 text-center space-y-3"
+                              >
+                                <p className="text-xs text-red-200">
+                                  Delete target <span className="font-mono font-semibold text-white">{targetDetail.value}</span> from workspace?
+                                </p>
+                                <div className="flex items-center justify-center gap-2.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteTarget(false)}
+                                    disabled={submitting}
+                                    className="rounded-lg border border-neutral-700 bg-[#151515] px-3.5 py-1.5 text-xs font-medium text-neutral-300 hover:text-white disabled:opacity-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleDeleteTarget()}
+                                    disabled={submitting}
+                                    className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                                  >
+                                    <Trash2 size={14} />
+                                    Confirm Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteTarget(true)}
+                                disabled={submitting}
+                                className="inline-flex items-center gap-2 rounded-xl border border-neutral-600 bg-[#111]/30 px-5 py-2.5 text-sm font-medium text-red-400 hover:border-red-500/40 hover:bg-red-950/20 disabled:opacity-50"
+                              >
+                                <Trash2 size={16} />
+                                Delete target
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

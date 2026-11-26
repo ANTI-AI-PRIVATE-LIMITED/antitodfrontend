@@ -3312,6 +3312,8 @@
 }
 
 .at-chart-wrap {
+  width: 100%;
+  min-width: 0;
   height: 300px;
   padding: 10px 12px 12px;
 }
@@ -8122,6 +8124,7 @@
 .at-ops-pulse-card,
 .at-chart-panel,
 .at-feed-panel {
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -8398,6 +8401,8 @@
 }
 
 .at-chart-wrap-large {
+  width: 100%;
+  min-width: 0;
   height: 300px;
   padding: 12px 14px 12px 8px;
 }

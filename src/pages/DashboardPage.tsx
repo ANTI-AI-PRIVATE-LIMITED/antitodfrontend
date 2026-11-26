@@ -1189,6 +1189,10 @@ export default function DashboardPage({
                   <ResponsiveContainer
                     width="100%"
                     height="100%"
+                    minWidth={1}
+                    minHeight={220}
+                    initialDimension={{ width: 640, height: 276 }}
+                    debounce={50}
                   >
                   <AreaChart
                     data={timeline}

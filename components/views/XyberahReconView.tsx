@@ -1867,8 +1867,15 @@ export const XyberahReconView: React.FC = () => {
                   </div>
                   <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                     <h3 className="text-sm font-bold text-red-400 font-mono mb-2">Timeline</h3>
-                    <div className="h-72">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-72 w-full min-w-0">
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                        minWidth={1}
+                        minHeight={240}
+                        initialDimension={{ width: 520, height: 288 }}
+                        debounce={50}
+                      >
                         <AreaChart data={timelineChartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                           <XAxis dataKey="x" tick={{ fill: '#9ca3af', fontSize: 11 }} />
@@ -1883,10 +1890,17 @@ export const XyberahReconView: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
+                  <div className="p-4 rounded-xl bg-[#111] border border-[#222] min-w-0">
                     <h3 className="text-sm font-bold text-red-400 font-mono mb-2">Issues Timeline</h3>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-64 w-full min-w-0">
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                        minWidth={1}
+                        minHeight={220}
+                        initialDimension={{ width: 520, height: 256 }}
+                        debounce={50}
+                      >
                         <AreaChart data={issuesChartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                           <XAxis dataKey="x" tick={{ fill: '#9ca3af', fontSize: 11 }} />

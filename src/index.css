@@ -6823,6 +6823,9 @@
 }
 
 .at-cve-id-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
   color: var(--at-text);
   font:
     600 10px/1.2 "JetBrains Mono",
@@ -6830,8 +6833,42 @@
     monospace;
 }
 
+.at-cve-id-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.at-cve-id-stack .at-cve-id {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.at-cve-id-stack .at-cve-id:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .at-cve-id-meta {
+  display: inline-flex;
+  align-items: center;
   margin-top: 2px;
+  padding: 2px 6px;
+  border: 1px solid rgba(214, 40, 40, 0.25);
+  border-radius: 4px;
+  background: rgba(214, 40, 40, 0.1);
+  color: #ec8181;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
 }
 
 .at-cve-exploit-badge {
@@ -10418,6 +10455,14 @@
   border-bottom: 0;
 }
 
+.at-hp-source-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
 .at-hp-time-cell,
 .at-hp-event-cell,
 .at-hp-origin-cell {
@@ -10446,6 +10491,7 @@
   background: transparent;
   color: #d3d3d3;
   cursor: pointer;
+  text-align: left;
   font:
     600 10px/1.2 "JetBrains Mono",
     ui-monospace,
@@ -10459,9 +10505,10 @@
 }
 
 .at-hp-subvalue {
-  margin-top: 4px;
-  color: #626262;
-  font-size: 8px;
+  display: block;
+  margin-top: 2px;
+  color: #7c7c7c;
+  font-size: 9px;
 }
 
 .at-hp-event-cell strong {

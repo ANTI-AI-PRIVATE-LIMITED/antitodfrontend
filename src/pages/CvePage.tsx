@@ -1052,14 +1052,14 @@ export default function CvePage() {
                         <td>
                           <div className="at-cve-id-cell whitespace-nowrap">
                             {cve.exploitAvailable && (
-                              <span className="at-cve-exploit-mark">
+                              <span className="at-cve-exploit-mark" aria-hidden="true">
                                 <Target
                                   size={11}
                                 />
                               </span>
                             )}
 
-                            <div>
+                            <div className="at-cve-id-stack">
                               <button
                                 type="button"
                                 className="at-cve-id"

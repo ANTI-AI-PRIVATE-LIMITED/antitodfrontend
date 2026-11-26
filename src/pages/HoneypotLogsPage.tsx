@@ -946,25 +946,27 @@ export default function HoneypotLogsPage({
                             </td>
 
                             <td>
-                              <button
-                                type="button"
-                                className="at-hp-source"
-                                onClick={(clickEvent) => {
-                                  clickEvent.stopPropagation();
+                              <div className="at-hp-source-cell">
+                                <button
+                                  type="button"
+                                  className="at-hp-source"
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
 
-                                  setSearch(
-                                    event.src_ip,
-                                  );
-                                }}
-                              >
-                                {event.src_ip}
-                              </button>
+                                    setSearch(
+                                      event.src_ip,
+                                    );
+                                  }}
+                                >
+                                  {event.src_ip}
+                                </button>
 
-                              {event.src_port && (
-                                <span className="at-hp-subvalue">
-                                  Source port {event.src_port}
-                                </span>
-                              )}
+                                {event.src_port && (
+                                  <span className="at-hp-subvalue">
+                                    Source port {event.src_port}
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             <td>

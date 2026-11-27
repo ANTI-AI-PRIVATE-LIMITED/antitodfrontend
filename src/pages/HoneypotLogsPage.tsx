@@ -27,6 +27,7 @@ import {
 import type { LogEventV2 } from '../../api/services';
 import { dataProvider } from '../services/dataProvider';
 import { exportAsJson } from '../utils/exportHelpers';
+import { calibrateEventThreatScore } from '../utils/eventScoring';
 import PageHeader from '../components/layout/PageHeader';
 
 interface HoneypotLogsProps {
@@ -234,12 +235,21 @@ function normalizeEvent(e: LogEventV2): LogEventV2 {
       inner = null;
     }
   }
+  const username = e.username ?? inner?.username;
+  const password = e.password ?? inner?.password;
+  const command = e.command ?? inner?.input ?? inner?.command;
+  const calibratedScore = calibrateEventThreatScore(
+    e.event_type,
+    e.threat_score ?? e.threat?.threat_score,
+    { username, password, command }
+  );
+
   return {
     ...e,
-    threat_score: e.threat_score ?? e.threat?.threat_score,
-    username: e.username ?? inner?.username,
-    password: e.password ?? inner?.password,
-    command: e.command ?? inner?.input ?? inner?.command,
+    threat_score: calibratedScore,
+    username,
+    password,
+    command,
   };
 }
 

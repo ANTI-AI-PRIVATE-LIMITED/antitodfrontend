@@ -79,6 +79,7 @@ import { AccessControlView } from '../../components/views/AccessControlView';
 import { BillingView } from '../../components/views/BillingView';
 import { SettingsView } from '../../components/views/SettingsView';
 import { useAuth } from '../../contexts/AuthContext';
+import { isPublicDemo } from '../utils/demoMode';
 
 /* -------------------------------------------------------------------------- */
 /*                                  Types                                     */
@@ -221,8 +222,9 @@ export default function ViewRouter({
     null,
   );
   const { permissions, permissionsLoaded } = useAuth();
+  const demoMode = isPublicDemo();
   const hasOsmAccess = permissions.some((p) => p.startsWith('osm.'));
-  const hasIntegrationsAccess = permissions.some((p) => p.startsWith('integrations.'));
+  const hasIntegrationsAccess = demoMode || permissions.some((p) => p.startsWith('integrations.'));
 
   /*
    * The analysis hook remains centralized here because both migrated and
@@ -436,7 +438,7 @@ export default function ViewRouter({
     case 'integrations':
       renderedView = (
         <LegacyWrapper>
-          {!permissionsLoaded ? (
+          {!demoMode && !permissionsLoaded ? (
             <div className="min-h-[500px] flex items-center justify-center p-6 text-neutral-400">
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />

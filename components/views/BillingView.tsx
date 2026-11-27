@@ -25,10 +25,18 @@ import {
 } from '../../api/services/billingService';
 import { handleApiError } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+import { isPublicDemo } from '../../src/utils/demoMode';
+import {
+  DEMO_BILLING_HISTORY,
+  DEMO_BILLING_PLANS,
+  DEMO_BILLING_USAGE,
+  DEMO_SUBSCRIPTION,
+} from '../../src/data/demo/governanceAndBilling';
 
 export const BillingView: React.FC = () => {
   const { can } = useAuth();
-  const canManageBilling = can('rbac.users.manage');
+  const demoMode = isPublicDemo();
+  const canManageBilling = !demoMode && can('rbac.users.manage');
 
   const [usage, setUsage] = useState<BillingUsage | null>(null);
   const [plans, setPlans] = useState<BillingPlansResponse | null>(null);
@@ -56,6 +64,15 @@ export const BillingView: React.FC = () => {
   };
 
   const load = useCallback(async () => {
+    if (isPublicDemo()) {
+      setError(null);
+      setUsage(DEMO_BILLING_USAGE);
+      setPlans(DEMO_BILLING_PLANS);
+      setHistory(DEMO_BILLING_HISTORY);
+      setSubscription(DEMO_SUBSCRIPTION);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -81,6 +98,7 @@ export const BillingView: React.FC = () => {
   }, [load]);
 
   const run = async (fn: () => Promise<void>) => {
+    if (isPublicDemo()) return;
     setBusy(true);
     setError(null);
     try {
@@ -232,7 +250,14 @@ export const BillingView: React.FC = () => {
               <CreditCard size={18} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Billing &amp; Subscriptions</h1>
+              <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2.5 flex-wrap">
+                <span>Billing &amp; Subscriptions</span>
+                {demoMode && (
+                  <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-sky-500/40 bg-sky-500/10 text-sky-300">
+                    DEMO SANDBOX
+                  </span>
+                )}
+              </h1>
               <p className="text-neutral-400 text-xs mt-0.5">
                 {usage?.customer?.Name || 'Customer Account'} · Self-service Razorpay subscription gateway
               </p>
@@ -250,8 +275,21 @@ export const BillingView: React.FC = () => {
         </button>
       </div>
 
-      {/* Role Permission Notice for Non-Admins */}
-      {!canManageBilling && (
+      {/* Demo Sandbox or Non-Admin Notice */}
+      {demoMode ? (
+        <div
+          data-testid="billing-demo-banner"
+          className="flex items-center gap-3 p-4 bg-sky-950/25 border border-sky-800/50 rounded-xl text-sky-200 text-xs font-mono"
+        >
+          <ShieldAlert size={18} className="shrink-0 text-sky-400" />
+          <div>
+            <div className="font-bold text-sky-100">Public Demo Sandbox — Read-Only Plan Preview</div>
+            <div className="text-sky-300/80 text-[11px] mt-0.5">
+              Showing simulated tenant quotas, subscription tiers, and audit history. Checkout and plan changes are disabled without signing in.
+            </div>
+          </div>
+        </div>
+      ) : !canManageBilling && (
         <div className="flex items-center gap-3 p-4 bg-amber-950/20 border border-amber-900/40 rounded-xl text-amber-300 text-xs font-mono">
           <ShieldAlert size={18} className="shrink-0 text-amber-400" />
           <div>
@@ -426,7 +464,11 @@ export const BillingView: React.FC = () => {
                   </div>
                 ) : (
                   <span className="text-[11px] text-neutral-500 font-mono">
-                    {isCurrent ? 'Current Plan' : 'Admin privilege required to switch'}
+                    {isCurrent
+                      ? 'Current Plan'
+                      : demoMode
+                        ? 'Read-only preview in Demo Mode'
+                        : 'Admin privilege required to switch'}
                   </span>
                 )}
               </div>

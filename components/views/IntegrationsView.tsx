@@ -45,6 +45,12 @@ import {
   integrationsService,
 } from '../../api/services/integrationsService';
 import { useAuth } from '../../contexts/AuthContext';
+import { isPublicDemo } from '../../src/utils/demoMode';
+import {
+  DEMO_CONNECTORS,
+  DEMO_INTEL_FEED_PREVIEW,
+  DEMO_SOAR_ALERTS,
+} from '../../src/data/demo/governanceAndBilling';
 
 const CONNECTOR_TYPE_LABELS: Record<AsmConnectorType, { label: string; desc: string; defaultHeader?: string }> = {
   webhook: {
@@ -93,14 +99,15 @@ const FORMAT_LABELS: Record<AsmConnectorFormat, string> = {
 
 export const IntegrationsView: React.FC = () => {
   const { permissions, can, permissionsLoaded } = useAuth();
+  const demoMode = isPublicDemo();
 
-  // Permission gates
-  const hasModuleAccess = permissions.some((p) => p.startsWith('integrations.'));
-  const canViewConnectors = can('integrations.connectors.view') || can('integrations.module.access');
-  const canManageConnectors = can('integrations.connectors.manage');
-  const canPushConnectors = can('integrations.connectors.push');
-  const canViewFeed = can('integrations.feed.view');
-  const canViewSoar = can('integrations.soar.view');
+  // Permission gates (demo mode enables read-only connector + feed inspection only)
+  const hasModuleAccess = demoMode || permissions.some((p) => p.startsWith('integrations.'));
+  const canViewConnectors = demoMode || can('integrations.connectors.view') || can('integrations.module.access');
+  const canManageConnectors = !demoMode && can('integrations.connectors.manage');
+  const canPushConnectors = !demoMode && can('integrations.connectors.push');
+  const canViewFeed = demoMode || can('integrations.feed.view');
+  const canViewSoar = demoMode || can('integrations.soar.view');
 
   const [connectors, setConnectors] = useState<AsmConnector[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,6 +217,12 @@ export const IntegrationsView: React.FC = () => {
 
   // Load Connectors
   const loadConnectors = useCallback(async () => {
+    if (isPublicDemo()) {
+      setError(null);
+      setConnectors(DEMO_CONNECTORS);
+      setLoading(false);
+      return;
+    }
     if (!canViewConnectors) {
       setLoading(false);
       return;
@@ -235,10 +248,10 @@ export const IntegrationsView: React.FC = () => {
   }, [canViewConnectors]);
 
   useEffect(() => {
-    if (permissionsLoaded) {
+    if (demoMode || permissionsLoaded) {
       void loadConnectors();
     }
-  }, [permissionsLoaded, loadConnectors]);
+  }, [demoMode, permissionsLoaded, loadConnectors]);
 
   // Open Create Modal
   const openCreateModal = () => {
@@ -419,6 +432,20 @@ export const IntegrationsView: React.FC = () => {
   const loadFeedPreview = async () => {
     setFeedDrawerOpen(true);
     setFeedLoading(true);
+    if (isPublicDemo()) {
+      const contentType =
+        feedFormat === 'stix'
+          ? 'application/stix+json'
+          : feedFormat === 'cef'
+            ? 'text/plain'
+            : feedFormat === 'csv'
+              ? 'text/csv'
+              : 'application/json';
+      setFeedData({ ...DEMO_INTEL_FEED_PREVIEW, contentType });
+      setSoarAlerts(DEMO_SOAR_ALERTS);
+      setFeedLoading(false);
+      return;
+    }
     try {
       if (activeFeedTab === 'feed') {
         const feed = await integrationsService.previewFeed({ format: feedFormat });
@@ -482,11 +509,17 @@ export const IntegrationsView: React.FC = () => {
               <Share2 size={22} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+              <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2 flex-wrap">
                 SIEM & SOAR Connectors
-                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium">
-                  Live Event Pipeline
-                </span>
+                {demoMode ? (
+                  <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-sky-500/40 bg-sky-500/10 text-sky-300">
+                    DEMO SANDBOX
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium">
+                    Live Event Pipeline
+                  </span>
+                )}
               </h1>
               <p className="text-xs text-neutral-400 mt-0.5">
                 Stream scoped attack surface risks and honeypot attacker indicators into Splunk, Elastic, Sentinel, and SOAR pipelines.
@@ -520,11 +553,17 @@ export const IntegrationsView: React.FC = () => {
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
 
-          {canManageConnectors && (
+          {(canManageConnectors || demoMode) && (
             <button
               type="button"
-              onClick={openCreateModal}
-              className="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-colors flex items-center gap-2 shadow-lg shadow-indigo-600/25"
+              onClick={() => { if (!demoMode) openCreateModal(); }}
+              disabled={demoMode}
+              title={demoMode ? 'Read-only in Demo Mode: sign in to configure live SIEM/SOAR connectors' : undefined}
+              className={`px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors ${
+                demoMode
+                  ? 'bg-neutral-800/70 border border-neutral-700 text-neutral-500 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25'
+              }`}
             >
               <Plus size={15} />
               <span>Add Connector</span>
@@ -532,6 +571,21 @@ export const IntegrationsView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {demoMode && (
+        <div
+          data-testid="integrations-demo-banner"
+          className="flex items-center gap-3 p-4 rounded-xl border border-sky-800/50 bg-sky-950/25 text-sky-200 text-xs font-mono"
+        >
+          <ShieldAlert size={18} className="shrink-0 text-sky-400" />
+          <div>
+            <div className="font-bold text-sky-100">Public Demo Sandbox — Read-Only Connector Preview</div>
+            <div className="text-sky-300/80 text-[11px] mt-0.5">
+              Inspect sample SIEM/SOAR pipeline configurations and telemetry feed payloads. Creating, editing, pushing, or deleting connectors is disabled without signing in.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

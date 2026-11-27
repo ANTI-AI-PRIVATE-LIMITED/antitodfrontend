@@ -25,6 +25,7 @@ import { handleApiError } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { isPublicDemo } from '../../src/utils/demoMode';
 import { isValidAllowedIp, isValidIpAddress } from '../../src/utils/networkValidation';
+import { ensureHostNetworkingCompose, inspectComposeNetworking } from '../../src/utils/honeypotCompose';
 import {
     DEMO_INFRA_TOOLTIP,
     DEMO_SERVERS_OVERVIEW,
@@ -311,6 +312,20 @@ const DeployModal: React.FC<{
                             ))}
                         </select>
                         {selected && <p className="text-xs text-[#888] mt-1">{selected.Description}</p>}
+                        {selected && selected.Category === 'honeypot' && (() => {
+                            const netReport = inspectComposeNetworking(selected.StackFileContent);
+                            return netReport.usesHostNetworking ? (
+                                <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-mono text-emerald-300">
+                                    <ShieldCheck size={13} className="shrink-0 text-emerald-400" />
+                                    <span>Host Networking (<code>network_mode: host</code>) — preserves real attacker source IPs for GeoIP & ASN profiling.</span>
+                                </div>
+                            ) : (
+                                <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-mono text-amber-300">
+                                    <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-400" />
+                                    <span>Legacy bridge template detected (172.17.0.1 gateway NAT risk) — backend automatically upgrades this stack to <code>network_mode: host</code> on deploy.</span>
+                                </div>
+                            );
+                        })()}
                     </div>
                     {/* Stack name */}
                     <div>
@@ -374,17 +389,23 @@ const TemplateFormModal: React.FC<{
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const composeNetReport = inspectComposeNetworking(stackContent);
+
     const submit = async () => {
         if (!name.trim()) { setError('Name is required.'); return; }
         if (!stackContent.trim()) { setError('Stack file content is required.'); return; }
         let envTemplate: Record<string, any> = {};
         try { envTemplate = JSON.parse(envJson); } catch { setError('Invalid JSON in Environment Template.'); return; }
+        const finalStackContent =
+            category === 'honeypot'
+                ? ensureHostNetworkingCompose(stackContent, { category }).stackFileContent
+                : stackContent;
         setLoading(true); setError('');
         try {
             if (template) {
-                await agentService.updateTemplate(template.TemplateId, { Name: name, Description: description, Category: category, StackFileContent: stackContent, EnvTemplate: envTemplate });
+                await agentService.updateTemplate(template.TemplateId, { Name: name, Description: description, Category: category, StackFileContent: finalStackContent, EnvTemplate: envTemplate });
             } else {
-                await agentService.createTemplate({ Name: name, Description: description, Category: category, StackFileContent: stackContent, EnvTemplate: envTemplate });
+                await agentService.createTemplate({ Name: name, Description: description, Category: category, StackFileContent: finalStackContent, EnvTemplate: envTemplate });
             }
             onSuccess();
         } catch (e: any) {
@@ -420,7 +441,29 @@ const TemplateFormModal: React.FC<{
                     </div>
                     <div>
                         <label className="text-xs text-[#AAA] font-mono block mb-1">Docker Compose / Stack File *</label>
-                        <textarea value={stackContent} onChange={e => setStackContent(e.target.value)} rows={10} className="w-full bg-[#111]/80 border border-[#333] text-white rounded-lg p-3 text-xs font-mono resize-y" placeholder={"version: '3.8'\nservices:\n  ..."} />
+                        {category === 'honeypot' && stackContent.trim() && (
+                            composeNetReport.usesHostNetworking ? (
+                                <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-mono text-emerald-300">
+                                    <ShieldCheck size={13} className="shrink-0 text-emerald-400" />
+                                    <span>HOST NETWORKING ACTIVE (<code>network_mode: host</code>) — real attacker source IPs & GeoIP/ASN preserved.</span>
+                                </div>
+                            ) : (
+                                <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-mono text-amber-300">
+                                    <span className="flex items-center gap-1.5">
+                                        <AlertTriangle size={13} className="shrink-0 text-amber-400" />
+                                        Bridge port mapping masks attacker source IPs behind 172.17.0.1. Honeypot templates enforce <code>network_mode: host</code>.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setStackContent(ensureHostNetworkingCompose(stackContent, { category: 'honeypot' }).stackFileContent)}
+                                        className="px-2.5 py-1 rounded border border-amber-400/40 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-colors"
+                                    >
+                                        Enforce network_mode: host
+                                    </button>
+                                </div>
+                            )
+                        )}
+                        <textarea value={stackContent} onChange={e => setStackContent(e.target.value)} rows={10} className="w-full bg-[#111]/80 border border-[#333] text-white rounded-lg p-3 text-xs font-mono resize-y" placeholder={"version: '3.8'\nservices:\n  cowrie:\n    image: cowrie/cowrie:latest\n    network_mode: host"} />
                     </div>
                     <div>
                         <label className="text-xs text-[#AAA] font-mono block mb-1">Environment Template <span className="text-neutral-600">(JSON)</span></label>
@@ -1472,12 +1515,24 @@ const TemplatesPanel: React.FC<{ templates: DeploymentTemplate[]; loading: boole
                     </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {displayed.map(t => (
+                    {displayed.map(t => {
+                        const netReport = t.Category === 'honeypot' ? inspectComposeNetworking(t.StackFileContent) : null;
+                        return (
                         <div key={t.TemplateId} className={`bg-[#111] border rounded-xl p-4 flex flex-col gap-3 ${t.IsActive ? 'border-[#333]' : 'border-[#222] opacity-60'}`}>
                             <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
                                     <div className="text-sm font-bold text-white font-mono truncate">{t.Name}</div>
-                                    <span className={`inline-block mt-1 px-2 py-0.5 rounded border text-[10px] font-mono font-bold ${catColors[t.Category] ?? 'text-[#AAA] bg-[#1C1C1C] border-neutral-600'}`}>{t.Category}</span>
+                                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                        <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-mono font-bold ${catColors[t.Category] ?? 'text-[#AAA] bg-[#1C1C1C] border-neutral-600'}`}>{t.Category}</span>
+                                        {netReport && (
+                                            <span
+                                                title={netReport.usesHostNetworking ? 'Uses network_mode: host (preserves real attacker source IP)' : 'Legacy bridge compose — auto-upgraded to network_mode: host on deploy'}
+                                                className={`inline-block px-2 py-0.5 rounded border text-[10px] font-mono font-bold ${netReport.usesHostNetworking ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-300 bg-amber-500/10 border-amber-500/30'}`}
+                                            >
+                                                {netReport.usesHostNetworking ? 'HOST NET' : 'BRIDGE → AUTO-HOST'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 {can('infrastructure.templates.manage') && (<div className="flex items-center gap-1 shrink-0">
                                     <button onClick={() => setEditTarget(t)} title="Edit" className="p-1.5 rounded hover:bg-[#1C1C1C] text-[#AAA] hover:text-white transition-colors"><Edit2 size={13}/></button>
@@ -1493,7 +1548,8 @@ const TemplatesPanel: React.FC<{ templates: DeploymentTemplate[]; loading: boole
                             )}
                             <div className="text-[10px] text-neutral-600 font-mono">Updated {fmtDate(t.UpdatedAt)}</div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 

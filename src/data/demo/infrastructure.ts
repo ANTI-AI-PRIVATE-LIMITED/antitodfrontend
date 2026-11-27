@@ -90,7 +90,7 @@ export const DEMO_TEMPLATES: ListTemplatesResponse = {
       Name: 'Cowrie SSH / Telnet Sensor',
       Description: 'Medium-interaction SSH & Telnet honeypot capturing credentials, shell sessions, and malware payloads.',
       Category: 'honeypot',
-      StackFileContent: 'services:\n  cowrie:\n    image: cowrie/cowrie:latest\n    ports:\n      - "2222:2222"',
+      StackFileContent: 'services:\n  cowrie:\n    image: cowrie/cowrie:latest\n    network_mode: host',
       EnvTemplate: {
         COWRIE_HOSTNAME: { description: 'Reported sensor hostname', default: 'prod-jump-01', required: true },
       },
@@ -103,7 +103,7 @@ export const DEMO_TEMPLATES: ListTemplatesResponse = {
       Name: 'Dionaea Multi-Protocol Sensor',
       Description: 'Low-interaction multi-protocol honeypot exposing SMB, HTTP, FTP, and MSSQL trap listeners.',
       Category: 'honeypot',
-      StackFileContent: 'services:\n  dionaea:\n    image: dinotools/dionaea:latest\n    ports:\n      - "445:445"',
+      StackFileContent: 'services:\n  dionaea:\n    image: dinotools/dionaea:latest\n    network_mode: host',
       EnvTemplate: {},
       IsActive: true,
       CreatedAt: '2026-11-01T00:00:00.000Z',

@@ -125,6 +125,7 @@ const StatTile = ({
             {value}
         </div>
 
+        {typeof trendVal === 'number' && (
         <div className="at-soc-stat-trend">
             <span
                 className={
@@ -142,6 +143,7 @@ const StatTile = ({
 
             <span>vs previous hour</span>
         </div>
+        )}
     </div>
 );
 
@@ -324,8 +326,10 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
     const [activeTab, setActiveTab] = useState<SocTab>('OPS');
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const criticalHosts = results.filter(h => h.riskLevel === 'CRITICAL').length;
-    const highHosts = results.filter(h => h.riskLevel === 'HIGH').length;
+    // BUG-042: compare case-insensitively (API may send 'critical'), and no hardcoded trend numbers
+    const riskOf = (h: { riskLevel?: string }) => String(h.riskLevel || '').toUpperCase();
+    const criticalHosts = results.filter(h => riskOf(h) === 'CRITICAL').length;
+    const highHosts = results.filter(h => riskOf(h) === 'HIGH').length;
     
     const iocCounts = [
         { label: 'URLHaus', value: urlHausItems.length, tone: 'neutral', color: 'text-neutral-400' },
@@ -450,7 +454,9 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
         return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0, 10).map(([label, count]) => ({label, count}));
     }, [cveData]);
 
-    const activeRansomGroups = ransomwareGroups.length;
+    // BUG-042: if the groups list has not loaded, count distinct groups seen in the victim posts
+    const activeRansomGroups =
+        ransomwareGroups.length || new Set(ransomwarePosts.map(p => p.group_name).filter(Boolean)).size;
     const ransomVictims = ransomwarePosts.length;
 
     const scrollingNews = useMemo(() => {
@@ -537,8 +543,6 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                 <StatTile
                                     label="Critical Threats"
                                     value={criticalHosts}
-                                    trend="up"
-                                    trendVal={12}
                                     color="text-[#e56d72]"
                                     icon={Siren}
                                 />
@@ -548,8 +552,6 @@ export const BigScreenView: React.FC<BigScreenViewProps> = ({
                                 <StatTile
                                     label="High Risks"
                                     value={highHosts}
-                                    trend="down"
-                                    trendVal={5}
                                     color="text-[#d49b45]"
                                     icon={AlertTriangle}
                                 />

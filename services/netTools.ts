@@ -3,7 +3,7 @@ import { queryDoH, enrichIP } from './dns';
 import { fetchShodanInternetDb } from './dns'; 
 import { CrtShEntry, WaybackResult } from '../types';
 import { fetchJsonWithCors } from './http';
-import { toProxyUrl, pingTargetViaProxy, inspectWebTargetViaProxy } from './proxy';
+import { toProxyUrl, pingTargetViaProxy, inspectWebTargetViaProxy, scanPortsViaProxy } from './proxy';
 import { isPublicDemo } from '../src/utils/demoMode';
 import { evaluateSecurityHeaders } from '../src/utils/httpSecurityHeaders';
 
@@ -944,24 +944,151 @@ export const performTrace = async (target: string): Promise<TraceHop[]> => {
     ];
 };
 
+export type PortScanSource = 'active-tcp' | 'shodan-passive' | 'active+shodan';
+
 export interface PortResult {
     port: number;
     service: string;
     transport: string;
     tags: string[];
+    source: PortScanSource;
+    state: 'OPEN' | 'PASSIVE_RECORD';
+    rttMs?: number;
 }
 
-export const performPortScan = async (target: string): Promise<PortResult[]> => {
-    const data = await fetchShodanInternetDb(target);
-    if (data && data.ports) {
-        return data.ports.map(p => ({
-            port: p,
-            service: 'tcp',
-            transport: 'TCP',
-            tags: data.tags || []
-        }));
+export interface PortScanReport {
+    target: string;
+    resolvedIp: string;
+    ports: PortResult[];
+    scannedCount: number;
+    activeAvailable: boolean;
+    passiveAvailable: boolean;
+    error?: string;
+    probedAt: string;
+}
+
+const KNOWN_TCP_SERVICES: Record<number, string> = {
+    21: 'ftp',
+    22: 'ssh',
+    25: 'smtp',
+    53: 'dns',
+    80: 'http',
+    110: 'pop3',
+    143: 'imap',
+    443: 'https',
+    465: 'smtps',
+    587: 'submission',
+    993: 'imaps',
+    995: 'pop3s',
+    3306: 'mysql',
+    3389: 'rdp',
+    5432: 'postgresql',
+    6379: 'redis',
+    8080: 'http-alt',
+    8443: 'https-alt',
+};
+
+const isIpv4Literal = (val: string) => /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(val);
+
+/**
+ * Runs an SSRF-safe active TCP port probe via `/AdminRoutes/proxy/portscan` correlated with
+ * passive Shodan InternetDB records so unindexed hosts and SSRF blocks are never hidden.
+ */
+export const runPortScanReport = async (target: string): Promise<PortScanReport> => {
+    const clean = target.trim();
+    const probedAt = new Date().toISOString();
+
+    if (!clean) {
+        return {
+            target,
+            resolvedIp: clean,
+            ports: [],
+            scannedCount: 0,
+            activeAvailable: false,
+            passiveAvailable: false,
+            error: 'A target IP or domain is required',
+            probedAt,
+        };
     }
-    return [];
+
+    if (isPublicDemo()) {
+        return {
+            target: clean,
+            resolvedIp: clean,
+            ports: [],
+            scannedCount: 0,
+            activeAvailable: false,
+            passiveAvailable: false,
+            error: 'Authenticated session required for active TCP port scanning',
+            probedAt,
+        };
+    }
+
+    const activePromise = scanPortsViaProxy(clean);
+    const passivePromise = isIpv4Literal(clean) ? fetchShodanInternetDb(clean) : Promise.resolve(undefined);
+    const [activeRes, initialShodan] = await Promise.all([activePromise, passivePromise]);
+
+    const resolvedIp = activeRes.ok ? activeRes.data.resolvedIp : clean;
+    const shodanData =
+        initialShodan ?? (activeRes.ok && isIpv4Literal(resolvedIp) ? await fetchShodanInternetDb(resolvedIp) : undefined);
+
+    const byPort = new Map<number, PortResult>();
+
+    if (activeRes.ok) {
+        for (const entry of activeRes.data.openPorts) {
+            byPort.set(entry.port, {
+                port: entry.port,
+                service: entry.service || KNOWN_TCP_SERVICES[entry.port] || 'tcp',
+                transport: entry.transport || 'TCP',
+                tags: [],
+                source: 'active-tcp',
+                state: 'OPEN',
+                rttMs: entry.rttMs,
+            });
+        }
+    }
+
+    const shodanTags = shodanData?.tags || [];
+    const passivePorts = shodanData?.ports || [];
+    for (const p of passivePorts) {
+        const existing = byPort.get(p);
+        if (existing) {
+            existing.source = 'active+shodan';
+            existing.tags = shodanTags;
+        } else {
+            byPort.set(p, {
+                port: p,
+                service: KNOWN_TCP_SERVICES[p] || 'tcp',
+                transport: 'TCP',
+                tags: shodanTags,
+                source: 'shodan-passive',
+                state: 'PASSIVE_RECORD',
+            });
+        }
+    }
+
+    const merged = Array.from(byPort.values()).sort((a, b) => a.port - b.port);
+    const isBlocked = !activeRes.ok && (activeRes.status === 400 || activeRes.status === 401 || activeRes.status === 403);
+
+    return {
+        target: clean,
+        resolvedIp,
+        ports: merged,
+        scannedCount: activeRes.ok ? activeRes.data.scannedCount : 0,
+        activeAvailable: activeRes.ok,
+        passiveAvailable: Boolean(shodanData),
+        error: isBlocked
+            ? activeRes.message
+            : !activeRes.ok && !shodanData
+              ? activeRes.message
+              : undefined,
+        probedAt: activeRes.ok ? activeRes.data.probedAt : probedAt,
+    };
+};
+
+export const performPortScan = async (target: string): Promise<PortResult[]> => {
+    const report = await runPortScanReport(target);
+    return report.ports;
 };
 
 export const performCrtLookup = async (domain: string): Promise<CrtShEntry[]> => {

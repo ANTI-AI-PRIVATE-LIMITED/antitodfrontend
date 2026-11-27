@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Server, Mail, Globe, Activity, Terminal, Shield, Hash, ArrowRight, CheckCircle, XCircle, Zap, Copy, MapPin, AlertTriangle, Network, FileCode, FileText, List, ExternalLink, Play, Pause, RefreshCw, Wifi, Lock, Eye, Archive, Radio, Clock, ChevronDown, Cloud, Upload, Briefcase, Rocket, Layers, Box, Download, Share2, HardDrive, Fingerprint, Key, Flame, Siren, Map as MapIcon, ShieldAlert, CreditCard, Languages, Calendar, Cookie, Loader2, Gauge, Database, File, Radar, Plus } from 'lucide-react';
-import { calculateSubnet, SubnetInfo, performRdapLookup, WhoisResult, analyzeSpf, SpfResult, analyzeDmarc, DmarcResult, analyzeHttpHeaders, HttpHeaderResult, analyzeEmailHeaders, EmailHeaderAnalysis, performPing, PingResult, performPortScan, PortResult, performCrtLookup, checkWaybackAvailability, fetchIpWhoIs, IpWhoIsResult, fetchIpApiData, IpApiIsResult, searchAsn, fetchAsnDetails, AsnSearchResult, AsnDetails, resolveIpToAsn } from '../../services/netTools';
+import { calculateSubnet, SubnetInfo, performRdapLookup, WhoisResult, analyzeSpf, SpfResult, analyzeDmarc, DmarcResult, analyzeHttpHeaders, HttpHeaderResult, analyzeEmailHeaders, EmailHeaderAnalysis, performPing, PingResult, performPortScan, runPortScanReport, PortResult, PortScanReport, performCrtLookup, checkWaybackAvailability, fetchIpWhoIs, IpWhoIsResult, fetchIpApiData, IpApiIsResult, searchAsn, fetchAsnDetails, AsnSearchResult, AsnDetails, resolveIpToAsn } from '../../services/netTools';
 import { queryDoH, checkRBL, resolveHostname, enrichIP, performMultiDnsLookup, checkDomainSecurity, SecurityCheckResult, EXTENDED_DNS_PROVIDERS, DetailedDnsRecord, DnsProviderConfig, DNS_RECORD_TYPES, analyzeDga, DgaResult } from '../../services/dns';
 import { calculateCompositeRisk, RiskAnalysis } from '../../services/riskEngine';
 import { mmdbService } from '../../services/mmdb';
@@ -35,7 +35,7 @@ export const NetworkToolsView: React.FC = () => {
     const [mxRecords, setMxRecords] = useState<DetailedDnsRecord[]>([]);
     const [httpResult, setHttpResult] = useState<HttpHeaderResult | null>(null);
     const [headerResult, setHeaderResult] = useState<EmailHeaderAnalysis | null>(null);
-    const [rblStatus, setRblStatus] = useState<{status: string, listed: string[]}|null>(null);
+    const [rblStatus, setRblStatus] = useState<{ status: string, listed: string[] } | null>(null);
     const [crtResults, setCrtResults] = useState<CrtShEntry[]>([]);
     const [waybackResult, setWaybackResult] = useState<WaybackResult | null>(null);
     const [ipWhoIsResult, setIpWhoIsResult] = useState<IpWhoIsResult | null>(null);
@@ -43,7 +43,7 @@ export const NetworkToolsView: React.FC = () => {
     const [enrichmentResult, setEnrichmentResult] = useState<IpDataResponse | null>(null);
     const [mailServerReputation, setMailServerReputation] = useState<any[]>([]);
     const [otxResult, setOtxResult] = useState<OtxAnalysis | null>(null);
-    
+
     // ASN State
     const [asnResult, setAsnResult] = useState<AsnDetails | any | null>(null);
     const [asnSearchResults, setAsnSearchResults] = useState<AsnSearchResult[]>([]);
@@ -53,7 +53,8 @@ export const NetworkToolsView: React.FC = () => {
     const [pingResults, setPingResults] = useState<PingResult[]>([]);
     const [isPinging, setIsPinging] = useState(false);
     const [scanResults, setScanResults] = useState<PortResult[]>([]);
-    
+    const [portScanReport, setPortScanReport] = useState<PortScanReport | null>(null);
+
     const pingRef = useRef<any>(null);
 
     useEffect(() => {
@@ -112,18 +113,18 @@ export const NetworkToolsView: React.FC = () => {
     const runDnsLookup = async (target: string) => {
         const providers = EXTENDED_DNS_PROVIDERS.filter(p => !p.id.includes('security') && !p.category);
         const resultsMap: Record<string, DetailedDnsRecord[]> = {};
-        
+
         providers.forEach(p => resultsMap[p.id] = []);
         setDnsResults(resultsMap);
 
         const promises = providers.map(async (provider) => {
             const lookups = DNS_RECORD_TYPES.map(type => performMultiDnsLookup(target, type, provider));
             const results = await Promise.all(lookups);
-            
+
             // Filter out failed lookups (nulls) and flatten
             const validResults = results.filter(r => r !== null) as DetailedDnsRecord[][];
             const flatResults = validResults.flat();
-            
+
             setDnsResults(prev => ({
                 ...prev,
                 [provider.id]: flatResults
@@ -131,10 +132,10 @@ export const NetworkToolsView: React.FC = () => {
         });
 
         await Promise.all(promises);
-        
+
         if (/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(target)) {
-             const rbl = await checkRBL(target);
-             setRblStatus({ status: rbl.status, listed: rbl.listedIn });
+            const rbl = await checkRBL(target);
+            setRblStatus({ status: rbl.status, listed: rbl.listedIn });
         }
     };
 
@@ -161,7 +162,7 @@ export const NetworkToolsView: React.FC = () => {
     const handleRunTool = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         setShowAsnSuggestions(false);
-        
+
         if (activeCategory === 'PING') {
             if (isPinging) stopPing();
             else if (input) startPing(input.trim());
@@ -173,7 +174,7 @@ export const NetworkToolsView: React.FC = () => {
         setIsLoading(true);
         setError(null);
         setScanStatus('Initializing...');
-        
+
         // Reset all result states
         setSubnetResult(null); setWhoisResult(null); setSpfResult(null); setDmarcResult(null);
         setMxRecords([]); setHttpResult(null); setHeaderResult(null); setRblStatus(null);
@@ -182,7 +183,7 @@ export const NetworkToolsView: React.FC = () => {
         setAsnResult(null); setAsnSearchResults([]); setSecurityResults([]); setDgaResult(null);
         setMailServerReputation([]); setRiskAnalysis(null); setOtxResult(null);
         setDnsResults({});
-        
+
         const target = input.trim();
         // Remove protocol if present
         const cleanTarget = target.replace(/^https?:\/\//, '').replace(/\/$/, '');
@@ -193,13 +194,13 @@ export const NetworkToolsView: React.FC = () => {
             if (activeCategory === 'SUPER_SCAN') {
                 let resolvedIp = isIp ? cleanTarget : null;
                 setScanStatus('Resolving Hostname...');
-                
+
                 // 1. DNS Resolution (if domain) - Critical first step to get IP
                 if (!isIp && !resolvedIp) {
                     try {
                         const dnsRes = await queryDoH(cleanTarget, 'A');
                         if (dnsRes?.Answer?.[0]?.data) resolvedIp = dnsRes.Answer[0].data;
-                    } catch(e) {}
+                    } catch (e) { }
                 }
 
                 // Track current state locally to pass to refreshRisk (React state updates are async)
@@ -228,10 +229,13 @@ export const NetworkToolsView: React.FC = () => {
                             updateRisk();
                         }).catch(() => console.warn("IP Enrich failed"))
                     );
-                    
+
                     // Background tasks (don't block risk recalc immediately)
-                    checkRBL(resolvedIp).then(r => setRblStatus({ status: r.status, listed: r.listedIn })).catch(()=>{});
-                    performPortScan(resolvedIp).then(setScanResults).catch(()=>{});
+                    checkRBL(resolvedIp).then(r => setRblStatus({ status: r.status, listed: r.listedIn })).catch(() => { });
+                    runPortScanReport(resolvedIp).then((rep) => {
+                        setPortScanReport(rep);
+                        setScanResults(rep.ports);
+                    }).catch(() => { });
                 }
 
                 // Task: Security Checks
@@ -253,13 +257,13 @@ export const NetworkToolsView: React.FC = () => {
                         updateRisk();
                     })
                 );
-                
+
                 // Task: OTX Intelligence
                 tasks.push(
                     fetchOtxIndicator(cleanTarget).then(otx => {
                         setOtxResult(otx);
                         setScanStatus("AlienVault Data Loaded...");
-                    }).catch(() => {})
+                    }).catch(() => { })
                 );
 
                 // Task: HTTP & Domain specific
@@ -272,23 +276,23 @@ export const NetworkToolsView: React.FC = () => {
                             updateRisk();
                         })
                     );
-                    
+
                     performCrtLookup(cleanTarget).then(res => {
-                         const unique = Array.from(new Map(res.map(item => [item.id, item])).values());
-                         setCrtResults(unique.sort((a, b) => new Date(b.not_after).getTime() - new Date(a.not_after).getTime()));
-                    }).catch(() => {});
-                    
-                    checkWaybackAvailability(cleanTarget).then(setWaybackResult).catch(() => {});
-                    analyzeSpf(cleanTarget).then(setSpfResult).catch(() => {});
-                    analyzeDmarc(cleanTarget).then(setDmarcResult).catch(() => {});
-                    
-                    runDnsLookup(cleanTarget); 
+                        const unique = Array.from(new Map(res.map(item => [item.id, item])).values());
+                        setCrtResults(unique.sort((a, b) => new Date(b.not_after).getTime() - new Date(a.not_after).getTime()));
+                    }).catch(() => { });
+
+                    checkWaybackAvailability(cleanTarget).then(setWaybackResult).catch(() => { });
+                    analyzeSpf(cleanTarget).then(setSpfResult).catch(() => { });
+                    analyzeDmarc(cleanTarget).then(setDmarcResult).catch(() => { });
+
+                    runDnsLookup(cleanTarget);
                     queryDoH(cleanTarget, 'MX').then(mxRes => {
                         if (mxRes && mxRes.Answer) {
                             setMxRecords(mxRes.Answer.map((a: any) => ({ type: 'MX', name: a.name, ttl: a.TTL, data: a.data.replace(/"/g, ''), provider: 'Google' })));
                         }
-                    }).catch(() => {});
-                    
+                    }).catch(() => { });
+
                     setDgaResult(analyzeDga(cleanTarget));
                 } else {
                     setScanStatus("Analyzing IP Address...");
@@ -325,7 +329,7 @@ export const NetworkToolsView: React.FC = () => {
                         } else {
                             throw new Error("Could not resolve IP to ASN.");
                         }
-                    } catch(e) {
+                    } catch (e) {
                         throw new Error("IP resolution failed.");
                     }
                 } else if (/^(AS)?\d+$/.test(asnToLookup)) {
@@ -338,18 +342,18 @@ export const NetworkToolsView: React.FC = () => {
                         const details = await fetchAsnDetails(asnToLookup);
                         if (details) setAsnResult(details);
                         else throw new Error("ASN details not found.");
-                    } catch(e) {
+                    } catch (e) {
                         throw new Error("Failed to fetch ASN details.");
                     }
                 } else {
                     const results = await searchAsn(target);
                     if (results.length === 0) throw new Error("No ASNs found for this name.");
-                    
+
                     const exactMatch = results.find(r => r.asn === target.toUpperCase() || r.name.toLowerCase() === target.toLowerCase());
                     if (exactMatch) {
-                         const details = await fetchAsnDetails(exactMatch.asn);
-                         if (details) setAsnResult(details);
-                         else setAsnSearchResults(results);
+                        const details = await fetchAsnDetails(exactMatch.asn);
+                        if (details) setAsnResult(details);
+                        else setAsnSearchResults(results);
                     } else {
                         setAsnSearchResults(results);
                     }
@@ -400,7 +404,7 @@ export const NetworkToolsView: React.FC = () => {
                                     });
                                 }
                             }
-                        } catch(e) {}
+                        } catch (e) { }
                     });
                 }
                 setIsLoading(false);
@@ -419,14 +423,14 @@ export const NetworkToolsView: React.FC = () => {
                 setHeaderResult(analysis);
                 setIsLoading(false);
             } else if (activeCategory === 'SCAN') {
-                let ipToScan = target;
-                if (!isIp) {
-                    const dns = await queryDoH(target, 'A');
-                    if (dns?.Answer?.[0]?.data) ipToScan = dns.Answer[0].data;
+                setPortScanReport(null);
+                setScanResults([]);
+                const report = await runPortScanReport(target);
+                setPortScanReport(report);
+                setScanResults(report.ports);
+                if (report.error && report.ports.length === 0) {
+                    setError(report.error);
                 }
-                const ports = await performPortScan(ipToScan);
-                if (ports.length === 0) throw new Error("No open ports found in DB.");
-                setScanResults(ports);
                 setIsLoading(false);
             } else if (activeCategory === 'CRT') {
                 if (isIp) throw new Error("Certificate logs require a domain.");
@@ -486,7 +490,13 @@ export const NetworkToolsView: React.FC = () => {
         } else if (activeCategory === 'PING') {
             pingResults.forEach(p => content += `SEQ ${p.seq}: ${p.status} (${p.time}ms) target=${p.ip}${p.message ? ` — ${p.message}` : ''}\n`);
         } else if (activeCategory === 'SCAN') {
-            scanResults.forEach(p => content += `Port ${p.port}/${p.transport}: ${p.service}\n`);
+            if (portScanReport) {
+                content += `Target: ${portScanReport.target} (${portScanReport.resolvedIp})\nScanned TCP Ports: ${portScanReport.scannedCount}\nOpen / Indexed Ports: ${portScanReport.ports.length}\n\n`;
+            }
+            scanResults.forEach(p => {
+                const rtt = p.rttMs !== undefined ? ` rtt=${p.rttMs}ms` : '';
+                content += `Port ${p.port}/${p.transport} (${p.service}) [${p.state}] source=${p.source}${rtt}\n`;
+            });
         } else if (activeCategory === 'CRT') {
             crtResults.forEach(c => content += `${c.entry_timestamp} | ${c.common_name} | ${c.issuer_name}\n`);
         } else if (activeCategory === 'SUPER_SCAN') {
@@ -502,7 +512,7 @@ export const NetworkToolsView: React.FC = () => {
                     : `[HTTP]\nServer: ${httpResult.serverInfo.server || 'Unknown'}\nStatus: ${httpResult.status} ${httpResult.statusText}\nHeaders: ${Object.keys(httpResult.headers).length} captured\n`;
             }
             if (otxResult) {
-                 content += `\n[ALIENVAULT OTX]\nPulses: ${otxResult.pulse_count}\nTags: ${(otxResult.tags ?? []).join(', ')}\nMalware: ${(otxResult.malware_families ?? []).join(', ')}\n`;
+                content += `\n[ALIENVAULT OTX]\nPulses: ${otxResult.pulse_count}\nTags: ${(otxResult.tags ?? []).join(', ')}\nMalware: ${(otxResult.malware_families ?? []).join(', ')}\n`;
             }
         }
 
@@ -524,7 +534,7 @@ export const NetworkToolsView: React.FC = () => {
     const renderDnsTab = (id: string, label: string, icon?: any) => {
         const isActive = dnsProviderTab === id || (id === 'controld' && dnsProviderTab.startsWith('controld'));
         return (
-            <button 
+            <button
                 onClick={() => setDnsProviderTab(id === 'controld' ? controlDProfile : id)}
                 className={`px-4 py-2 text-xs font-bold flex items-center gap-2 transition-all border-b-2 ${isActive ? 'border-red-500 text-white bg-white/5' : 'border-transparent text-[#888] hover:text-neutral-300'}`}
             >
@@ -565,7 +575,7 @@ export const NetworkToolsView: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                         <h3 className="text-sm font-bold text-white mb-4 uppercase flex items-center gap-2">
-                            <Server size={16} className="text-red-400"/> My Connection
+                            <Server size={16} className="text-red-400" /> My Connection
                         </h3>
                         <div className="space-y-2 text-xs font-mono text-neutral-300">
                             <div className="flex justify-between border-b border-[#222] pb-1"><span>IP Address</span> <span className="text-white font-bold">{ipWhoIsResult.ip}</span></div>
@@ -576,14 +586,14 @@ export const NetworkToolsView: React.FC = () => {
                     </div>
                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                         <h3 className="text-sm font-bold text-white mb-4 uppercase flex items-center gap-2">
-                            <MapIcon size={16} className="text-white"/> Physical Location
+                            <MapIcon size={16} className="text-white" /> Physical Location
                         </h3>
                         <div className="space-y-2 text-xs font-mono text-neutral-300">
                             <div className="flex justify-between border-b border-[#222] pb-1"><span>City</span> <span>{ipWhoIsResult.city}</span></div>
                             <div className="flex justify-between border-b border-[#222] pb-1">
-                                <span>Country</span> 
+                                <span>Country</span>
                                 <span className="flex items-center gap-2">
-                                    {ipWhoIsResult.flag?.img && <img src={ipWhoIsResult.flag.img} className="w-4 h-3 rounded-sm" alt="flag"/>}
+                                    {ipWhoIsResult.flag?.img && <img src={ipWhoIsResult.flag.img} className="w-4 h-3 rounded-sm" alt="flag" />}
                                     {ipWhoIsResult.country} ({ipWhoIsResult.country_code})
                                 </span>
                             </div>
@@ -606,7 +616,7 @@ export const NetworkToolsView: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                 <h3 className="text-sm font-bold text-white mb-4 uppercase flex items-center gap-2">
-                                    <Server size={16} className="text-red-400"/> Network Identity
+                                    <Server size={16} className="text-red-400" /> Network Identity
                                 </h3>
                                 <div className="space-y-2 text-xs font-mono text-neutral-300">
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>IP</span> <span className="text-white">{ipApiResult.ip}</span></div>
@@ -617,7 +627,7 @@ export const NetworkToolsView: React.FC = () => {
                             </div>
                             <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                 <h3 className="text-sm font-bold text-white mb-4 uppercase flex items-center gap-2">
-                                    <MapIcon size={16} className="text-white"/> Location & Abuse
+                                    <MapIcon size={16} className="text-white" /> Location & Abuse
                                 </h3>
                                 <div className="space-y-2 text-xs font-mono text-neutral-300">
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>City</span> <span>{ipApiResult.location?.city}</span></div>
@@ -636,7 +646,7 @@ export const NetworkToolsView: React.FC = () => {
                         {ipApiResult.whois?.text && (
                             <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                 <h3 className="text-sm font-bold text-white mb-2 uppercase flex items-center gap-2">
-                                    <FileText size={16} className="text-[#AAA]"/> Raw WHOIS
+                                    <FileText size={16} className="text-[#AAA]" /> Raw WHOIS
                                 </h3>
                                 <div className="h-64 overflow-y-auto custom-scrollbar bg-[#111] p-4 rounded border border-[#222] text-[10px] font-mono text-[#AAA] whitespace-pre-wrap">
                                     {ipApiResult.whois?.text}
@@ -650,7 +660,7 @@ export const NetworkToolsView: React.FC = () => {
                     <div className="space-y-6">
                         <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                             <h3 className="text-sm font-bold text-white mb-4 uppercase flex items-center gap-2">
-                                <Globe size={16} className="text-red-400"/> Domain Registration (RDAP)
+                                <Globe size={16} className="text-red-400" /> Domain Registration (RDAP)
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-mono text-neutral-300">
                                 <div className="space-y-2">
@@ -671,10 +681,10 @@ export const NetworkToolsView: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        
+
                         <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                             <h3 className="text-sm font-bold text-white mb-4 uppercase flex items-center gap-2">
-                                <List size={16} className="text-[#AAA]"/> Registration Events
+                                <List size={16} className="text-[#AAA]" /> Registration Events
                             </h3>
                             <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
                                 {whoisResult.events.map((e: any, i: number) => (
@@ -697,7 +707,7 @@ export const NetworkToolsView: React.FC = () => {
             <div className="p-4 border-b border-[#222] bg-[#111]/40 shrink-0">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-neutral-900/20 rounded-lg border border-neutral-500/30 text-red-400">
-                        <HardDrive size={20}/>
+                        <HardDrive size={20} />
                     </div>
                     <div>
                         <h2 className="text-lg font-bold text-white font-cyber flex items-center gap-2">
@@ -725,38 +735,38 @@ export const NetworkToolsView: React.FC = () => {
 
             {/* Main Content */}
             <div className="flex-1 overflow-hidden relative flex flex-col p-6 max-w-7xl mx-auto w-full">
-                
+
                 {/* Input Bar */}
                 {activeCategory !== 'MY_IP' && activeCategory !== 'HEADERS' && (
                     <form onSubmit={handleRunTool} className="mb-8 relative group max-w-2xl mx-auto w-full">
                         <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-900 rounded-lg blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         <div className="relative flex items-center bg-[#111] border border-[#333] rounded-lg overflow-hidden shadow-2xl">
                             <div className="pl-4 text-[#888]">
-                                {isLoading ? <RefreshCw className="animate-spin" size={18}/> : <Terminal size={18}/>}
+                                {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <Terminal size={18} />}
                             </div>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 className="flex-1 bg-transparent border-none text-white px-4 py-3 focus:ring-0 placeholder-neutral-600 font-mono text-sm"
                                 placeholder={
                                     activeCategory === 'ASN' ? 'Enter ASN (AS13335) or Organization Name...' :
-                                    activeCategory === 'SUBNET' ? 'Enter CIDR (192.168.1.0/24)...' :
-                                    activeCategory === 'SUPER_SCAN' ? 'Enter Domain or IP for deep analysis...' :
-                                    'Enter target (domain, IP, or URL)...'
+                                        activeCategory === 'SUBNET' ? 'Enter CIDR (192.168.1.0/24)...' :
+                                            activeCategory === 'SUPER_SCAN' ? 'Enter Domain or IP for deep analysis...' :
+                                                'Enter target (domain, IP, or URL)...'
                                 }
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                             />
-                            <button 
+                            <button
                                 type="submit"
                                 disabled={isLoading || (!input && activeCategory !== 'PING')} // PING can re-trigger stop
                                 className="bg-[#151515] hover:bg-[#1C1C1C] text-white px-6 py-3 font-bold text-xs transition-colors border-l border-[#333] flex items-center gap-2"
                             >
-                                {isPinging ? <Pause size={14}/> : <Play size={14}/>} RUN
+                                {isPinging ? <Pause size={14} /> : <Play size={14} />} RUN
                             </button>
                         </div>
                         {error && (
                             <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-red-900/80 text-red-200 text-xs rounded border border-red-500/50 backdrop-blur-sm animate-fade-in flex items-center gap-2">
-                                <AlertTriangle size={12}/> {error}
+                                <AlertTriangle size={12} /> {error}
                             </div>
                         )}
 
@@ -785,13 +795,13 @@ export const NetworkToolsView: React.FC = () => {
 
                 {activeCategory === 'HEADERS' && (
                     <div className="flex flex-col gap-4 h-full">
-                        <textarea 
+                        <textarea
                             className="flex-1 bg-[#111]/50 border border-[#333] rounded-lg p-4 font-mono text-xs text-neutral-300 focus:border-red-500 focus:outline-none resize-none custom-scrollbar"
                             placeholder="Paste raw email headers here..."
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                         />
-                        <button 
+                        <button
                             onClick={() => handleRunTool()}
                             className="bg-neutral-600 hover:bg-neutral-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg shadow-green-900/20 transition-all"
                         >
@@ -801,7 +811,7 @@ export const NetworkToolsView: React.FC = () => {
                 )}
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pb-20">
-                    
+
                     {/* SUPER SCAN DASHBOARD */}
                     {activeCategory === 'SUPER_SCAN' && (
                         (riskAnalysis || isLoading) ? (
@@ -816,48 +826,45 @@ export const NetworkToolsView: React.FC = () => {
 
                                 {/* Summary Card */}
                                 {riskAnalysis && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5 flex flex-col items-center justify-center text-center">
-                                        <div className="text-xs font-bold text-[#888] uppercase tracking-widest mb-2">Composite Risk</div>
-                                        <div className={`text-5xl font-cyber font-bold mb-2 ${
-                                            riskAnalysis.level === 'CRITICAL' ? 'text-red-500' : 
-                                            riskAnalysis.level === 'HIGH' ? 'text-white' :
-                                            riskAnalysis.level === 'MEDIUM' ? 'text-white' : 'text-white'
-                                        }`}>
-                                            {riskAnalysis.score}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5 flex flex-col items-center justify-center text-center">
+                                            <div className="text-xs font-bold text-[#888] uppercase tracking-widest mb-2">Composite Risk</div>
+                                            <div className={`text-5xl font-cyber font-bold mb-2 ${riskAnalysis.level === 'CRITICAL' ? 'text-red-500' :
+                                                riskAnalysis.level === 'HIGH' ? 'text-white' :
+                                                    riskAnalysis.level === 'MEDIUM' ? 'text-white' : 'text-white'
+                                                }`}>
+                                                {riskAnalysis.score}
+                                            </div>
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${riskAnalysis.level === 'CRITICAL' ? 'bg-red-900/20 border-red-500/30 text-red-400' :
+                                                riskAnalysis.level === 'HIGH' ? 'bg-neutral-900/20 border-neutral-500/30 text-white' :
+                                                    riskAnalysis.level === 'MEDIUM' ? 'bg-neutral-900/20 border-neutral-500/30 text-white' : 'bg-neutral-900/20 border-neutral-500/30 text-white'
+                                                }`}>
+                                                {riskAnalysis.verdict.toUpperCase()}
+                                            </span>
                                         </div>
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                            riskAnalysis.level === 'CRITICAL' ? 'bg-red-900/20 border-red-500/30 text-red-400' : 
-                                            riskAnalysis.level === 'HIGH' ? 'bg-neutral-900/20 border-neutral-500/30 text-white' :
-                                            riskAnalysis.level === 'MEDIUM' ? 'bg-neutral-900/20 border-neutral-500/30 text-white' : 'bg-neutral-900/20 border-neutral-500/30 text-white'
-                                        }`}>
-                                            {riskAnalysis.verdict.toUpperCase()}
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="md:col-span-2 bg-[#111]/40 border border-[#222] rounded-lg p-5">
-                                        <div className="flex items-center gap-4 mb-4">
-                                            {enrichmentResult?.flag && <img src={enrichmentResult.flag} className="w-8 h-6 rounded shadow-sm" alt="flag"/>}
-                                            <div>
-                                                <div className="text-xl font-bold text-white">{input}</div>
-                                                <div className="text-xs text-[#AAA]">{enrichmentResult?.ip ? `Resolves to: ${enrichmentResult.ip}` : 'Resolving...'}</div>
+
+                                        <div className="md:col-span-2 bg-[#111]/40 border border-[#222] rounded-lg p-5">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                {enrichmentResult?.flag && <img src={enrichmentResult.flag} className="w-8 h-6 rounded shadow-sm" alt="flag" />}
+                                                <div>
+                                                    <div className="text-xl font-bold text-white">{input}</div>
+                                                    <div className="text-xs text-[#AAA]">{enrichmentResult?.ip ? `Resolves to: ${enrichmentResult.ip}` : 'Resolving...'}</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                                                {riskAnalysis.factors.map((factor, i) => (
+                                                    <div key={i} className={`flex items-center gap-2 text-xs p-1.5 rounded ${factor.type === 'NEGATIVE' ? 'bg-red-900/10 text-red-300' :
+                                                        factor.type === 'POSITIVE' ? 'bg-neutral-900/10 text-white' : 'bg-[#151515] text-[#AAA]'
+                                                        }`}>
+                                                        {factor.type === 'NEGATIVE' ? <AlertTriangle size={12} /> : factor.type === 'POSITIVE' ? <CheckCircle size={12} /> : <Activity size={12} />}
+                                                        <span>{factor.label}</span>
+                                                        {factor.impact !== 0 && <span className="ml-auto font-mono opacity-70">{factor.impact > 0 ? '+' : ''}{factor.impact}</span>}
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
-                                        
-                                        <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
-                                            {riskAnalysis.factors.map((factor, i) => (
-                                                <div key={i} className={`flex items-center gap-2 text-xs p-1.5 rounded ${
-                                                    factor.type === 'NEGATIVE' ? 'bg-red-900/10 text-red-300' : 
-                                                    factor.type === 'POSITIVE' ? 'bg-neutral-900/10 text-white' : 'bg-[#151515] text-[#AAA]'
-                                                }`}>
-                                                    {factor.type === 'NEGATIVE' ? <AlertTriangle size={12}/> : factor.type === 'POSITIVE' ? <CheckCircle size={12}/> : <Activity size={12}/>}
-                                                    <span>{factor.label}</span>
-                                                    {factor.impact !== 0 && <span className="ml-auto font-mono opacity-70">{factor.impact > 0 ? '+' : ''}{factor.impact}</span>}
-                                                </div>
-                                            ))}
-                                        </div>
                                     </div>
-                                </div>
                                 )}
 
                                 {/* Detailed Information Grid */}
@@ -865,7 +872,7 @@ export const NetworkToolsView: React.FC = () => {
                                     {/* Domain Info */}
                                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                         <h3 className="text-sm font-bold text-red-400 uppercase mb-4 flex items-center gap-2">
-                                            <Globe size={16}/> Domain Intelligence
+                                            <Globe size={16} /> Domain Intelligence
                                         </h3>
                                         {whoisResult ? (
                                             <div className="space-y-2 text-xs font-mono text-neutral-300">
@@ -874,7 +881,7 @@ export const NetworkToolsView: React.FC = () => {
                                                 <div className="flex justify-between border-b border-[#222] pb-1"><span>Expires</span> <span>{
                                                     whoisResult.events?.find((e: any) => e.eventAction === 'expiration')?.eventDate ? new Date(whoisResult.events.find((e: any) => e.eventAction === 'expiration').eventDate).toLocaleDateString() : 'Unknown'
                                                 }</span></div>
-                                                
+
                                                 {/* Expandable Raw Whois */}
                                                 <div className="mt-4">
                                                     <div className="text-[10px] text-[#888] uppercase font-bold mb-1">Raw Whois Data</div>
@@ -889,7 +896,7 @@ export const NetworkToolsView: React.FC = () => {
                                     {/* Infrastructure & DNS */}
                                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                         <h3 className="text-sm font-bold text-red-400 uppercase mb-4 flex items-center gap-2">
-                                            <Server size={16}/> Infrastructure & DNS
+                                            <Server size={16} /> Infrastructure & DNS
                                         </h3>
                                         {enrichmentResult ? (
                                             <div className="space-y-2 text-xs font-mono text-neutral-300 mb-4">
@@ -899,7 +906,7 @@ export const NetworkToolsView: React.FC = () => {
                                                 <div className="flex justify-between border-b border-[#222] pb-1"><span>Type</span> <span>{enrichmentResult.threat?.is_datacenter ? 'Datacenter' : 'Residential/ISP'}</span></div>
                                             </div>
                                         ) : <div className="text-[#888] text-xs italic mb-4">{isLoading ? "Enriching IP..." : "No infrastructure data."}</div>}
-                                        
+
                                         <div className="bg-[#111] p-2 rounded border border-[#222]">
                                             <div className="text-[10px] text-[#888] uppercase font-bold mb-1">Resolved Records</div>
                                             <div className="text-[10px] font-mono text-[#AAA] space-y-1">
@@ -917,7 +924,7 @@ export const NetworkToolsView: React.FC = () => {
                                     {/* Deep Intelligence (Shodan & IPData) */}
                                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                         <h3 className="text-sm font-bold text-white uppercase mb-4 flex items-center gap-2">
-                                            <Zap size={16}/> Deep Intelligence (Shodan & IPData)
+                                            <Zap size={16} /> Deep Intelligence (Shodan & IPData)
                                         </h3>
                                         {enrichmentResult ? (
                                             <div className="space-y-4">
@@ -937,45 +944,60 @@ export const NetworkToolsView: React.FC = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* Shodan Data */}
-                                                {enrichmentResult.shodan ? (
-                                                    <div className="space-y-2">
-                                                        <div className="text-[10px] text-[#888] uppercase font-bold border-b border-[#222] pb-1">Shodan Exposure</div>
-                                                        
-                                                        {(enrichmentResult.shodan.ports?.length ?? 0) > 0 ? (
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {(enrichmentResult.shodan.ports ?? []).map(p => (
-                                                                    <span key={p} className="text-[10px] bg-[#151515] text-neutral-300 px-1.5 py-0.5 rounded border border-[#333] font-mono">
-                                                                        {p}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        ) : <span className="text-xs text-[#888] italic">No open ports detected.</span>}
-
-                                                        {(enrichmentResult.shodan.vulns?.length ?? 0) > 0 && (
-                                                            <div className="mt-2">
-                                                                <div className="text-[10px] text-red-400 uppercase font-bold mb-1">Vulnerabilities</div>
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {(enrichmentResult.shodan.vulns ?? []).map(v => (
-                                                                        <span key={v} className="text-[10px] bg-red-900/20 text-red-300 px-1.5 py-0.5 rounded border border-red-500/30 font-mono">
-                                                                            {v}
-                                                                        </span>
-                                                                    ))}
+                                                {/* Open Ports (Active TCP + Shodan) */}
+                                                {(() => {
+                                                    const mergedPorts =
+                                                        scanResults.length > 0
+                                                            ? scanResults.map((r) => r.port)
+                                                            : (enrichmentResult.shodan?.ports ?? []);
+                                                    const activeCount = scanResults.filter((r) => r.source === 'active-tcp' || r.source === 'active+shodan').length;
+                                                    if (enrichmentResult.shodan || scanResults.length > 0) {
+                                                        return (
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center justify-between text-[10px] text-[#888] uppercase font-bold border-b border-[#222] pb-1">
+                                                                    <span>{activeCount > 0 ? 'Port Exposure (Active + Shodan)' : 'Shodan Exposure'}</span>
+                                                                    {portScanReport?.activeAvailable && (
+                                                                        <span className="text-neutral-400 font-mono lowercase">{portScanReport.scannedCount} tcp probed</span>
+                                                                    )}
                                                                 </div>
+
+                                                                {mergedPorts.length > 0 ? (
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {mergedPorts.map(p => (
+                                                                            <span key={p} className="text-[10px] bg-[#151515] text-neutral-300 px-1.5 py-0.5 rounded border border-[#333] font-mono">
+                                                                                {p}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : <span className="text-xs text-[#888] italic">No open TCP ports or Shodan exposure detected.</span>}
+
+                                                                {(enrichmentResult.shodan?.vulns?.length ?? 0) > 0 && (
+                                                                    <div className="mt-2">
+                                                                        <div className="text-[10px] text-red-400 uppercase font-bold mb-1">Vulnerabilities</div>
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            {(enrichmentResult.shodan?.vulns ?? []).map(v => (
+                                                                                <span key={v} className="text-[10px] bg-red-900/20 text-red-300 px-1.5 py-0.5 rounded border border-red-500/30 font-mono">
+                                                                                    {v}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {(enrichmentResult.shodan?.tags?.length ?? 0) > 0 && (
+                                                                    <div className="mt-2 flex flex-wrap gap-1">
+                                                                        {(enrichmentResult.shodan?.tags ?? []).map(t => (
+                                                                            <span key={t} className="text-[10px] bg-[#111] text-red-300 px-1.5 py-0.5 rounded border border-red-500/30">
+                                                                                {t}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
-                                                        
-                                                        {(enrichmentResult.shodan.tags?.length ?? 0) > 0 && (
-                                                            <div className="mt-2 flex flex-wrap gap-1">
-                                                                 {(enrichmentResult.shodan.tags ?? []).map(t => (
-                                                                     <span key={t} className="text-[10px] bg-[#111] text-red-300 px-1.5 py-0.5 rounded border border-red-500/30">
-                                                                         {t}
-                                                                     </span>
-                                                                 ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ) : <div className="text-xs text-[#888] italic">No Shodan data available for this IP.</div>}
+                                                        );
+                                                    }
+                                                    return <div className="text-xs text-[#888] italic">No open ports or Shodan exposure data available for this IP.</div>;
+                                                })()}
                                             </div>
                                         ) : <div className="text-[#888] text-xs italic">{isLoading ? "Fetching intelligence..." : "No deep intel available."}</div>}
                                     </div>
@@ -983,12 +1005,12 @@ export const NetworkToolsView: React.FC = () => {
                                     {/* HTTP Security */}
                                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                         <h3 className="text-sm font-bold text-white uppercase mb-4 flex items-center gap-2">
-                                            <Lock size={16}/> Web Security & Headers
+                                            <Lock size={16} /> Web Security & Headers
                                         </h3>
                                         {httpResult ? (
                                             httpResult.error ? (
                                                 <div className="p-3 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono flex items-start gap-2">
-                                                    <AlertTriangle size={14} className="shrink-0 mt-0.5"/>
+                                                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                                                     <div>
                                                         <div className="font-bold uppercase text-[10px] mb-1">
                                                             HTTP Probe Unavailable{httpResult.status > 0 ? ` (${httpResult.status})` : ''}
@@ -1009,7 +1031,7 @@ export const NetworkToolsView: React.FC = () => {
                                                                     <div key={i} className="flex items-center justify-between px-2 py-1 rounded bg-[#111] border border-[#222] text-[11px]">
                                                                         <span className="text-[#AAA] truncate pr-2">{h.name}</span>
                                                                         <span className={`font-bold flex items-center gap-1 shrink-0 ${h.valid ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                                                            {h.valid ? <CheckCircle size={10}/> : <AlertTriangle size={10}/>}
+                                                                            {h.valid ? <CheckCircle size={10} /> : <AlertTriangle size={10} />}
                                                                             {h.valid ? 'PRESENT' : 'MISSING'}
                                                                         </span>
                                                                     </div>
@@ -1041,7 +1063,7 @@ export const NetworkToolsView: React.FC = () => {
                                     {/* AlienVault OTX Intelligence */}
                                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                         <h3 className="text-sm font-bold text-red-400 uppercase mb-4 flex items-center gap-2">
-                                            <Radar size={16}/> AlienVault OTX Intelligence
+                                            <Radar size={16} /> AlienVault OTX Intelligence
                                         </h3>
                                         {otxResult ? (
                                             <div className="space-y-3">
@@ -1081,7 +1103,7 @@ export const NetworkToolsView: React.FC = () => {
                                     {/* Threat Indicators */}
                                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                         <h3 className="text-sm font-bold text-red-400 uppercase mb-4 flex items-center gap-2">
-                                            <ShieldAlert size={16}/> Threat Indicators
+                                            <ShieldAlert size={16} /> Threat Indicators
                                         </h3>
                                         <div className="space-y-2 text-xs font-mono text-neutral-300 max-h-48 overflow-y-auto custom-scrollbar">
                                             {securityResults.length > 0 ? securityResults.map((s, i) => (
@@ -1093,7 +1115,7 @@ export const NetworkToolsView: React.FC = () => {
                                                     <span className={`font-bold ${s.status === 'BLOCKED' ? 'text-red-400' : 'text-white'}`}>{s.status}</span>
                                                 </div>
                                             )) : <span className="text-[#888] italic">{isLoading ? "Checking threat feeds..." : "No threat data available."}</span>}
-                                            
+
                                             {rblStatus && (
                                                 <div className="flex justify-between items-center p-1.5 rounded bg-[#111] border border-[#222]">
                                                     <span className="text-[#AAA]">RBL Status</span>
@@ -1113,16 +1135,16 @@ export const NetworkToolsView: React.FC = () => {
                                         )}
                                     </div>
                                 </div>
-                                
+
                                 {riskAnalysis && (
-                                <div className="flex justify-center pt-4 gap-2">
-                                    <button onClick={handleExportReport} className="text-xs text-[#AAA] hover:text-white flex items-center gap-2 border border-[#333] hover:border-neutral-500 px-4 py-2 rounded-full transition-colors">
-                                        <Download size={14}/> EXPORT TEXT REPORT
-                                    </button>
-                                    <button onClick={handleExportPdf} className="text-xs text-[#AAA] hover:text-white flex items-center gap-2 border border-[#333] hover:border-neutral-500 px-4 py-2 rounded-full transition-colors">
-                                        <File size={14}/> EXPORT PDF
-                                    </button>
-                                </div>
+                                    <div className="flex justify-center pt-4 gap-2">
+                                        <button onClick={handleExportReport} className="text-xs text-[#AAA] hover:text-white flex items-center gap-2 border border-[#333] hover:border-neutral-500 px-4 py-2 rounded-full transition-colors">
+                                            <Download size={14} /> EXPORT TEXT REPORT
+                                        </button>
+                                        <button onClick={handleExportPdf} className="text-xs text-[#AAA] hover:text-white flex items-center gap-2 border border-[#333] hover:border-neutral-500 px-4 py-2 rounded-full transition-colors">
+                                            <File size={14} /> EXPORT PDF
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         ) : (
@@ -1144,19 +1166,19 @@ export const NetworkToolsView: React.FC = () => {
                             {asnResult && (
                                 <div className="bg-[#111]/40 border border-[#222] rounded-lg p-6 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-4 opacity-10">
-                                        <Share2 size={120} className="text-white"/>
+                                        <Share2 size={120} className="text-white" />
                                     </div>
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-4 mb-6">
                                             <div className="bg-[#111] p-3 rounded-lg border border-neutral-500/30 text-red-400">
-                                                <Share2 size={32}/>
+                                                <Share2 size={32} />
                                             </div>
                                             <div>
                                                 <h2 className="text-3xl font-bold text-white font-mono">{asnResult.asn}</h2>
                                                 <div className="text-sm text-[#AAA]">{asnResult.name}</div>
                                             </div>
                                             {asnResult.country_code && (
-                                                <img src={`https://flagcdn.com/w80/${asnResult.country_code.toLowerCase()}.png`} className="h-8 rounded shadow-sm ml-auto opacity-80" alt={asnResult.country_code}/>
+                                                <img src={`https://flagcdn.com/w80/${asnResult.country_code.toLowerCase()}.png`} className="h-8 rounded shadow-sm ml-auto opacity-80" alt={asnResult.country_code} />
                                             )}
                                         </div>
 
@@ -1199,7 +1221,7 @@ export const NetworkToolsView: React.FC = () => {
                                     <h3 className="text-sm font-bold text-[#AAA] mb-4">Search Results ({asnSearchResults.length})</h3>
                                     <div className="grid grid-cols-1 gap-2">
                                         {asnSearchResults.map((res) => (
-                                            <button 
+                                            <button
                                                 key={res.asn}
                                                 onClick={() => handleSelectAsn(res.asn)}
                                                 className="flex items-center gap-4 bg-[#111] border border-[#222] p-3 rounded hover:bg-red-900/10 hover:border-red-500/30 transition-all text-left group"
@@ -1210,7 +1232,7 @@ export const NetworkToolsView: React.FC = () => {
                                                     <div className="text-xs text-[#888] truncate">{res.description_short}</div>
                                                 </div>
                                                 <span className="text-xs text-[#AAA] bg-[#151515] px-2 py-1 rounded">{res.country_code}</span>
-                                                <ArrowRight size={16} className="text-neutral-600 group-hover:text-red-400"/>
+                                                <ArrowRight size={16} className="text-neutral-600 group-hover:text-red-400" />
                                             </button>
                                         ))}
                                     </div>
@@ -1252,7 +1274,7 @@ export const NetworkToolsView: React.FC = () => {
                                     </div>
                                 </div>
                             )) : <div className="text-center text-[#888] p-10 col-span-2">No security checks run.</div>}
-                            
+
                             {dgaResult && (
                                 <div className="col-span-2 bg-[#111] border border-[#222] p-4 rounded-lg mt-4">
                                     <h3 className="text-sm font-bold text-white uppercase mb-2">Heuristic Analysis</h3>
@@ -1321,7 +1343,7 @@ export const NetworkToolsView: React.FC = () => {
                                         {mailServerReputation.map((server, i) => (
                                             <div key={i} className="flex justify-between items-center p-2 rounded bg-[#111] border border-[#222] text-xs">
                                                 <div className="flex items-center gap-3">
-                                                    {server.flag && <img src={server.flag} className="w-4 h-3 rounded-sm"/>}
+                                                    {server.flag && <img src={server.flag} className="w-4 h-3 rounded-sm" />}
                                                     <span className="font-mono text-neutral-300">{server.hostname}</span>
                                                     <span className="text-neutral-600">({server.ip})</span>
                                                 </div>
@@ -1361,6 +1383,110 @@ export const NetworkToolsView: React.FC = () => {
                                 </div>
                             ))}
                             {isPinging && <div className="animate-pulse mt-2">_</div>}
+                        </div>
+                    )}
+
+                    {/* PORT SCAN */}
+                    {activeCategory === 'SCAN' && (
+                        <div data-testid="port-scan-panel" className="space-y-4 animate-fade-in">
+                            {portScanReport ? (
+                                <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono">
+                                        <div className="bg-[#111]/60 border border-[#222] rounded-lg p-3">
+                                            <div className="text-[10px] uppercase text-[#888] mb-1">Resolved Target</div>
+                                            <div className="text-white font-bold truncate" title={portScanReport.resolvedIp}>
+                                                {portScanReport.resolvedIp || portScanReport.target}
+                                            </div>
+                                        </div>
+                                        <div className="bg-[#111]/60 border border-[#222] rounded-lg p-3">
+                                            <div className="text-[10px] uppercase text-[#888] mb-1">Active TCP Probed</div>
+                                            <div className="text-white font-bold">
+                                                {portScanReport.activeAvailable ? `${portScanReport.scannedCount} common ports` : 'Blocked / Unavailable'}
+                                            </div>
+                                        </div>
+                                        <div className="bg-[#111]/60 border border-[#222] rounded-lg p-3">
+                                            <div className="text-[10px] uppercase text-[#888] mb-1">Shodan InternetDB</div>
+                                            <div className="text-neutral-300 font-bold">
+                                                {portScanReport.passiveAvailable ? 'Indexed (Passive Match)' : 'Not Indexed'}
+                                            </div>
+                                        </div>
+                                        <div className="bg-[#111]/60 border border-[#222] rounded-lg p-3">
+                                            <div className="text-[10px] uppercase text-[#888] mb-1">Open / Observed Ports</div>
+                                            <div className={`font-bold ${portScanReport.ports.length > 0 ? 'text-red-400' : 'text-neutral-300'}`}>
+                                                {portScanReport.ports.length}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {portScanReport.ports.length > 0 ? (
+                                        <div className="bg-[#111]/40 border border-[#222] rounded-lg overflow-hidden">
+                                            <table className="w-full text-left text-xs font-mono">
+                                                <thead className="bg-[#111] text-[#888] uppercase font-bold">
+                                                    <tr>
+                                                        <th className="p-3">Port</th>
+                                                        <th className="p-3">Protocol</th>
+                                                        <th className="p-3">Service</th>
+                                                        <th className="p-3">State</th>
+                                                        <th className="p-3">RTT</th>
+                                                        <th className="p-3">Detection Source</th>
+                                                        <th className="p-3">Tags</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-neutral-800 text-neutral-300">
+                                                    {portScanReport.ports.map((p) => (
+                                                        <tr key={`${p.port}-${p.transport}`} className="hover:bg-white/5">
+                                                            <td className="p-3 font-bold text-red-400">{p.port}</td>
+                                                            <td className="p-3 text-neutral-300">{p.transport}</td>
+                                                            <td className="p-3 text-white">{p.service}</td>
+                                                            <td className="p-3">
+                                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                                                    p.state === 'OPEN'
+                                                                        ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300'
+                                                                        : 'bg-neutral-900 border-neutral-700 text-neutral-300'
+                                                                }`}>
+                                                                    {p.state === 'OPEN' ? 'OPEN (LIVE TCP)' : 'PASSIVE RECORD'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-3 text-[#AAA]">{p.rttMs !== undefined ? `${p.rttMs} ms` : '—'}</td>
+                                                            <td className="p-3 text-neutral-200">
+                                                                {p.source === 'active+shodan'
+                                                                    ? 'Active TCP + Shodan'
+                                                                    : p.source === 'active-tcp'
+                                                                      ? 'Active TCP Probe'
+                                                                      : 'Shodan Passive Cache'}
+                                                            </td>
+                                                            <td className="p-3 text-[#888]">
+                                                                {p.tags.length > 0 ? p.tags.join(', ') : '—'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-[#111]/40 border border-[#222] rounded-lg p-6 text-center space-y-1">
+                                            <div className="text-sm font-bold text-white">
+                                                {portScanReport.error
+                                                    ? 'Port Scan Blocked or Unavailable'
+                                                    : 'No Open TCP Ports Responding'}
+                                            </div>
+                                            <p className="text-xs text-[#888] font-mono">
+                                                {portScanReport.error
+                                                    ? portScanReport.error
+                                                    : `Probed ${portScanReport.scannedCount} standard TCP service ports via SSRF-safe active connect; ${
+                                                          portScanReport.passiveAvailable
+                                                              ? 'no open services responded.'
+                                                              : 'host also has no passive Shodan InternetDB index records.'
+                                                      }`}
+                                            </p>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="bg-[#111]/40 border border-[#222] rounded-lg p-8 text-center text-xs text-[#888] font-mono">
+                                    Enter a public domain or IP and click RUN to execute SSRF-safe active TCP port probes alongside passive Shodan correlation.
+                                </div>
+                            )}
                         </div>
                     )}
 

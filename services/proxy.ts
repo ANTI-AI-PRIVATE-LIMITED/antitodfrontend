@@ -3,6 +3,7 @@ import { BACKEND_URL, AUTH_CONFIG } from '../config/config';
 export const PROXY_ROUTE = '/AdminRoutes/proxy/fetch';
 export const WEBCHECK_PROXY_ROUTE = '/AdminRoutes/proxy/webcheck';
 export const PING_PROXY_ROUTE = '/AdminRoutes/proxy/ping';
+export const PORTSCAN_PROXY_ROUTE = '/AdminRoutes/proxy/portscan';
 
 /**
  * Transforms an arbitrary target URL into a proxied URL routed through the backend.
@@ -82,7 +83,12 @@ export function installProxyFetchInterceptor(force: boolean = false): void {
             urlStr = (input as Request).url;
         }
 
-        if (urlStr.includes(PROXY_ROUTE) || urlStr.includes(WEBCHECK_PROXY_ROUTE) || urlStr.includes(PING_PROXY_ROUTE)) {
+        if (
+            urlStr.includes(PROXY_ROUTE) ||
+            urlStr.includes(WEBCHECK_PROXY_ROUTE) ||
+            urlStr.includes(PING_PROXY_ROUTE) ||
+            urlStr.includes(PORTSCAN_PROXY_ROUTE)
+        ) {
             const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
             const headers = new Headers(
                 init?.headers || (typeof input !== 'string' && !(input instanceof URL) ? (input as Request).headers : undefined)
@@ -240,5 +246,33 @@ export async function pingTargetViaProxy(target: string): Promise<ProxyJsonResul
     return fetchProxyJsonEndpoint<PingProxyResponse>(
         `${PING_PROXY_ROUTE}?target=${encodeURIComponent(target.trim())}`,
         'Ping probe failed'
+    );
+}
+
+export interface PortScanProxyEntry {
+    port: number;
+    service: string;
+    transport: 'TCP';
+    state: 'OPEN';
+    rttMs: number;
+}
+
+export interface PortScanProxyResponse {
+    target: string;
+    resolvedIp: string;
+    scannedCount: number;
+    scannedPorts: number[];
+    openPorts: PortScanProxyEntry[];
+    probedAt: string;
+}
+
+/**
+ * Performs SSRF-safe server-side TCP port reachability checks via GET /AdminRoutes/proxy/portscan.
+ */
+export async function scanPortsViaProxy(target: string, ports?: number[]): Promise<ProxyJsonResult<PortScanProxyResponse>> {
+    const portParam = ports && ports.length > 0 ? `&ports=${encodeURIComponent(ports.join(','))}` : '';
+    return fetchProxyJsonEndpoint<PortScanProxyResponse>(
+        `${PORTSCAN_PROXY_ROUTE}?target=${encodeURIComponent(target.trim())}${portParam}`,
+        'Active port scan failed'
     );
 }

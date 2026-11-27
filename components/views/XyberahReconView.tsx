@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
-  ArrowUpDown,
   BarChart2,
   Briefcase,
   Bug,
@@ -65,7 +64,8 @@ import {
 } from '../../api/services/openasmClient';
 import { DashboardAssetLocationsMap } from '../recon/DashboardAssetLocationsMap';
 import { InventoryAllServicesTable, InventoryGroupedTable } from '../recon/InventoryServiceTables';
-import { VulnerabilityDetailModal, vulnSeverityBadgeClass } from '../recon/VulnerabilityDetailModal';
+import { VulnerabilityDetailModal } from '../recon/VulnerabilityDetailModal';
+import { ReconVulnerabilityList } from '../recon/ReconVulnerabilityList';
 import { TargetRiskModal } from '../recon/TargetRiskModal';
 import { IntegrationsView } from './IntegrationsView';
 import { useAuth } from '../../contexts/AuthContext';
@@ -1691,7 +1691,7 @@ export const XyberahReconView: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-cyber-grid relative">
+    <div className="h-full min-w-0 flex flex-col bg-cyber-grid relative overflow-x-hidden">
       <div className="p-4 border-b border-[#222] bg-[#111]/40 backdrop-blur-sm flex flex-col md:flex-row gap-4 justify-between items-center shrink-0">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-neutral-900/20 rounded-lg border border-neutral-500/30 text-white">
@@ -2927,142 +2927,19 @@ export const XyberahReconView: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="overflow-x-auto rounded-xl border border-[#222]">
-                            <table className="w-full min-w-[960px] text-left text-xs">
-                              <thead className="border-b border-[#222] bg-[#111]/40 text-[11px] font-semibold uppercase tracking-wide text-[#888]">
-                                <tr>
-                                  <th className="p-3 pl-4">
-                                    <button
-                                      type="button"
-                                      className="inline-flex items-center gap-1 text-[#AAA] hover:text-white"
-                                      onClick={() =>
-                                        setTargetVulnParams((p) => ({
-                                          ...p,
-                                          sortBy: 'severity',
-                                          sortOrder: p.sortOrder === 'DESC' ? 'ASC' : 'DESC',
-                                          page: 1,
-                                        }))
-                                      }
-                                    >
-                                      Severity
-                                      <ArrowUpDown size={12} />
-                                    </button>
-                                  </th>
-                                  <th className="p-3">Details</th>
-                                  <th className="p-3">Affected URL</th>
-                                  <th className="p-3">CVSS</th>
-                                  <th className="p-3">Tags</th>
-                                  <th className="p-3">Created</th>
-                                  <th className="p-3">Scanned by</th>
-                                  <th className="p-3 pr-4">Status</th>
-                                  <th className="p-3 pr-4 text-right"> </th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-neutral-200">
-                                {targetVulnerabilities.map((v) => {
-                                  const row = v as Record<string, unknown>;
-                                  const id = String(v.id);
-                                  const name = String(row.name ?? row.title ?? '—');
-                                  const sev = String(v.severity ?? 'unknown');
-                                  const url = String(row.affectedUrl ?? '');
-                                  const cv = row.cvssScore;
-                                  const cvssLabel = cv != null && String(cv) !== '' ? String(cv) : 'Not matched';
-                                  const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
-                                  const tool = row.tool as Record<string, unknown> | undefined;
-                                  const tname = tool ? String(tool.name ?? '') : '';
-                                  const tlogo = tool && typeof tool.logoUrl === 'string' ? tool.logoUrl : '';
-                                  const logoSrc = resolveAssetMediaUrl(tlogo || null);
-                                  const created = row.createdAt ? new Date(String(row.createdAt)).toLocaleDateString() : '—';
-                                  const st = String(v.status ?? 'open');
-                                  return (
-                                    <tr key={id} className="border-t border-[#222]/80 hover:bg-white/[0.03]">
-                                      <td className="p-3 pl-4 align-middle">
-                                        <span
-                                          className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold capitalize ${vulnSeverityBadgeClass(sev)}`}
-                                        >
-                                          {sev}
-                                        </span>
-                                      </td>
-                                      <td className="max-w-[220px] p-3 align-middle">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="font-semibold text-white">{name}</span>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleOpenVulnerabilityDetail(id)}
-                                            className="shrink-0 text-[#888] hover:text-red-400"
-                                            title="Details"
-                                          >
-                                            <Info size={14} />
-                                          </button>
-                                        </div>
-                                      </td>
-                                      <td className="max-w-[200px] p-3 align-middle">
-                                        {url ? (
-                                          <a
-                                            href={url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 break-all text-sky-400 hover:text-sky-300"
-                                          >
-                                            {url}
-                                            <ExternalLink size={12} className="shrink-0" />
-                                          </a>
-                                        ) : (
-                                          '—'
-                                        )}
-                                      </td>
-                                      <td className="p-3 align-middle font-mono text-[#AAA]">{cvssLabel}</td>
-                                      <td className="p-3 align-middle">
-                                        <div className="flex flex-wrap gap-1">
-                                          {tags.slice(0, 3).map((t) => (
-                                            <span
-                                              key={t}
-                                              className="rounded-md border border-[#333] bg-[#111]/40 px-2 py-0.5 text-[10px] text-neutral-300"
-                                            >
-                                              {t}
-                                            </span>
-                                          ))}
-                                          {tags.length > 3 ? (
-                                            <span className="rounded-md border border-[#333] px-2 py-0.5 text-[10px] text-[#888]">
-                                              +{tags.length - 3}
-                                            </span>
-                                          ) : null}
-                                        </div>
-                                      </td>
-                                      <td className="p-3 align-middle text-neutral-300">{created}</td>
-                                      <td className="p-3 align-middle">
-                                        <div className="flex items-center gap-2">
-                                          {logoSrc ? (
-                                            <img src={logoSrc} alt="" className="h-8 w-8 rounded-lg border border-[#333] bg-white/5 object-contain p-0.5" />
-                                          ) : (
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#333] bg-[#111] text-[10px] text-neutral-600">
-                                              ?
-                                            </div>
-                                          )}
-                                          <span className="text-neutral-200">{tname || '—'}</span>
-                                        </div>
-                                      </td>
-                                      <td className="p-3 align-middle">
-                                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-950/25 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
-                                          <CheckCircle2 size={12} />
-                                          {st}
-                                        </span>
-                                      </td>
-                                      <td className="p-3 pr-4 text-right align-middle">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleOpenVulnerabilityDetail(id)}
-                                          className="rounded-lg border border-neutral-600 bg-[#151515] px-3 py-1.5 text-xs text-white hover:bg-[#1C1C1C]"
-                                        >
-                                          Details
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
+                          <ReconVulnerabilityList
+                            vulnerabilities={targetVulnerabilities}
+                            onToggleSeveritySort={() =>
+                              setTargetVulnParams((p) => ({
+                                ...p,
+                                sortBy: 'severity',
+                                sortOrder: p.sortOrder === 'DESC' ? 'ASC' : 'DESC',
+                                page: 1,
+                              }))
+                            }
+                            onInspect={(id) => handleOpenVulnerabilityDetail(id)}
+                            resolveAssetMediaUrl={resolveAssetMediaUrl}
+                          />
                           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[#888] font-mono">
                             <span>
                               total={targetVulnMeta.total ?? 0} page={targetVulnMeta.page ?? 1}/{targetVulnMeta.pageCount ?? 1}
@@ -3498,147 +3375,19 @@ export const XyberahReconView: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                {vulnerabilities.length === 0 ? (
-                  <div className="rounded-xl border border-[#222] bg-[#111] p-8 text-center text-sm text-[#888]">
-                    No vulnerabilities found.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-xl border border-[#222]">
-                    <table className="w-full min-w-[960px] text-left text-xs">
-                      <thead className="border-b border-[#222] bg-[#111]/40 text-[11px] font-semibold uppercase tracking-wide text-[#888]">
-                        <tr>
-                          <th className="p-3 pl-4">
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 text-[#AAA] hover:text-white"
-                              onClick={() =>
-                                setVulnParams((p) => ({
-                                  ...p,
-                                  sortBy: 'severity',
-                                  sortOrder: p.sortOrder === 'DESC' ? 'ASC' : 'DESC',
-                                  page: 1,
-                                }))
-                              }
-                            >
-                              Severity
-                              <ArrowUpDown size={12} />
-                            </button>
-                          </th>
-                          <th className="p-3">Details</th>
-                          <th className="p-3">Affected URL</th>
-                          <th className="p-3">CVSS</th>
-                          <th className="p-3">Tags</th>
-                          <th className="p-3">Created</th>
-                          <th className="p-3">Scanned by</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3 pr-4 text-right"> </th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-neutral-200">
-                        {vulnerabilities.map((v) => {
-                          const row = v as Record<string, unknown>;
-                          const id = String(v.id);
-                          const name = String(row.name ?? row.title ?? '—');
-                          const sev = String(v.severity ?? 'unknown');
-                          const url = String(row.affectedUrl ?? '');
-                          const cv = row.cvssScore;
-                          const cvssLabel = cv != null && String(cv) !== '' ? String(cv) : 'Not matched';
-                          const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
-                          const tool = row.tool as Record<string, unknown> | undefined;
-                          const tname = tool ? String(tool.name ?? '') : '';
-                          const tlogo = tool && typeof tool.logoUrl === 'string' ? tool.logoUrl : '';
-                          const logoSrc = resolveAssetMediaUrl(tlogo || null);
-                          const created = row.createdAt ? new Date(String(row.createdAt)).toLocaleDateString() : '—';
-                          const st = String(v.status ?? 'open');
-                          return (
-                            <tr key={id} className="border-t border-[#222]/80 hover:bg-white/[0.03]">
-                              <td className="p-3 pl-4 align-middle">
-                                <span
-                                  className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold capitalize ${vulnSeverityBadgeClass(sev)}`}
-                                >
-                                  {sev}
-                                </span>
-                              </td>
-                              <td className="max-w-[220px] p-3 align-middle">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-white">{name}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenVulnerabilityDetail(id)}
-                                    className="shrink-0 text-[#888] hover:text-red-400"
-                                  >
-                                    <Info size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="max-w-[200px] p-3 align-middle">
-                                {url ? (
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 break-all text-sky-400 hover:text-sky-300"
-                                  >
-                                    {url}
-                                    <ExternalLink size={12} className="shrink-0" />
-                                  </a>
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                              <td className="p-3 align-middle font-mono text-[#AAA]">{cvssLabel}</td>
-                              <td className="p-3 align-middle">
-                                <div className="flex flex-wrap gap-1">
-                                  {tags.slice(0, 3).map((t) => (
-                                    <span
-                                      key={t}
-                                      className="rounded-md border border-[#333] bg-[#111]/40 px-2 py-0.5 text-[10px] text-neutral-300"
-                                    >
-                                      {t}
-                                    </span>
-                                  ))}
-                                  {tags.length > 3 ? (
-                                    <span className="rounded-md border border-[#333] px-2 py-0.5 text-[10px] text-[#888]">
-                                      +{tags.length - 3}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </td>
-                              <td className="p-3 align-middle text-neutral-300">{created}</td>
-                              <td className="p-3 align-middle">
-                                <div className="flex items-center gap-2">
-                                  {logoSrc ? (
-                                    <img src={logoSrc} alt="" className="h-8 w-8 rounded-lg border border-[#333] bg-white/5 object-contain p-0.5" />
-                                  ) : (
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#333] bg-[#111] text-[10px] text-neutral-600">
-                                      ?
-                                    </div>
-                                  )}
-                                  <span className="text-neutral-200">{tname || '—'}</span>
-                                </div>
-                              </td>
-                              <td className="p-3 align-middle">
-                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-950/25 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
-                                  <CheckCircle2 size={12} />
-                                  {st}
-                                </span>
-                              </td>
-                              <td className="p-3 pr-4 text-right align-middle">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenVulnerabilityDetail(id)}
-                                  className="rounded-lg border border-neutral-600 bg-[#151515] px-3 py-1.5 text-xs text-white hover:bg-[#1C1C1C]"
-                                >
-                                  Details
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <ReconVulnerabilityList
+                  vulnerabilities={vulnerabilities}
+                  onToggleSeveritySort={() =>
+                    setVulnParams((p) => ({
+                      ...p,
+                      sortBy: 'severity',
+                      sortOrder: p.sortOrder === 'DESC' ? 'ASC' : 'DESC',
+                      page: 1,
+                    }))
+                  }
+                  onInspect={(id) => handleOpenVulnerabilityDetail(id)}
+                  resolveAssetMediaUrl={resolveAssetMediaUrl}
+                />
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#888] font-mono">
                   <span>
                     {`total=${vulnMeta.total ?? 0} page=${vulnMeta.page ?? 1}/${vulnMeta.pageCount ?? 1}`}

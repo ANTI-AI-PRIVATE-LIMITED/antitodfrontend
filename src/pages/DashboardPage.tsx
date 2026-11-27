@@ -1869,7 +1869,7 @@ export default function DashboardPage({
               type="button"
               className="at-intel-module-card"
               onClick={() =>
-                onNavigate('topology')
+                onNavigate('infrastructure')
               }
             >
               <span className="at-intel-module-icon">
@@ -1946,13 +1946,11 @@ export default function DashboardPage({
               <button
                 type="button"
                 onClick={() =>
-                  onNavigate(
-                    'investigation_bench',
-                  )
+                  onNavigate('analysis')
                 }
               >
                 <Target size={14} />
-                Investigation Bench
+                Log Analysis
               </button>
 
               <button
@@ -1978,11 +1976,11 @@ export default function DashboardPage({
               <button
                 type="button"
                 onClick={() =>
-                  onNavigate('topology')
+                  onNavigate('nettools')
                 }
               >
                 <Network size={14} />
-                Network Topology
+                Network Tools
               </button>
 
               <button

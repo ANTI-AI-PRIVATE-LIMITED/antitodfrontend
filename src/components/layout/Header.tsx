@@ -207,7 +207,10 @@ export default function Header({
             {group?.title ?? 'Workspace'}
           </span>
           <ChevronRight size={13} />
-          <strong>{item?.label ?? 'Dashboard'}</strong>
+          <strong>
+            {item?.label ??
+              (activeView === 'dashboard' ? 'Dashboard' : 'Module Unavailable')}
+          </strong>
           <span className="at-header-route-path">{path}</span>
         </div>
       </div>

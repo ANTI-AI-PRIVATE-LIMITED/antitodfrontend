@@ -1934,7 +1934,7 @@ export default function IocPage() {
                             className="at-ioc-action"
                             onClick={() =>
                               onNavigate(
-                                'investigate',
+                                'nettools',
                               )
                             }
                           >
@@ -1946,13 +1946,13 @@ export default function IocPage() {
 
                             <span>
                               <strong>
-                                Pivot to investigation
+                                Pivot to Network Tools
                               </strong>
 
                               <small>
-                                Continue investigation
-                                in the relationship
-                                workspace.
+                                Run DNS, WHOIS, ping,
+                                or port diagnostics on
+                                this indicator.
                               </small>
                             </span>
 
@@ -2025,14 +2025,14 @@ export default function IocPage() {
                   className="at-btn at-btn-primary"
                   onClick={() =>
                     onNavigate(
-                      'investigate',
+                      'honeypot_logs',
                     )
                   }
                 >
                   <ArrowUpRight
                     size={12}
                   />
-                  Investigate
+                  View Honeypot Logs
                 </button>
               </div>
             </>

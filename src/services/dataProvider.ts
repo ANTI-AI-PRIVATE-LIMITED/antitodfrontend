@@ -3,9 +3,6 @@ import {
   DEMO_ACTORS,
   DEMO_IOCS,
   DEMO_EVENTS,
-  DEMO_INVESTIGATIONS,
-  DEMO_RULES,
-  DEMO_PLAYBOOKS,
   DEMO_NEWS,
   DEMO_DASHBOARD,
   DEMO_HOSTS,
@@ -574,26 +571,11 @@ export const dataProvider = {
   },
 
   /* ========================================================================
-   * CASE WORKSPACES & INVESTIGATIONS
+   * INTEL ARCHIVE HISTORY
    * ======================================================================== */
-
-  getInvestigations: async () => {
-    if (isPublicDemo()) return DEMO_INVESTIGATIONS;
-    return [];
-  },
 
   getIntelHistory: async () => {
     if (isPublicDemo()) return DEMO_INTEL_HISTORY;
-    return [];
-  },
-
-  getRules: async () => {
-    if (isPublicDemo()) return DEMO_RULES;
-    return [];
-  },
-
-  getPlaybooks: async () => {
-    if (isPublicDemo()) return DEMO_PLAYBOOKS;
     return [];
   },
 

@@ -9,16 +9,12 @@ const ROUTE_SLUGS: Record<string, string> = {
   dashboard: 'dashboard',
   honeypot_logs: 'honeypot-logs',
   soc_wall: 'soc-wall',
-  investigation_bench: 'investigation-bench',
-  playbooks: 'response-playbooks',
   attackmap: 'threat-map',
   ransomware: 'ransomware-monitor',
   analysis: 'log-analysis',
-  investigate: 'graph-investigation',
   network: 'network-forensics',
   email_forensic: 'email-forensic',
   dynamic_sandbox: 'dynamic-sandbox',
-  topology: 'network-topology',
   threat_canvas: 'threat-canvas',
   navigator: 'mitre-navigator',
   intel_search: 'intel-grounding',
@@ -31,7 +27,6 @@ const ROUTE_SLUGS: Record<string, string> = {
   cyberchef: 'cyberchef',
   nettools: 'network-tools',
   webcheck: 'web-check',
-  rules: 'soc-rules',
   infrastructure: 'infrastructure',
   recon: 'recon',
   integrations: 'integrations',
@@ -42,11 +37,36 @@ const ROUTE_SLUGS: Record<string, string> = {
   settings: 'settings',
 };
 
+const DEPRECATED_VIEW_PREFIX = 'deprecated:';
+
+/**
+ * Legacy paths for unbacked modules removed under QA-019. Direct visits are
+ * recognized cleanly so ViewRouter can render a guided recovery view rather
+ * than advertising them as active routes or returning empty stubs.
+ */
+export const DEPRECATED_SLUGS = new Set([
+  'investigations',
+  'graph-investigation',
+  'investigation-bench',
+  'rules',
+  'soc-rules',
+  'playbooks',
+  'response-playbooks',
+  'network-topology',
+]);
+
 const PATH_TO_VIEW = Object.fromEntries(
   Object.entries(ROUTE_SLUGS).map(([viewId, slug]) => [`/${slug}`, viewId]),
 ) as Record<string, string>;
 
+export function isDeprecatedViewId(id: string): boolean {
+  return id.startsWith(DEPRECATED_VIEW_PREFIX);
+}
+
 export function routeForView(id: string) {
+  if (isDeprecatedViewId(id)) {
+    return `/${id.slice(DEPRECATED_VIEW_PREFIX.length)}`;
+  }
   const viewId = canonicalViewId(id);
   return `/${ROUTE_SLUGS[viewId] ?? viewId}`;
 }
@@ -54,7 +74,12 @@ export function routeForView(id: string) {
 export function viewForPath(pathname: string) {
   const clean = pathname.split('?')[0].replace(/\/+$/, '') || '/';
   if (clean === '/') return 'dashboard';
-  return PATH_TO_VIEW[clean] ?? 'dashboard';
+  if (PATH_TO_VIEW[clean]) return PATH_TO_VIEW[clean];
+  const bareSlug = clean.slice(1);
+  if (DEPRECATED_SLUGS.has(bareSlug)) {
+    return `${DEPRECATED_VIEW_PREFIX}${bareSlug}`;
+  }
+  return 'dashboard';
 }
 
 export function isKnownRoute(pathname: string) {

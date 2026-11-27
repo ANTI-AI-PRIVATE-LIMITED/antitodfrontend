@@ -46,6 +46,7 @@ import { useAnalysisData } from '../../hooks/useAnalysisData';
 
 import { AppDataProvider } from '../contexts/AppDataContext';
 import { findNavItem, isPreview as isNavPreview, canonicalViewId } from '../data/navigation';
+import { isDeprecatedViewId } from '../data/routes';
 
 /* -------------------------------------------------------------------------- */
 /*                                New Pages                                   */
@@ -471,14 +472,22 @@ export default function ViewRouter({
     /*                                FALLBACK                                */
     /* ====================================================================== */
 
-    default:
+    default: {
+      const deprecated = isDeprecatedViewId(activeView);
       renderedView = (
         <PlaceholderPage
-          title="Module unavailable"
-          description="This workspace is not currently connected to a page implementation."
+          title={deprecated ? 'Module retired in ANTITODE' : 'Module unavailable'}
+          description={
+            deprecated
+              ? 'Legacy Investigation, Detection Rules, Response Playbooks, and Topology modules have no active backend workflow service in this deployment. Use Dashboard, Honeypot Logs, Log Analysis, IOC Manager, or Network Tools instead.'
+              : 'This workspace is not currently connected to a page implementation.'
+          }
+          actionLabel="Return to Dashboard"
+          onAction={() => onNavigate('dashboard')}
         />
       );
       break;
+    }
   }
 
   /* ------------------------------------------------------------------------ */

@@ -315,11 +315,11 @@ export default function AnalysisPage({
                         type="button"
                         className="at-btn at-btn-secondary at-btn-sm"
                         onClick={() =>
-                            onNavigate('investigate')
+                            onNavigate('iocs')
                         }
                     >
-                        <Network size={13} />
-                        Investigation
+                        <Hash size={13} />
+                        IOC Manager
                         <ArrowUpRight size={12} />
                     </button>
                 }
@@ -926,11 +926,11 @@ export default function AnalysisPage({
                     type="button"
                     className="at-btn at-btn-primary"
                     onClick={() =>
-                      onNavigate('investigate')
+                      onNavigate('nettools')
                     }
                   >
                     <Network size={14} />
-                    Investigate
+                    Network Tools
                   </button>
 
                   <button

@@ -55,6 +55,32 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
     };
   }, [tab, usage]);
 
+  const [pwCurrent, setPwCurrent] = useState('');
+  const [pwNew, setPwNew] = useState('');
+  const [pwConfirm, setPwConfirm] = useState('');
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pwSaving, setPwSaving] = useState(false);
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwNew !== pwConfirm) {
+      setPwMsg({ ok: false, text: 'New passwords do not match.' });
+      return;
+    }
+    setPwSaving(true);
+    setPwMsg(null);
+    try {
+      const r = await authService.changePassword(pwCurrent, pwNew);
+      setPwMsg({ ok: true, text: r.message || 'Password changed.' });
+      setPwCurrent('');
+      setPwNew('');
+      setPwConfirm('');
+    } catch (err: any) {
+      setPwMsg({ ok: false, text: err?.response?.data?.message || 'Could not change the password.' });
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
   const sendReset = async () => {
     if (!admin?.AdminEmail) return;
     setResetState('sending');
@@ -133,8 +159,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
               <Shield size={13} /> Security
             </div>
             <p className="text-sm text-neutral-400 mb-3">
-              Sign-in uses your password plus an emailed one-time code. To change your password, we email you a reset link.
+              Sign-in uses your password plus an emailed one-time code.
             </p>
+            <form onSubmit={changePassword} className="grid gap-2 mb-4 max-w-sm">
+              <input type="password" autoComplete="current-password" required placeholder="Current password"
+                aria-label="Current password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)}
+                className="at-input" />
+              <input type="password" autoComplete="new-password" required placeholder="New password"
+                aria-label="New password" value={pwNew} onChange={(e) => setPwNew(e.target.value)}
+                className="at-input" />
+              <input type="password" autoComplete="new-password" required placeholder="Confirm new password"
+                aria-label="Confirm new password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)}
+                className="at-input" />
+              <button type="submit" disabled={pwSaving} className="at-btn at-btn-primary at-btn-sm justify-self-start">
+                {pwSaving ? <Loader2 size={13} className="animate-spin" /> : null} Change password
+              </button>
+              {pwMsg && <p className={`text-xs ${pwMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{pwMsg.text}</p>}
+            </form>
+            <p className="text-sm text-neutral-400 mb-3">Forgot your current password? We can email you a reset link.</p>
             <button
               type="button"
               disabled={resetState === 'sending' || resetState === 'sent'}

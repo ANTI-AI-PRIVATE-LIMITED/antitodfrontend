@@ -253,6 +253,22 @@ export const AccessControlView: React.FC = () => {
     }
   };
 
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const removeUser = async (u: RbacUser) => {
+    if (confirmRemoveId !== u.AdminID) {
+      setConfirmRemoveId(u.AdminID);
+      return;
+    }
+    setConfirmRemoveId(null);
+    try {
+      const r = await rbacService.deleteUser(u.AdminID);
+      flash(r.removed ? 'User removed' : 'User deactivated');
+      await load();
+    } catch (e) {
+      setError(handleApiError(e));
+    }
+  };
+
   const toggleActive = async (u: RbacUser) => {
     try {
       await rbacService.updateUser(u.AdminID, { IsActive: !u.IsActive });
@@ -510,6 +526,14 @@ export const AccessControlView: React.FC = () => {
                         className="text-xs text-gray-500 hover:text-white"
                       >
                         {u.IsActive ? 'Disable' : 'Enable'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void removeUser(u)}
+                        onBlur={() => setConfirmRemoveId((id) => (id === u.AdminID ? null : id))}
+                        className="text-xs text-red-400 hover:text-red-300"
+                      >
+                        {confirmRemoveId === u.AdminID ? 'Click again to remove' : 'Remove'}
                       </button>
                     </td>
                   </tr>

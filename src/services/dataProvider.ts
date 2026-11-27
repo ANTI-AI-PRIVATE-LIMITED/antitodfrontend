@@ -16,6 +16,8 @@ import {
 import { fetchThreatNews } from '../../services/news';
 import { fetchCveUpdates } from '../../services/cve';
 import { fetchRemoteMalpedia } from '../../services/malpedia';
+import { fetchMitreFromSource } from '../../services/mitre';
+import { mergeActorProfiles } from './actorEnrichment';
 import { isPublicDemo } from '../utils/demoMode';
 
 import {
@@ -629,8 +631,13 @@ export const dataProvider = {
   getActors: async () => {
     if (isPublicDemo()) return DEMO_ACTORS;
     try {
-      const data = await fetchRemoteMalpedia();
-      if (data && data.length > 0) return data;
+      const [mitreRes, malpediaRes] = await Promise.allSettled([
+        fetchMitreFromSource(),
+        fetchRemoteMalpedia(),
+      ]);
+      const mitreActors = mitreRes.status === 'fulfilled' ? mitreRes.value : [];
+      const malpediaActors = malpediaRes.status === 'fulfilled' ? malpediaRes.value : [];
+      return mergeActorProfiles(mitreActors, malpediaActors);
     } catch (e) {
       console.warn('Failed to fetch live actors:', e);
     }

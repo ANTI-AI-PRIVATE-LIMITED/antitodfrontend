@@ -262,6 +262,14 @@ export enum MmdbStatus {
     ONLINE = 'ONLINE'
 }
 
+export interface ActorCampaign {
+    id?: string;
+    name: string;
+    firstSeen?: string;
+    lastSeen?: string;
+    description?: string;
+}
+
 export interface MalpediaActor {
     value: string;
     description: string;
@@ -272,6 +280,12 @@ export interface MalpediaActor {
     meta: { country?: string; refs: string[]; synonyms: string[] };
     mitreIds?: string[];
     malwareFamilies?: string[];
+    tools?: string[];
+    targetSectors?: string[];
+    motivation?: string;
+    firstSeen?: string;
+    lastSeen?: string;
+    campaigns?: ActorCampaign[];
     source?: 'Malpedia' | 'MITRE';
     mitreAttackId?: string;
     ttpDetails?: { id: string; name: string; tactic: string; description?: string }[];

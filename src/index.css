@@ -4367,7 +4367,7 @@
 }
 
 .at-actors-tabs button.active {
-  border-bottom-color: var(--at-red);
+  border-bottom-color: var(--at-accent);
   color: var(--at-text);
 }
 
@@ -4391,12 +4391,46 @@
 }
 
 .at-actors-ttp {
+  width: 100%;
+  text-align: left;
   padding: 8px 9px;
   border: 1px solid var(--at-border);
   border-radius: 7px;
   background: #101010;
   color: var(--at-text-secondary);
   font-size: 10px;
+}
+
+.at-actors-ttp:hover {
+  border-color: var(--at-accent);
+}
+
+.at-actors-ttp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.at-actors-ttp-tactic {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--at-accent-soft);
+  color: var(--at-accent);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.at-actors-campaign-card {
+  padding: 9px 10px;
+  border: 1px solid var(--at-border);
+  border-radius: 7px;
+  background: #101010;
+  color: var(--at-text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .at-actors-inspector-footer {

@@ -12,6 +12,19 @@ import {
 import { authService } from '../../api/services';
 import { handleApiError } from '../../api/client';
 
+// Verification tokens are single-use. React StrictMode (dev) runs effects twice, which would
+// send the token twice: the first call consumes it and the second reports "expired". Share one
+// request per token so every effect run sees the same result.
+const verificationRequests = new Map<string, Promise<unknown>>();
+const verifyOnce = (token: string) => {
+  let req = verificationRequests.get(token);
+  if (!req) {
+    req = authService.verifyEmail(token);
+    verificationRequests.set(token, req);
+  }
+  return req;
+};
+
 interface VerifyEmailViewProps {
   onNavigateToLogin?: () => void;
 }
@@ -49,7 +62,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({ onNavigateToLo
 
     const performVerification = async () => {
       try {
-        await authService.verifyEmail(token);
+        await verifyOnce(token);
         if (isMounted) {
           setStatus('success');
         }

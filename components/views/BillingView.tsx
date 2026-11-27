@@ -32,6 +32,8 @@ import {
   DEMO_BILLING_USAGE,
   DEMO_SUBSCRIPTION,
 } from '../../src/data/demo/governanceAndBilling';
+import { PLAN_TIERS, formatInr, planPriceInr } from '../../src/data/planTiering';
+import { salesMailto } from '../../src/data/salesContact';
 
 export const BillingView: React.FC = () => {
   const { can } = useAuth();
@@ -390,7 +392,7 @@ export const BillingView: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {(plans?.plans || []).map((p) => {
             const isCurrent = p.current || p.id === currentId;
             return (
@@ -411,10 +413,36 @@ export const BillingView: React.FC = () => {
                 <div className="mb-4">
                   <h3 className="text-lg font-bold text-white capitalize">{p.label}</h3>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-2xl font-bold font-mono text-white">${p.priceUsdPerMonth}</span>
-                    <span className="text-xs font-mono text-neutral-400">/ month</span>
+                    {planPriceInr(p) === null ? (
+                      <span className="text-2xl font-bold font-mono text-white">Contact Sales</span>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-bold font-mono text-white">{formatInr(planPriceInr(p)!)}</span>
+                        <span className="text-xs font-mono text-neutral-400">/ month</span>
+                      </>
+                    )}
                   </div>
                 </div>
+
+                {p.contactSales ? (
+                  <div className="space-y-4">
+                    <ul className="space-y-2 py-4 border-t border-b border-neutral-800/80 text-xs text-neutral-300 font-mono">
+                      {PLAN_TIERS.enterprise.features.map((f) => (
+                        <li key={f} className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href={salesMailto(p.contact || plans?.contact)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-700 hover:border-neutral-500 text-neutral-200 font-mono text-xs font-semibold transition-colors"
+                    >
+                      <ArrowUpRight size={14} /> Contact Sales
+                    </a>
+                  </div>
+                ) : (
+                <>
 
                 <div className="space-y-2 py-4 border-t border-b border-neutral-800/80 mb-5 text-xs text-neutral-300 font-mono">
                   <div className="flex items-center gap-2">
@@ -431,7 +459,7 @@ export const BillingView: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    <span>Formats: {p.exportFormats.join(', ').toUpperCase()}</span>
+                    <span>Formats: {(p.exportFormats ?? []).join(', ').toUpperCase()}</span>
                   </div>
                 </div>
 
@@ -470,6 +498,8 @@ export const BillingView: React.FC = () => {
                         ? 'Read-only preview in Demo Mode'
                         : 'Admin privilege required to switch'}
                   </span>
+                )}
+                </>
                 )}
               </div>
             );

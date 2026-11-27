@@ -9,9 +9,11 @@ import {
 } from 'lucide-react';
 import {
   PLAN_TIERS,
+  formatInr,
   getStoredPlan,
   type PlanTier,
 } from '../../data/planTiering';
+import { salesMailto } from '../../data/salesContact';
 import { billingService } from '../../../api/services/billingService';
 import { isPublicDemo } from '../../utils/demoMode';
 
@@ -157,7 +159,7 @@ export const PlanNoticeModal: React.FC = () => {
   };
 
   const handleContactSales = () => {
-    window.location.href = 'mailto:sales@antitode.ai?subject=ANTITODE%20Enterprise%20Plan%20Inquiry';
+    window.location.href = salesMailto();
   };
 
   return (
@@ -258,7 +260,7 @@ export const PlanNoticeModal: React.FC = () => {
                       <strong className="text-2xl font-bold text-white">Contact Sales</strong>
                     ) : (
                       <>
-                        <strong className="text-2xl font-bold text-white">${tier.priceMonthly}</strong>
+                        <strong className="text-2xl font-bold text-white">{formatInr(tier.priceMonthly)}</strong>
                         <span className="text-[11px] text-neutral-400">/month</span>
                       </>
                     )}

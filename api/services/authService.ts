@@ -99,6 +99,15 @@ export const authService = {
     /**
      * Request password reset email (rate-limited, sends link to unlock or reset).
      */
+    /** BUG-045: change the signed-in user's password (needs the current one). */
+    async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+        const response = await api.post<{ message: string }>(API_ENDPOINTS.ADMIN_CHANGE_PASSWORD, {
+            CurrentPassword: currentPassword,
+            NewPassword: newPassword,
+        });
+        return response.data;
+    },
+
     async forgotPassword(adminEmail: string): Promise<{ message: string }> {
         const response = await api.post<{ message: string }>(
             API_ENDPOINTS.ADMIN_FORGOT_PASSWORD,

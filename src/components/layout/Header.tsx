@@ -23,6 +23,8 @@ import {
 } from '../../../api/services/billingService';
 import {
   PLAN_TIERS,
+  formatInr,
+  planPriceInr,
   getStoredPlan,
   type PlanTier,
 } from '../../data/planTiering';
@@ -461,7 +463,7 @@ export default function Header({
                       className="w-full py-2.5 px-3 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-center border border-accent transition-all shadow-md shadow-accent/25 hover:shadow-accent/40 cursor-pointer"
                     >
                       {usage.plan.id === 'basic'
-                        ? `Upgrade to Pro ($${usage.upgrade?.priceUsdPerMonth ?? 155}/mo)`
+                        ? `Upgrade to Pro (${formatInr(planPriceInr({ id: 'pro', priceInrPerMonth: usage.upgrade?.priceInrPerMonth }) ?? PLAN_TIERS.pro.priceMonthly)}/mo)`
                         : 'Manage Subscription'}
                     </button>
                   </div>

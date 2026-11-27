@@ -1,3 +1,4 @@
+import { LegalLinks } from './LegalView';
 import React, { useState } from 'react';
 import {
   ShieldCheck,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { authService } from '../../api/services';
 import { handleApiError } from '../../api/client';
+import { PLAN_TIERS, formatInr } from '../../src/data/planTiering';
 
 interface SignupViewProps {
   onNavigateToLogin?: () => void;
@@ -357,7 +359,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                   >
                     <div className="text-xs font-bold text-white flex items-center justify-between">
                       <span>Basic Plan</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">$69/mo</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">{formatInr(PLAN_TIERS.basic.priceMonthly)}/mo</span>
                     </div>
                     <div className="text-[10px] text-neutral-400 mt-1 leading-snug">
                       15 Honeypots • 1 seat • CSV export
@@ -377,7 +379,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                       <span className="flex items-center gap-1 text-amber-400">
                         <Sparkles size={12} /> Pro Tier
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">$155/mo</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">{formatInr(PLAN_TIERS.pro.priceMonthly)}/mo</span>
                     </div>
                     <div className="text-[10px] text-neutral-400 mt-1 leading-snug">
                       35 Honeypots • 3 Team seats • JSON export
@@ -404,6 +406,14 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                   </>
                 )}
               </button>
+
+              <p className="text-center text-xs text-neutral-500">
+                By creating an account you agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener" className="underline hover:text-neutral-300">Terms of Service</a>{' '}
+                and{' '}
+                <a href="/privacy" target="_blank" rel="noopener" className="underline hover:text-neutral-300">Privacy Policy</a>.
+              </p>
+              <LegalLinks />
 
               {/* Already have an account link */}
               <div className="pt-2 text-center border-t border-neutral-800/80 font-mono text-xs text-neutral-400">

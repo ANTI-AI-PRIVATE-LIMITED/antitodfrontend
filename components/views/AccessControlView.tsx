@@ -267,6 +267,23 @@ export const AccessControlView: React.FC = () => {
     }
   };
 
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const removeUser = async (u: RbacUser) => {
+    if (!canManageUsers) return;
+    if (confirmRemoveId !== u.AdminID) {
+      setConfirmRemoveId(u.AdminID);
+      return;
+    }
+    setConfirmRemoveId(null);
+    try {
+      const r = await rbacService.deleteUser(u.AdminID);
+      flash(r.removed ? 'User removed' : 'User deactivated');
+      await load();
+    } catch (e) {
+      setError(handleApiError(e));
+    }
+  };
+
   const toggleActive = async (u: RbacUser) => {
     try {
       await rbacService.updateUser(u.AdminID, { IsActive: !u.IsActive });
@@ -560,6 +577,18 @@ export const AccessControlView: React.FC = () => {
                         }`}
                       >
                         {u.IsActive ? 'Disable' : 'Enable'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { if (canManageUsers) void removeUser(u); }}
+                        onBlur={() => setConfirmRemoveId((id) => (id === u.AdminID ? null : id))}
+                        disabled={!canManageUsers}
+                        title={!canManageUsers ? 'Read-only in Demo Mode' : undefined}
+                        className={`text-xs ${
+                          canManageUsers ? 'text-red-400 hover:text-red-300' : 'text-gray-600 cursor-not-allowed'
+                        }`}
+                      >
+                        {confirmRemoveId === u.AdminID ? 'Click again to remove' : 'Remove'}
                       </button>
                     </td>
                   </tr>

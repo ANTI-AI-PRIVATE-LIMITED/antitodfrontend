@@ -9,6 +9,20 @@
 
 export type PlanTier = 'basic' | 'pro' | 'enterprise';
 
+/** Plans are sold in Indian rupees: ₹6,500 style (en-IN grouping, no decimals). */
+export const formatInr = (amount: number): string =>
+  `₹${Math.round(amount).toLocaleString('en-IN')}`;
+
+/**
+ * Monthly price label for a plan returned by the billing API. Uses the server's INR price and
+ * falls back to the local catalog, so an older backend that still sends USD never shows dollars.
+ */
+export const planPriceInr = (plan: { id?: string; priceInrPerMonth?: number | null }): number | null => {
+  if (typeof plan.priceInrPerMonth === 'number' && plan.priceInrPerMonth > 0) return plan.priceInrPerMonth;
+  const local = plan.id ? PLAN_TIERS[plan.id as PlanTier] : undefined;
+  return local && local.priceMonthly > 0 ? local.priceMonthly : null;
+};
+
 export interface PlanConfig {
   id: PlanTier;
   name: string;
@@ -30,8 +44,8 @@ export const PLAN_TIERS: Record<PlanTier, PlanConfig> = {
     id: 'basic',
     name: 'Basic',
     badge: 'Starter',
-    priceMonthly: 69,
-    billingPeriod: '$69 / month',
+    priceMonthly: 6500,
+    billingPeriod: '₹6,500 / month',
     description: 'Essential telemetry and honeypot monitoring for small setups and evaluation.',
     maxHoneypots: 15,
     maxUsers: 1,
@@ -51,8 +65,8 @@ export const PLAN_TIERS: Record<PlanTier, PlanConfig> = {
     id: 'pro',
     name: 'Pro',
     badge: 'Recommended',
-    priceMonthly: 155,
-    billingPeriod: '$155 / month',
+    priceMonthly: 14500,
+    billingPeriod: '₹14,500 / month',
     description: 'Advanced threat intelligence, extended quotas, and structured JSON integrations.',
     maxHoneypots: 35,
     maxUsers: 3,

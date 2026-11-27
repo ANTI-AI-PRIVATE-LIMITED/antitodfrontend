@@ -6,8 +6,9 @@ import { SignupView } from '../components/views/SignupView';
 import { VerifyEmailView } from '../components/views/VerifyEmailView';
 import { ResetPasswordView } from '../components/views/ResetPasswordView';
 import { routeForView } from './data/routes';
+import { LegalView, LEGAL_PAGES } from '../components/views/LegalView';
 
-const PUBLIC_LOGGED_OUT_PATHS = ['/login', '/signup', '/verify-email', '/reset-password'];
+const PUBLIC_LOGGED_OUT_PATHS = ['/login', '/signup', '/verify-email', '/reset-password', ...Object.keys(LEGAL_PAGES)];
 
 export default function AppRouter() {
   const { isAuthenticated, initialized } = useAuth();
@@ -43,6 +44,7 @@ export default function AppRouter() {
      * The workspace itself owns route resolution, so AppRouter only
      * needs to move an authenticated user away from public logged-out screens.
      */
+    if (LEGAL_PAGES[pathname]) return; // policy pages stay open when logged in
     if (PUBLIC_LOGGED_OUT_PATHS.includes(pathname) || pathname === '/') {
       const dashboardPath = routeForView('dashboard');
 
@@ -74,6 +76,19 @@ export default function AppRouter() {
           <span />
         </div>
       </div>
+    );
+  }
+
+  // BUG-025: policy pages work for everyone, logged in or not
+  if (LEGAL_PAGES[currentPath]) {
+    return (
+      <LegalView
+        path={currentPath}
+        onBack={() => {
+          if (window.history.length > 1) window.history.back();
+          else window.location.href = '/';
+        }}
+      />
     );
   }
 

@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
     ADMIN_VERIFY_OTP: '/AdminRoutes/adminVerifyOtp',
     VERIFY_ADMIN_TOKEN: '/AdminRoutes/verifyAdminAuthToken',
     ADMIN_ME: '/AdminRoutes/me',
+    ADMIN_CHANGE_PASSWORD: '/AdminRoutes/me/password',
     REGISTER_SERVER: '/AdminRoutes/registerServer',
     REGISTER_SHIPPER: '/AdminRoutes/registerShipper',
     LIST_SERVERS: '/AdminRoutes/listServers',

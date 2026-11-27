@@ -1,3 +1,4 @@
+import { LegalLinks } from './LegalView';
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { authService } from "../../api/services";
@@ -521,6 +522,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                     Create an account →
                   </button>
                 </div>
+                <LegalLinks className="pt-2" />
               </div>
             </form>
           ) : (

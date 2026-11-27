@@ -1304,6 +1304,7 @@ const THEME_PALETTES: Record<
     AppTheme,
     {
         accent: string;
+        accentRgb: string;
         accentHover: string;
         accentMuted: string;
         accentGlow: string;
@@ -1311,48 +1312,56 @@ const THEME_PALETTES: Record<
 > = {
     CYBER: {
         accent: '#f72585',
+        accentRgb: '247 37 133',
         accentHover: '#b5179e',
         accentMuted: 'rgba(247, 37, 133, 0.15)',
         accentGlow: 'rgba(247, 37, 133, 0.4)',
     },
     NORDIC: {
         accent: '#38bdf8',
+        accentRgb: '56 189 248',
         accentHover: '#0ea5e9',
         accentMuted: 'rgba(56, 189, 248, 0.15)',
         accentGlow: 'rgba(56, 189, 248, 0.4)',
     },
     EMBER: {
         accent: '#f97316',
+        accentRgb: '249 115 22',
         accentHover: '#ea580c',
         accentMuted: 'rgba(249, 115, 22, 0.15)',
         accentGlow: 'rgba(249, 115, 22, 0.4)',
     },
     SENTINEL: {
         accent: '#00f5d4',
+        accentRgb: '0 245 212',
         accentHover: '#00bbf9',
         accentMuted: 'rgba(0, 245, 212, 0.15)',
         accentGlow: 'rgba(0, 245, 212, 0.4)',
     },
     FORTRESS: {
         accent: '#a855f7',
+        accentRgb: '168 85 247',
         accentHover: '#9333ea',
         accentMuted: 'rgba(168, 85, 247, 0.15)',
         accentGlow: 'rgba(168, 85, 247, 0.4)',
     },
     DARK: {
         accent: '#ef4444',
+        accentRgb: '239 68 68',
         accentHover: '#dc2626',
         accentMuted: 'rgba(239, 68, 68, 0.15)',
         accentGlow: 'rgba(239, 68, 68, 0.4)',
     },
     LIGHT: {
         accent: '#2563eb',
+        accentRgb: '37 99 235',
         accentHover: '#1d4ed8',
         accentMuted: 'rgba(37, 99, 235, 0.15)',
         accentGlow: 'rgba(37, 99, 235, 0.4)',
     },
     TERMINAL: {
         accent: '#22c55e',
+        accentRgb: '34 197 94',
         accentHover: '#16a34a',
         accentMuted: 'rgba(34, 197, 94, 0.15)',
         accentGlow: 'rgba(34, 197, 94, 0.4)',
@@ -1383,6 +1392,10 @@ const THEME_PALETTES: Record<
             THEME_PALETTES.DARK;
 
         root.style.setProperty('--theme-accent', palette.accent);
+        root.style.setProperty(
+            '--theme-accent-rgb',
+            palette.accentRgb,
+        );
         root.style.setProperty(
             '--theme-accent-hover',
             palette.accentHover,

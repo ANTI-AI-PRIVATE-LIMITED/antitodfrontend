@@ -43,12 +43,12 @@
   }
 
   *:focus-visible {
-    outline: 2px solid rgba(214, 40, 40, 0.45);
+    outline: 2px solid rgb(var(--theme-accent-rgb, 214 40 40) / 0.45);
     outline-offset: 2px;
   }
 
   ::selection {
-    background: rgba(214, 40, 40, 0.24);
+    background: rgb(var(--theme-accent-rgb, 214 40 40) / 0.24);
     color: #ffffff;
   }
 
@@ -1058,7 +1058,7 @@
   display: block;
   width: 38%;
   height: 100%;
-  background: #d62828;
+  background: var(--theme-accent, #d62828);
   animation: atBootSweep 1.15s ease-in-out infinite;
 }
 
@@ -1135,7 +1135,7 @@
   width: 30px;
   height: 30px;
   border: 2px solid #282828;
-  border-top-color: #d62828;
+  border-top-color: var(--theme-accent, #d62828);
   border-radius: 999px;
   animation: atSpin 0.85s linear infinite;
 }
@@ -2091,9 +2091,9 @@
 
   --at-subtle: #1f1f1f;
 
-  --at-accent: #d62828;
-  --at-accent-hover: #ef4444;
-  --at-accent-soft: rgba(214, 40, 40, 0.09);
+  --at-accent: var(--theme-accent, #d62828);
+  --at-accent-hover: var(--theme-accent-hover, #ef4444);
+  --at-accent-soft: var(--theme-accent-muted, rgba(214, 40, 40, 0.09));
   --at-red: #d62828;
   --at-red-strong: #ef4444;
   --at-red-soft: rgba(214, 40, 40, 0.08);
@@ -2282,8 +2282,8 @@
 }
 
 .at-input:focus {
-  border-color: rgba(214, 40, 40, 0.48);
-  box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.07);
+  border-color: rgb(var(--theme-accent-rgb, 214 40 40) / 0.48);
+  box-shadow: 0 0 0 3px rgb(var(--theme-accent-rgb, 214 40 40) / 0.08);
 }
 
 .at-input option {
@@ -2489,8 +2489,8 @@
 }
 
 .at-intel-searchbox:focus-within {
-  border-color: rgba(214, 40, 40, 0.42);
-  box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.06);
+  border-color: rgb(var(--theme-accent-rgb, 214 40 40) / 0.42);
+  box-shadow: 0 0 0 3px rgb(var(--theme-accent-rgb, 214 40 40) / 0.06);
 }
 
 .at-intel-searchbox input {
@@ -3079,7 +3079,7 @@
 }
 
 .at-kpi-card:focus-visible {
-  outline: 2px solid rgba(214, 40, 40, 0.45);
+  outline: 2px solid rgb(var(--theme-accent-rgb, 214 40 40) / 0.45);
   outline-offset: 2px;
 }
 
@@ -3090,10 +3090,10 @@
   flex: 0 0 36px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(214, 40, 40, 0.2);
+  border: 1px solid rgb(var(--theme-accent-rgb, 214 40 40) / 0.25);
   border-radius: 9px;
-  background: var(--at-red-soft);
-  color: #f07b7b;
+  background: var(--at-accent-soft);
+  color: var(--at-accent);
 }
 
 .at-kpi-copy {
@@ -11226,7 +11226,7 @@
   --soc-surface-2: #121212;
   --soc-muted: #797979;
   --soc-text: #e7e7e7;
-  --soc-accent: #d62828;
+  --soc-accent: var(--theme-accent, #d62828);
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
@@ -11372,7 +11372,7 @@
   width: 5px;
   height: 5px;
   border-radius: 999px;
-  background: #d62828;
+  background: var(--theme-accent, #d62828);
 }
 
 .at-investigation-toolbar-divider {
@@ -11910,11 +11910,11 @@
 }
 
 .at-investigation-node.selected .at-investigation-node-core {
-  border-color: #d62828;
-  background: linear-gradient(180deg, rgba(214, 40, 40, 0.13), #151515);
-  color: #ed8689;
+  border-color: var(--at-accent);
+  background: linear-gradient(180deg, rgb(var(--theme-accent-rgb, 214 40 40) / 0.13), #151515);
+  color: var(--theme-accent, #ed8689);
   box-shadow:
-    0 0 0 3px rgba(214, 40, 40, 0.06),
+    0 0 0 3px rgb(var(--theme-accent-rgb, 214 40 40) / 0.06),
     0 12px 30px rgba(0, 0, 0, 0.3);
 }
 
@@ -12326,7 +12326,7 @@
   left: 0;
   height: 2px;
   content: "";
-  background: #d62828;
+  background: var(--theme-accent, #d62828);
 }
 
 .at-investigation-inspector-scroll {
@@ -14106,7 +14106,7 @@
 }
 
 .at-news-table tbody tr.active {
-  background: rgba(214, 40, 40, 0.055);
+  background: rgb(var(--theme-accent-rgb, 214 40 40) / 0.055);
   box-shadow: inset 2px 0 0 var(--at-accent);
 }
 
@@ -14413,9 +14413,9 @@
 }
 
 .at-news-advanced.active {
-  border-color: rgba(214, 40, 40, 0.35);
+  border-color: rgb(var(--theme-accent-rgb, 214 40 40) / 0.35);
   background: var(--at-accent-soft);
-  color: #e98787;
+  color: var(--at-accent);
 }
 
 .at-news-result-count {
@@ -14590,7 +14590,7 @@
 }
 
 .at-news-table tbody tr.active {
-  background: rgba(214, 40, 40, 0.055);
+  background: rgb(var(--theme-accent-rgb, 214 40 40) / 0.055);
   box-shadow: inset 2px 0 0 var(--at-accent);
 }
 
@@ -14777,7 +14777,7 @@
 
 .at-news-filter-panel button.active {
   background: var(--at-accent-soft);
-  color: #ef9a9a;
+  color: var(--at-accent);
 }
 
 /* ========================================================================
@@ -14875,9 +14875,9 @@
 }
 
 .at-intel-search:focus-within {
-  border-color: rgba(214, 40, 40, 0.42);
+  border-color: rgb(var(--theme-accent-rgb, 214 40 40) / 0.42);
   box-shadow:
-    0 0 0 3px rgba(214, 40, 40, 0.06),
+    0 0 0 3px rgb(var(--theme-accent-rgb, 214 40 40) / 0.06),
     0 12px 35px rgba(0, 0, 0, 0.2);
 }
 
@@ -15127,9 +15127,9 @@
 }
 
 .cyberchef-category-chip.active {
-  border-color: rgba(214, 40, 40, 0.3);
+  border-color: rgb(var(--theme-accent-rgb, 214 40 40) / 0.35);
   background: var(--at-accent-soft);
-  color: #ef9a9a;
+  color: var(--at-accent);
 }
 
 .cyberchef-library-list {
@@ -15256,9 +15256,9 @@
 }
 
 .cyberchef-operation:hover .cyberchef-operation-add {
-  border-color: rgba(214, 40, 40, 0.3);
+  border-color: rgb(var(--theme-accent-rgb, 214 40 40) / 0.3);
   background: var(--at-accent-soft);
-  color: #ef9a9a;
+  color: var(--theme-accent, #ef9a9a);
 }
 
 .cyberchef-empty-library {
@@ -16900,6 +16900,7 @@
    ======================================================================== */
 :root {
   --theme-accent: #ef4444;
+  --theme-accent-rgb: 239 68 68;
   --theme-accent-hover: #dc2626;
   --theme-accent-muted: rgba(239, 68, 68, 0.12);
   --theme-accent-glow: rgba(239, 68, 68, 0.35);
@@ -16907,6 +16908,7 @@
 
 body.theme-cyber {
   --theme-accent: #f72585;
+  --theme-accent-rgb: 247 37 133;
   --theme-accent-hover: #b5179e;
   --theme-accent-muted: rgba(247, 37, 133, 0.14);
   --theme-accent-glow: rgba(247, 37, 133, 0.4);
@@ -16914,6 +16916,7 @@ body.theme-cyber {
 
 body.theme-nordic {
   --theme-accent: #38bdf8;
+  --theme-accent-rgb: 56 189 248;
   --theme-accent-hover: #0ea5e9;
   --theme-accent-muted: rgba(56, 189, 248, 0.14);
   --theme-accent-glow: rgba(56, 189, 248, 0.4);
@@ -16921,6 +16924,7 @@ body.theme-nordic {
 
 body.theme-ember {
   --theme-accent: #f97316;
+  --theme-accent-rgb: 249 115 22;
   --theme-accent-hover: #ea580c;
   --theme-accent-muted: rgba(249, 115, 22, 0.14);
   --theme-accent-glow: rgba(249, 115, 22, 0.4);
@@ -16928,6 +16932,7 @@ body.theme-ember {
 
 body.theme-sentinel {
   --theme-accent: #00f5d4;
+  --theme-accent-rgb: 0 245 212;
   --theme-accent-hover: #00bbf9;
   --theme-accent-muted: rgba(0, 245, 212, 0.14);
   --theme-accent-glow: rgba(0, 245, 212, 0.4);
@@ -16935,6 +16940,7 @@ body.theme-sentinel {
 
 body.theme-fortress {
   --theme-accent: #a855f7;
+  --theme-accent-rgb: 168 85 247;
   --theme-accent-hover: #9333ea;
   --theme-accent-muted: rgba(168, 85, 247, 0.14);
   --theme-accent-glow: rgba(168, 85, 247, 0.4);
@@ -16942,6 +16948,7 @@ body.theme-fortress {
 
 body.theme-dark {
   --theme-accent: #ef4444;
+  --theme-accent-rgb: 239 68 68;
   --theme-accent-hover: #dc2626;
   --theme-accent-muted: rgba(239, 68, 68, 0.14);
   --theme-accent-glow: rgba(239, 68, 68, 0.4);
@@ -16949,6 +16956,7 @@ body.theme-dark {
 
 body.theme-light {
   --theme-accent: #2563eb;
+  --theme-accent-rgb: 37 99 235;
   --theme-accent-hover: #1d4ed8;
   --theme-accent-muted: rgba(37, 99, 235, 0.14);
   --theme-accent-glow: rgba(37, 99, 235, 0.35);
@@ -16956,6 +16964,7 @@ body.theme-light {
 
 body.theme-terminal {
   --theme-accent: #22c55e;
+  --theme-accent-rgb: 34 197 94;
   --theme-accent-hover: #16a34a;
   --theme-accent-muted: rgba(34, 197, 94, 0.14);
   --theme-accent-glow: rgba(34, 197, 94, 0.4);

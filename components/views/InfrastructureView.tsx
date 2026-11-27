@@ -171,8 +171,8 @@ const InstallCommandModal: React.FC<{
                     </ol>
                     {/* Script toggle */}
                     <div className="flex items-center gap-3">
-                        <button onClick={() => { setShowFull(false); }} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-mono ${!showFull ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-[#151515] border-[#333] text-[#AAA] hover:text-white'}`}>Agent Only</button>
-                        <button onClick={loadFull} disabled={loadingFull} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-mono flex items-center gap-1 ${showFull ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-[#151515] border-[#333] text-[#AAA] hover:text-white'}`}>
+                        <button onClick={() => { setShowFull(false); }} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-mono ${!showFull ? 'bg-accent/10 border-accent/30 text-accent' : 'bg-[#151515] border-[#333] text-[#AAA] hover:text-white'}`}>Agent Only</button>
+                        <button onClick={loadFull} disabled={loadingFull} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-mono flex items-center gap-1 ${showFull ? 'bg-accent/10 border-accent/30 text-accent' : 'bg-[#151515] border-[#333] text-[#AAA] hover:text-white'}`}>
                             {loadingFull && <Loader2 size={12} className="animate-spin"/>}Full Docker Setup
                         </button>
                     </div>
@@ -184,7 +184,7 @@ const InstallCommandModal: React.FC<{
                     <p className="text-xs text-[#888]">The agent will appear as <strong className="text-white">PENDING → ONLINE</strong> within 60 seconds after running the command.</p>
                 </div>
                 <div className="p-4 border-t border-[#222] flex justify-end">
-                    <button onClick={onClose} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 text-sm font-mono rounded-lg transition-colors">Done</button>
+                    <button onClick={onClose} className="px-4 py-2 bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent text-sm font-mono rounded-lg transition-colors">Done</button>
                 </div>
             </div>
         </div>
@@ -221,7 +221,7 @@ const ContainerLogsModal: React.FC<{
             <div className="bg-[#111] border border-[#333] rounded-xl w-full max-w-4xl shadow-2xl flex flex-col" style={{ height: '80vh' }}>
                 <div className="flex items-center justify-between p-4 border-b border-[#222] shrink-0">
                     <div className="flex items-center gap-3">
-                        <Terminal size={18} className="text-red-500" />
+                        <Terminal size={18} className="text-accent" />
                         <span className="font-mono text-white font-bold">{container.name}</span>
                         <span className="text-[#888] text-xs font-mono">{container.image}</span>
                     </div>
@@ -365,7 +365,7 @@ const DeployModal: React.FC<{
                 </div>
                 <div className="p-4 border-t border-[#222] shrink-0 flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 rounded-lg bg-[#151515] hover:bg-[#1C1C1C] text-neutral-300 text-sm font-mono">Cancel</button>
-                    <button onClick={submit} disabled={loading || !selectedId} className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={submit} disabled={loading || !selectedId} className="px-4 py-2 rounded-lg bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
                         {loading && <Loader2 size={14} className="animate-spin"/>}Deploy
                     </button>
                 </div>
@@ -473,7 +473,7 @@ const TemplateFormModal: React.FC<{
                 </div>
                 <div className="p-4 border-t border-[#222] shrink-0 flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 rounded-lg bg-[#151515] hover:bg-[#1C1C1C] text-neutral-300 text-sm font-mono">Cancel</button>
-                    <button onClick={submit} disabled={loading} className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={submit} disabled={loading} className="px-4 py-2 rounded-lg bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
                         {loading && <Loader2 size={14} className="animate-spin"/>}{template ? 'Save Changes' : 'Create Template'}
                     </button>
                 </div>
@@ -591,7 +591,7 @@ const RegisterServerModal: React.FC<{
                                     onChange={e => set(f.key, e.target.value)}
                                     placeholder={f.placeholder}
                                     aria-invalid={fieldErr ? true : undefined}
-                                    className={`w-full bg-[#151515] border ${fieldErr ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500`}
+                                    className={`w-full bg-[#151515] border ${fieldErr ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-accent`}
                                 />
                                 {fieldErr && (
                                     <p className="text-[11px] text-red-400 font-mono mt-1">{fieldErr}</p>
@@ -628,7 +628,7 @@ const RegisterServerModal: React.FC<{
                 </div>
                 <div className="p-4 border-t border-[#222] flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 rounded-lg bg-[#151515] hover:bg-[#1C1C1C] text-neutral-300 text-sm font-mono">Cancel</button>
-                    <button onClick={submit} disabled={loading} className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={submit} disabled={loading} className="px-4 py-2 rounded-lg bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
                         {loading && <Loader2 size={14} className="animate-spin"/>}Register Server
                     </button>
                 </div>
@@ -721,10 +721,10 @@ const ShipperTokenModal: React.FC<{
                             </div>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-mono">
-                            <a href={result.deployment.installScriptUrl} target="_blank" rel="noopener noreferrer" className="text-red-500/80 hover:text-red-500 underline">
+                            <a href={result.deployment.installScriptUrl} target="_blank" rel="noopener noreferrer" className="text-accent/80 hover:text-accent underline">
                                 install.sh
                             </a>
-                            <a href={result.deployment.shipperBundleUrl} target="_blank" rel="noopener noreferrer" className="text-red-500/80 hover:text-red-500 underline">
+                            <a href={result.deployment.shipperBundleUrl} target="_blank" rel="noopener noreferrer" className="text-accent/80 hover:text-accent underline">
                                 shipper.tar.gz
                             </a>
                             <span className="text-neutral-600">(debug / manual fetch)</span>
@@ -796,7 +796,7 @@ const RegisterShipperModal: React.FC<{
                 <div className="flex items-center justify-between p-5 border-b border-[#222]">
                     <div>
                         <h3 className="text-lg font-bold text-white font-cyber">Register Log Shipper</h3>
-                        <p className="text-xs text-[#AAA] mt-1">Bind a log shipper to <code className="text-red-500">{serverId}</code>.</p>
+                        <p className="text-xs text-[#AAA] mt-1">Bind a log shipper to <code className="text-accent">{serverId}</code>.</p>
                     </div>
                     <button onClick={onClose} className="p-2 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><X size={18}/></button>
                 </div>
@@ -808,7 +808,7 @@ const RegisterShipperModal: React.FC<{
                             onChange={e => { setAllowedIp(e.target.value); if (error) setError(''); }}
                             placeholder="203.0.113.10"
                             aria-invalid={error ? true : undefined}
-                            className={`w-full bg-[#151515] border ${error ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500`}
+                            className={`w-full bg-[#151515] border ${error ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-accent`}
                         />
                         <p className="text-[10px] text-neutral-600 mt-1 font-mono">Only requests from this IP will be accepted.</p>
                     </div>
@@ -1062,7 +1062,7 @@ const ServerDetailPanel: React.FC<{
                 </div>
                 <div className="flex items-center gap-2">
                     {can('infrastructure.deployments.manage') && agentId && isOnline && (
-                        <button onClick={() => setShowDeploy(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-mono hover:bg-red-500/20 transition-colors">
+                        <button onClick={() => setShowDeploy(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-xs font-mono hover:bg-accent/20 transition-colors">
                             <Upload size={12}/> Deploy
                         </button>
                     )}
@@ -1073,7 +1073,7 @@ const ServerDetailPanel: React.FC<{
                             aria-disabled={demoMode || undefined}
                             title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register monitoring agent'}
                             onClick={() => { if (!demoMode) onRegisterAgent(server.ServerId); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-red-400 text-xs font-mono hover:bg-neutral-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-accent text-xs font-mono hover:bg-neutral-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus size={12}/> Register Agent
                         </button>
@@ -1088,7 +1088,7 @@ const ServerDetailPanel: React.FC<{
             {/* Tab Bar */}
             <div className="flex border-b border-[#222] shrink-0">
                 {tabs.map(t => (
-                    <button key={t.id} onClick={() => !t.disabled && setTab(t.id)} disabled={t.disabled} className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-mono font-bold transition-colors border-b-2 ${tab === t.id ? 'text-red-500 border-red-500' : 'text-[#888] border-transparent hover:text-neutral-300'} ${t.disabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                    <button key={t.id} onClick={() => !t.disabled && setTab(t.id)} disabled={t.disabled} className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-mono font-bold transition-colors border-b-2 ${tab === t.id ? 'text-accent border-accent' : 'text-[#888] border-transparent hover:text-neutral-300'} ${t.disabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
                         <t.icon size={13}/>{t.label}
                     </button>
                 ))}
@@ -1322,12 +1322,12 @@ const ServerDetailPanel: React.FC<{
                                 <button onClick={loadContainers} className="p-1.5 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><RefreshCw size={13}/></button>
                             </div>
                             {containers?.containers.map(c => (
-                                <div key={c.id} className={`border rounded-xl p-3 ${c.isXyberah ? 'border-red-500/20 bg-red-500/5' : 'border-[#222] bg-[#111]'}`}>
+                                <div key={c.id} className={`border rounded-xl p-3 ${c.isXyberah ? 'border-accent/25 bg-accent/5' : 'border-[#222] bg-[#111]'}`}>
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="text-xs font-bold text-white font-mono truncate">{c.name}</span>
-                                                {c.isXyberah && <span className="text-[9px] px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 text-red-500 rounded font-mono">ANTI.AI</span>}
+                                                {c.isXyberah && <span className="text-[9px] px-1.5 py-0.5 bg-accent/10 border border-accent/25 text-accent rounded font-mono">ANTI.AI</span>}
                                                 {containerStateBadge(c.state)}
                                             </div>
                                             <div className="text-[11px] text-[#888] font-mono mt-0.5">{c.image}</div>
@@ -1361,7 +1361,7 @@ const ServerDetailPanel: React.FC<{
                         <div className="flex justify-between items-center">
                             <span className="text-xs text-[#888] font-mono">{deployments?.count ?? 0} deployments</span>
                             <div className="flex gap-2">
-                                {can('infrastructure.deployments.manage') && isOnline && <button onClick={() => setShowDeploy(true)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-mono hover:bg-red-500/20"><Plus size={11}/> Deploy</button>}
+                                {can('infrastructure.deployments.manage') && isOnline && <button onClick={() => setShowDeploy(true)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-accent/10 border border-accent/30 text-accent text-xs font-mono hover:bg-accent/20"><Plus size={11}/> Deploy</button>}
                                 <button onClick={loadDeployments} className="p-1.5 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><RefreshCw size={13}/></button>
                             </div>
                         </div>
@@ -1406,7 +1406,7 @@ const ServerDetailPanel: React.FC<{
                                 { icon: Package, label: 'Images', value: String(metrics.storage.images), sub: `${metrics.storage.volumes} volumes` },
                             ].map(m => (
                                 <div key={m.label} className="bg-[#111] border border-[#222] rounded-xl p-3">
-                                    <div className="flex items-center gap-1.5 mb-2"><m.icon size={14} className="text-red-500"/><span className="text-[10px] text-[#AAA] font-mono uppercase tracking-wider">{m.label}</span></div>
+                                    <div className="flex items-center gap-1.5 mb-2"><m.icon size={14} className="text-accent"/><span className="text-[10px] text-[#AAA] font-mono uppercase tracking-wider">{m.label}</span></div>
                                     <div className="text-xl font-bold text-white font-cyber">{m.value}</div>
                                     <div className="text-[10px] text-[#888] font-mono">{m.sub}</div>
                                 </div>
@@ -1474,17 +1474,17 @@ const TemplatesPanel: React.FC<{ templates: DeploymentTemplate[]; loading: boole
 
     const catColors: Record<string, string> = {
         honeypot: 'text-white bg-neutral-500/10 border-neutral-500/30',
-        utility:  'text-red-400   bg-[#151515]/10   border-neutral-500/30',
-        monitoring:'text-red-400 bg-neutral-500/10 border-neutral-500/30',
+        utility:  'text-accent   bg-[#151515]/10   border-neutral-500/30',
+        monitoring:'text-accent bg-neutral-500/10 border-neutral-500/30',
     };
 
     return (
         <div className="flex flex-col h-full">
             <div className="p-4 border-b border-[#222] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#111] rounded-lg border border-neutral-500/30 text-red-400"><Layers size={18}/></div>
+                    <div className="p-2 bg-[#111] rounded-lg border border-neutral-500/30 text-accent"><Layers size={18}/></div>
                     <div>
-                        <h3 className="text-base font-bold text-white font-cyber">DEPLOYMENT <span className="text-red-400">TEMPLATES</span></h3>
+                        <h3 className="text-base font-bold text-white font-cyber">DEPLOYMENT <span className="text-accent">TEMPLATES</span></h3>
                         <p className="text-xs text-[#888] font-mono">{templates.length} templates</p>
                     </div>
                 </div>
@@ -1495,7 +1495,7 @@ const TemplatesPanel: React.FC<{ templates: DeploymentTemplate[]; loading: boole
                         ))}
                     </div>
                     <button onClick={onRefresh} disabled={loading} className="p-1.5 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><RefreshCw size={14} className={loading ? 'animate-spin' : ''}/></button>
-                    {can('infrastructure.templates.manage') && (<button onClick={() => setEditTarget(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-mono hover:bg-red-500/20"><Plus size={13}/> New</button>)}
+                    {can('infrastructure.templates.manage') && (<button onClick={() => setEditTarget(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-xs font-mono hover:bg-accent/20"><Plus size={13}/> New</button>)}
                 </div>
             </div>
 
@@ -1810,10 +1810,10 @@ export const InfrastructureView: React.FC = () => {
             {/* Top Header */}
             <div className="p-4 border-b border-[#222] bg-[#111]/40 backdrop-blur-sm flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#111] rounded-lg border border-neutral-500/30 text-red-400"><MonitorCog size={20}/></div>
+                    <div className="p-2 bg-[#111] rounded-lg border border-neutral-500/30 text-accent"><MonitorCog size={20}/></div>
                     <div>
                         <h2 className="text-lg font-bold text-white font-cyber flex items-center gap-2">
-                            INFRASTRUCTURE <span className="text-red-500">MANAGER</span>
+                            INFRASTRUCTURE <span className="text-accent">MANAGER</span>
                             {demoMode && (
                                 <span className="px-2 py-0.5 rounded border border-amber-500/35 bg-amber-500/10 text-amber-300 text-[10px] font-mono font-bold tracking-wider">
                                     DEMO SANDBOX
@@ -1862,7 +1862,7 @@ export const InfrastructureView: React.FC = () => {
                     { id: 'shippers' as InfraTab, label: 'SHIPPERS', icon: Radio },
                     { id: 'templates' as InfraTab, label: 'TEMPLATES', icon: Layers },
                 ] as const).map(t => (
-                    <button key={t.id} onClick={() => setInfraTab(t.id)} className={`flex items-center gap-2 px-5 py-3 text-xs font-mono font-bold border-b-2 transition-colors ${infraTab === t.id ? 'text-red-500 border-red-500 bg-red-500/5' : 'text-[#888] border-transparent hover:text-neutral-300'}`}>
+                    <button key={t.id} onClick={() => setInfraTab(t.id)} className={`flex items-center gap-2 px-5 py-3 text-xs font-mono font-bold border-b-2 transition-colors ${infraTab === t.id ? 'text-accent border-accent bg-accent/5' : 'text-[#888] border-transparent hover:text-neutral-300'}`}>
                         <t.icon size={14}/>{t.label}
                     </button>
                 ))}
@@ -1891,7 +1891,7 @@ export const InfrastructureView: React.FC = () => {
                                         aria-disabled={demoMode || undefined}
                                         title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register a new server node'}
                                         onClick={() => { if (!demoMode) setShowRegisterServer(true); }}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-mono font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-[11px] font-mono font-bold hover:bg-accent/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Plus size={12}/> Register Server
                                     </button>
@@ -1916,7 +1916,7 @@ export const InfrastructureView: React.FC = () => {
                                 <span>Deployments</span>
                             </div>
                             {overview?.servers.map(srv => (
-                                <button key={srv.ServerId} onClick={() => setSelectedServer(selectedServer?.ServerId === srv.ServerId ? null : srv)} className={`w-full grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center px-4 py-3 border-b border-[#222] text-left transition-colors hover:bg-white/5 ${selectedServer?.ServerId === srv.ServerId ? 'bg-red-500/5 border-l-2 border-l-red-500' : ''}`}>
+                                <button key={srv.ServerId} onClick={() => setSelectedServer(selectedServer?.ServerId === srv.ServerId ? null : srv)} className={`w-full grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center px-4 py-3 border-b border-[#222] text-left transition-colors hover:bg-white/5 ${selectedServer?.ServerId === srv.ServerId ? 'bg-accent/5 border-l-2 border-l-accent' : ''}`}>
                                     <div className="min-w-0">
                                         <div className="text-sm font-bold text-white font-mono truncate">{srv.Hostname}</div>
                                         <div className="text-[11px] text-[#888] font-mono">{srv.PublicIp} · {srv.Region} · {srv.Provider}</div>

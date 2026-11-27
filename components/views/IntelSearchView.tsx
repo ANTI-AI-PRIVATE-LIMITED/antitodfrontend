@@ -261,7 +261,7 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                     <h3 className="text-[10px] font-bold text-at-muted uppercase tracking-widest flex items-center gap-2">
                         <History size={14} className="text-at-muted"/> INTEL HISTORY
                     </h3>
-                    <button onClick={() => setHistory([])} className="text-at-disabled hover:text-[#d62828] transition-colors">
+                    <button onClick={() => setHistory([])} className="text-at-disabled hover:text-accent transition-colors">
                         <Trash2 size={14}/>
                     </button>
                 </div>
@@ -274,11 +274,11 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                         >
                             <div className="flex justify-between items-start relative z-10">
                                 <span className="text-xs font-bold text-at-text truncate pr-4 uppercase tracking-wide">{item.query}</span>
-                                <button onClick={(e) => deleteHistoryItem(e, item.query)} className="opacity-0 group-hover:opacity-100 text-at-disabled hover:text-[#d62828] transition-all"><X size={12}/></button>
+                                <button onClick={(e) => deleteHistoryItem(e, item.query)} className="opacity-0 group-hover:opacity-100 text-at-disabled hover:text-accent transition-all"><X size={12}/></button>
                             </div>
                             <div className="flex justify-between items-center text-[10px] text-at-disabled font-mono mt-2 relative z-10">
                                 <span className="flex items-center gap-1"><Clock size={10}/> {new Date(item.timestamp).toLocaleDateString()}</span>
-                                <span className="text-[#d62828] opacity-0 group-hover:opacity-100 transition-opacity font-bold">RECALL &rarr;</span>
+                                <span className="text-accent opacity-0 group-hover:opacity-100 transition-opacity font-bold">RECALL &rarr;</span>
                             </div>
                         </div>
                     ))}
@@ -299,7 +299,7 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                 <div className="at-intel-hero">
                     <div className="max-w-4xl mx-auto space-y-6">
                         <div className="flex flex-col items-center text-center space-y-3">
-                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#d62828]/10 border border-[#d62828]/30 text-[#d62828] text-[10px] font-bold tracking-widest uppercase mb-4">
+                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-accent/10 border border-accent/30 text-accent text-[10px] font-bold tracking-widest uppercase mb-4">
                                 <Zap size={12} className="animate-pulse"/>
                                 Grounding Engine Active
                             </div>
@@ -323,7 +323,7 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                                 <button 
                                     type="submit"
                                     disabled={isSearching || !query.trim()}
-                                    className="bg-[#d62828] text-white px-8 py-4 font-bold text-xs tracking-wider hover:bg-[#b01e1e] transition-colors border-l border-at-border disabled:opacity-50 flex items-center gap-3 uppercase"
+                                    className="bg-accent text-white px-8 py-4 font-bold text-xs tracking-wider hover:bg-accent-hover transition-colors border-l border-at-border disabled:opacity-50 flex items-center gap-3 uppercase"
                                 >
                                     {isSearching ? <Loader2 className="animate-spin" size={16}/> : <Terminal size={16}/>}
                                     Process

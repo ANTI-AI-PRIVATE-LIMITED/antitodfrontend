@@ -1188,7 +1188,7 @@ export default function IocPage() {
 
             <input
               type="text"
-              className="w-full bg-[#111] border border-[#333] rounded-md py-1.5 pl-8 pr-8 text-xs text-white placeholder-[#555] focus:outline-none focus:border-red-500 transition-colors"
+              className="w-full bg-[#111] border border-[#333] rounded-md py-1.5 pl-8 pr-8 text-xs text-white placeholder-[#555] focus:outline-none focus:border-accent transition-colors"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={
@@ -1215,7 +1215,7 @@ export default function IocPage() {
           <button
             type="button"
             className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs transition-colors ${
-              advancedMode ? 'bg-red-950/20 border-red-500 text-red-500' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
+              advancedMode ? 'bg-accent/15 border-accent text-accent' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
             }`}
             onClick={() => setAdvancedMode((value) => !value)}
             aria-pressed={advancedMode}
@@ -1227,7 +1227,7 @@ export default function IocPage() {
           <button
             type="button"
             className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs transition-colors ${
-              showFilters ? 'bg-red-950/20 border-red-500 text-red-500' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
+              showFilters ? 'bg-accent/15 border-accent text-accent' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
             }`}
             onClick={() => setShowFilters((value) => !value)}
             aria-expanded={showFilters}
@@ -1248,7 +1248,7 @@ export default function IocPage() {
               <select
                 value={typeFilter}
                 onChange={(event) => setTypeFilter(event.target.value as 'ALL' | IocType)}
-                className="bg-black border border-[#333] text-white text-[10px] rounded px-1.5 py-1 focus:border-red-500 outline-none cursor-pointer"
+                className="bg-black border border-[#333] text-white text-[10px] rounded px-1.5 py-1 focus:border-accent outline-none cursor-pointer"
               >
                 <option value="ALL">All types</option>
                 <option value="ip">IP</option>
@@ -1263,7 +1263,7 @@ export default function IocPage() {
               <select
                 value={severityFilter}
                 onChange={(event) => setSeverityFilter(event.target.value as 'ALL' | 'critical' | 'high' | 'medium' | 'low')}
-                className="bg-black border border-[#333] text-white text-[10px] rounded px-1.5 py-1 focus:border-red-500 outline-none cursor-pointer"
+                className="bg-black border border-[#333] text-white text-[10px] rounded px-1.5 py-1 focus:border-accent outline-none cursor-pointer"
               >
                 <option value="ALL">All severities</option>
                 <option value="critical">Critical</option>

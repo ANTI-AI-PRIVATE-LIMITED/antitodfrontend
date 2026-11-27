@@ -536,7 +536,7 @@ export const NetworkToolsView: React.FC = () => {
         return (
             <button
                 onClick={() => setDnsProviderTab(id === 'controld' ? controlDProfile : id)}
-                className={`px-4 py-2 text-xs font-bold flex items-center gap-2 transition-all border-b-2 ${isActive ? 'border-red-500 text-white bg-white/5' : 'border-transparent text-[#888] hover:text-neutral-300'}`}
+                className={`px-4 py-2 text-xs font-bold flex items-center gap-2 transition-all border-b-2 ${isActive ? 'border-accent text-white bg-white/5' : 'border-transparent text-[#888] hover:text-neutral-300'}`}
             >
                 {icon && icon} {label}
             </button>
@@ -556,7 +556,7 @@ export const NetworkToolsView: React.FC = () => {
                     <tbody className="divide-y divide-neutral-800 text-neutral-300">
                         {records.map((rec, idx) => (
                             <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                <td className="p-3 font-bold text-red-500">{rec.type}</td><td className="p-3">{rec.name}</td><td className="p-3 text-[#888]">{rec.ttl}</td><td className="p-3 break-all">{rec.data}</td>
+                                <td className="p-3 font-bold text-accent">{rec.type}</td><td className="p-3">{rec.name}</td><td className="p-3 text-[#888]">{rec.ttl}</td><td className="p-3 break-all">{rec.data}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -567,7 +567,7 @@ export const NetworkToolsView: React.FC = () => {
 
     // Helper for rendering My IP results
     const renderMyIpTool = () => {
-        if (!ipWhoIsResult && !isLoading) return <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in border border-[#222] border-dashed rounded-xl bg-[#111]/20 m-4"><div className="w-16 h-16 rounded-full bg-red-900/10 border border-red-500/20 flex items-center justify-center mb-4"><Search size={24} className="text-red-500 opacity-80" /></div><h3 className="text-white font-cyber text-lg mb-2">IDENTITY TRACING</h3><p className="text-neutral-500 text-sm max-w-md">Click MY IP to securely trace your current network identity and location exposure.</p></div>;
+        if (!ipWhoIsResult && !isLoading) return <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in border border-[#222] border-dashed rounded-xl bg-[#111]/20 m-4"><div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center mb-4"><Search size={24} className="text-accent opacity-80" /></div><h3 className="text-white font-cyber text-lg mb-2">IDENTITY TRACING</h3><p className="text-neutral-500 text-sm max-w-md">Click MY IP to securely trace your current network identity and location exposure.</p></div>;
         if (!ipWhoIsResult) return null;
 
         return (
@@ -575,11 +575,11 @@ export const NetworkToolsView: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                         <h3 className="text-sm font-bold text-white mb-4 uppercase flex items-center gap-2">
-                            <Server size={16} className="text-red-400" /> My Connection
+                            <Server size={16} className="text-accent" /> My Connection
                         </h3>
                         <div className="space-y-2 text-xs font-mono text-neutral-300">
                             <div className="flex justify-between border-b border-[#222] pb-1"><span>IP Address</span> <span className="text-white font-bold">{ipWhoIsResult.ip}</span></div>
-                            <div className="flex justify-between border-b border-[#222] pb-1"><span>ISP</span> <span className="text-red-400">{ipWhoIsResult.connection.isp}</span></div>
+                            <div className="flex justify-between border-b border-[#222] pb-1"><span>ISP</span> <span className="text-accent">{ipWhoIsResult.connection.isp}</span></div>
                             <div className="flex justify-between border-b border-[#222] pb-1"><span>Org</span> <span className="truncate max-w-[200px]">{ipWhoIsResult.connection.org}</span></div>
                             <div className="flex justify-between border-b border-[#222] pb-1"><span>ASN</span> <span>AS{ipWhoIsResult.connection.asn}</span></div>
                         </div>
@@ -607,7 +607,7 @@ export const NetworkToolsView: React.FC = () => {
 
     // Helper for rendering Network/Whois tool results
     const renderNetworkTool = () => {
-        if (!ipApiResult && !whoisResult && !isLoading) return <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in border border-[#222] border-dashed rounded-xl bg-[#111]/20 m-4"><div className="w-16 h-16 rounded-full bg-red-900/10 border border-red-500/20 flex items-center justify-center mb-4"><Search size={24} className="text-red-500 opacity-80" /></div><h3 className="text-white font-cyber text-lg mb-2">WHOIS & IP INTELLIGENCE</h3><p className="text-neutral-500 text-sm max-w-md">Enter an IP address or Domain above to retrieve ownership, registration, and network routing information.</p></div>;
+        if (!ipApiResult && !whoisResult && !isLoading) return <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in border border-[#222] border-dashed rounded-xl bg-[#111]/20 m-4"><div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center mb-4"><Search size={24} className="text-accent opacity-80" /></div><h3 className="text-white font-cyber text-lg mb-2">WHOIS & IP INTELLIGENCE</h3><p className="text-neutral-500 text-sm max-w-md">Enter an IP address or Domain above to retrieve ownership, registration, and network routing information.</p></div>;
 
         return (
             <div className="space-y-6 animate-fade-in">
@@ -616,11 +616,11 @@ export const NetworkToolsView: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
                                 <h3 className="text-sm font-bold text-white mb-4 uppercase flex items-center gap-2">
-                                    <Server size={16} className="text-red-400" /> Network Identity
+                                    <Server size={16} className="text-accent" /> Network Identity
                                 </h3>
                                 <div className="space-y-2 text-xs font-mono text-neutral-300">
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>IP</span> <span className="text-white">{ipApiResult.ip}</span></div>
-                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>ASN</span> <span className="text-red-400">AS{ipApiResult.asn?.asn ?? "-"}</span></div>
+                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>ASN</span> <span className="text-accent">AS{ipApiResult.asn?.asn ?? "-"}</span></div>
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>Org</span> <span className="truncate max-w-[200px]">{ipApiResult.asn?.org}</span></div>
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>Route</span> <span>{ipApiResult.asn?.domain}</span></div>
                                 </div>
@@ -666,7 +666,7 @@ export const NetworkToolsView: React.FC = () => {
                                 <div className="space-y-2">
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>Name</span> <span className="text-white">{whoisResult.name}</span></div>
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>Handle</span> <span>{whoisResult.handle}</span></div>
-                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>Registrar</span> <span className="text-red-500">{whoisResult.org}</span></div>
+                                    <div className="flex justify-between border-b border-[#222] pb-1"><span>Registrar</span> <span className="text-accent">{whoisResult.org}</span></div>
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between border-b border-[#222] pb-1"><span>Registered</span> <span>{whoisResult.registrationDate}</span></div>
@@ -706,26 +706,26 @@ export const NetworkToolsView: React.FC = () => {
             {/* Header */}
             <div className="p-4 border-b border-[#222] bg-[#111]/40 shrink-0">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-neutral-900/20 rounded-lg border border-neutral-500/30 text-red-400">
+                    <div className="p-2 bg-neutral-900/20 rounded-lg border border-neutral-500/30 text-accent">
                         <HardDrive size={20} />
                     </div>
                     <div>
                         <h2 className="text-lg font-bold text-white font-cyber flex items-center gap-2">
-                            NETWORK <span className="text-red-500">UTILITIES</span>
+                            NETWORK <span className="text-accent">UTILITIES</span>
                         </h2>
                         <p className="text-xs text-[#888] font-mono">Diagnostics & Reconnaissance Suite</p>
                     </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setActiveCategory('SUPER_SCAN')} className={`px-4 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SUPER_SCAN' ? 'bg-[#1a0f0f] border border-red-500 text-red-500 shadow-lg shadow-red-900/20' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>SUPER SCAN</button>
-                    <button onClick={() => setActiveCategory('DNS')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'DNS' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>DNS LOOKUP</button>
-                    <button onClick={() => setActiveCategory('DNS_SEC')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'DNS_SEC' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>DNS FIREWALL</button>
-                    <button onClick={() => setActiveCategory('NETWORK')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'NETWORK' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>WHOIS/IP</button>
-                    <button onClick={() => setActiveCategory('EMAIL')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'EMAIL' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>EMAIL SEC</button>
-                    <button onClick={() => setActiveCategory('ASN')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'ASN' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>ASN INTEL</button>
-                    <button onClick={() => setActiveCategory('CRT')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'CRT' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>CERT LOGS</button>
-                    <button onClick={() => setActiveCategory('SCAN')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SCAN' ? 'bg-[#1a0f0f] border border-red-500/30 text-red-500' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>PORT SCAN</button>
+                    <button onClick={() => setActiveCategory('SUPER_SCAN')} className={`px-4 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SUPER_SCAN' ? 'bg-accent/15 border border-accent text-accent shadow-lg shadow-accent/15' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>SUPER SCAN</button>
+                    <button onClick={() => setActiveCategory('DNS')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'DNS' ? 'bg-accent/10 border border-accent/35 text-accent' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>DNS LOOKUP</button>
+                    <button onClick={() => setActiveCategory('DNS_SEC')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'DNS_SEC' ? 'bg-accent/10 border border-accent/35 text-accent' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>DNS FIREWALL</button>
+                    <button onClick={() => setActiveCategory('NETWORK')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'NETWORK' ? 'bg-accent/10 border border-accent/35 text-accent' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>WHOIS/IP</button>
+                    <button onClick={() => setActiveCategory('EMAIL')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'EMAIL' ? 'bg-accent/10 border border-accent/35 text-accent' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>EMAIL SEC</button>
+                    <button onClick={() => setActiveCategory('ASN')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'ASN' ? 'bg-accent/10 border border-accent/35 text-accent' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>ASN INTEL</button>
+                    <button onClick={() => setActiveCategory('CRT')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'CRT' ? 'bg-accent/10 border border-accent/35 text-accent' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>CERT LOGS</button>
+                    <button onClick={() => setActiveCategory('SCAN')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SCAN' ? 'bg-accent/10 border border-accent/35 text-accent' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>PORT SCAN</button>
                     <div className="h-8 w-px bg-[#1C1C1C] mx-2 hidden md:block"></div>
                     <button onClick={() => setActiveCategory('PING')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'PING' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>PING</button>
                     <button onClick={() => setActiveCategory('SUBNET')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${activeCategory === 'SUBNET' ? 'bg-white text-black' : 'bg-[#151515] text-[#888] border border-[#333] hover:text-white'}`}>CALC</button>
@@ -739,7 +739,7 @@ export const NetworkToolsView: React.FC = () => {
                 {/* Input Bar */}
                 {activeCategory !== 'MY_IP' && activeCategory !== 'HEADERS' && (
                     <form onSubmit={handleRunTool} className="mb-8 relative group max-w-2xl mx-auto w-full">
-                        <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-900 rounded-lg blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-accent/60 to-accent/10 rounded-lg blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         <div className="relative flex items-center bg-[#111] border border-[#333] rounded-lg overflow-hidden shadow-2xl">
                             <div className="pl-4 text-[#888]">
                                 {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <Terminal size={18} />}
@@ -781,7 +781,7 @@ export const NetworkToolsView: React.FC = () => {
                                         className="w-full text-left px-4 py-2 hover:bg-[#151515] border-b border-[#222] last:border-0 transition-colors group"
                                     >
                                         <div className="flex justify-between items-center">
-                                            <span className="font-bold text-red-500 text-xs">{item.asn}</span>
+                                            <span className="font-bold text-accent text-xs">{item.asn}</span>
                                             <span className="text-[10px] bg-[#151515] px-1.5 rounded text-[#AAA]">{item.country_code}</span>
                                         </div>
                                         <div className="text-xs text-neutral-300 truncate font-bold">{item.name}</div>
@@ -796,7 +796,7 @@ export const NetworkToolsView: React.FC = () => {
                 {activeCategory === 'HEADERS' && (
                     <div className="flex flex-col gap-4 h-full">
                         <textarea
-                            className="flex-1 bg-[#111]/50 border border-[#333] rounded-lg p-4 font-mono text-xs text-neutral-300 focus:border-red-500 focus:outline-none resize-none custom-scrollbar"
+                            className="flex-1 bg-[#111]/50 border border-[#333] rounded-lg p-4 font-mono text-xs text-neutral-300 focus:border-accent focus:outline-none resize-none custom-scrollbar"
                             placeholder="Paste raw email headers here..."
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
@@ -818,9 +818,9 @@ export const NetworkToolsView: React.FC = () => {
                             <div className="space-y-6 animate-slide-in-up">
                                 {/* Progress Bar / Status Text */}
                                 {isLoading && (
-                                    <div className="flex items-center gap-3 bg-[#111] border border-red-500/30 p-3 rounded-lg animate-pulse">
-                                        <Loader2 className="animate-spin text-red-400" size={18} />
-                                        <span className="text-sm font-mono text-red-300">{scanStatus}</span>
+                                    <div className="flex items-center gap-3 bg-[#111] border border-accent/30 p-3 rounded-lg animate-pulse">
+                                        <Loader2 className="animate-spin text-accent" size={18} />
+                                        <span className="text-sm font-mono text-accent">{scanStatus}</span>
                                     </div>
                                 )}
 
@@ -895,13 +895,13 @@ export const NetworkToolsView: React.FC = () => {
 
                                     {/* Infrastructure & DNS */}
                                     <div className="bg-[#111]/40 border border-[#222] rounded-lg p-5">
-                                        <h3 className="text-sm font-bold text-red-400 uppercase mb-4 flex items-center gap-2">
+                                        <h3 className="text-sm font-bold text-accent uppercase mb-4 flex items-center gap-2">
                                             <Server size={16} /> Infrastructure & DNS
                                         </h3>
                                         {enrichmentResult ? (
                                             <div className="space-y-2 text-xs font-mono text-neutral-300 mb-4">
                                                 <div className="flex justify-between border-b border-[#222] pb-1"><span>Hosting Org</span> <span className="text-white truncate max-w-[200px]">{enrichmentResult.asn?.name || 'N/A'}</span></div>
-                                                <div className="flex justify-between border-b border-[#222] pb-1"><span>ASN</span> <span className="text-red-500">{enrichmentResult.asn?.asn || 'N/A'}</span></div>
+                                                <div className="flex justify-between border-b border-[#222] pb-1"><span>ASN</span> <span className="text-accent">{enrichmentResult.asn?.asn || 'N/A'}</span></div>
                                                 <div className="flex justify-between border-b border-[#222] pb-1"><span>Location</span> <span>{enrichmentResult.city}, {enrichmentResult.country_name}</span></div>
                                                 <div className="flex justify-between border-b border-[#222] pb-1"><span>Type</span> <span>{enrichmentResult.threat?.is_datacenter ? 'Datacenter' : 'Residential/ISP'}</span></div>
                                             </div>
@@ -987,7 +987,7 @@ export const NetworkToolsView: React.FC = () => {
                                                                 {(enrichmentResult.shodan?.tags?.length ?? 0) > 0 && (
                                                                     <div className="mt-2 flex flex-wrap gap-1">
                                                                         {(enrichmentResult.shodan?.tags ?? []).map(t => (
-                                                                            <span key={t} className="text-[10px] bg-[#111] text-red-300 px-1.5 py-0.5 rounded border border-red-500/30">
+                                                                            <span key={t} className="text-[10px] bg-[#111] text-accent px-1.5 py-0.5 rounded border border-accent/30">
                                                                                 {t}
                                                                             </span>
                                                                         ))}
@@ -1149,8 +1149,8 @@ export const NetworkToolsView: React.FC = () => {
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in border border-[#222] border-dashed rounded-xl bg-[#111]/20 mt-4">
-                                <div className="w-16 h-16 rounded-full bg-red-900/10 border border-red-500/20 flex items-center justify-center mb-4">
-                                    <Radar size={24} className="text-red-500 opacity-80" />
+                                <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/25 flex items-center justify-center mb-4">
+                                    <Radar size={24} className="text-accent opacity-80" />
                                 </div>
                                 <h3 className="text-white font-cyber text-lg mb-2">SUPER SCAN SUITE</h3>
                                 <p className="text-neutral-500 text-sm max-w-md">
@@ -1170,7 +1170,7 @@ export const NetworkToolsView: React.FC = () => {
                                     </div>
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-4 mb-6">
-                                            <div className="bg-[#111] p-3 rounded-lg border border-neutral-500/30 text-red-400">
+                                            <div className="bg-[#111] p-3 rounded-lg border border-neutral-500/30 text-accent">
                                                 <Share2 size={32} />
                                             </div>
                                             <div>
@@ -1202,12 +1202,12 @@ export const NetworkToolsView: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <h3 className="text-xs font-bold text-red-400 uppercase mb-4 border-b border-neutral-900/50 pb-2">Announced Prefixes (Top 50)</h3>
+                                            <h3 className="text-xs font-bold text-accent uppercase mb-4 border-b border-neutral-900/50 pb-2">Announced Prefixes (Top 50)</h3>
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto custom-scrollbar">
                                                 {asnResult.prefixes.map((p: any, i: number) => (
-                                                    <div key={i} className="text-xs font-mono text-[#AAA] bg-[#111] p-2 rounded border border-[#222] flex justify-between items-center group hover:border-red-500/30 transition-colors">
+                                                    <div key={i} className="text-xs font-mono text-[#AAA] bg-[#111] p-2 rounded border border-[#222] flex justify-between items-center group hover:border-accent/35 transition-colors">
                                                         <span>{p.prefix}</span>
-                                                        <span className="text-[9px] text-neutral-600 group-hover:text-red-400">{p.description}</span>
+                                                        <span className="text-[9px] text-neutral-600 group-hover:text-accent">{p.description}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1224,15 +1224,15 @@ export const NetworkToolsView: React.FC = () => {
                                             <button
                                                 key={res.asn}
                                                 onClick={() => handleSelectAsn(res.asn)}
-                                                className="flex items-center gap-4 bg-[#111] border border-[#222] p-3 rounded hover:bg-red-900/10 hover:border-red-500/30 transition-all text-left group"
+                                                className="flex items-center gap-4 bg-[#111] border border-[#222] p-3 rounded hover:bg-accent/10 hover:border-accent/35 transition-all text-left group"
                                             >
-                                                <span className="font-mono text-red-400 font-bold w-20">{res.asn}</span>
+                                                <span className="font-mono text-accent font-bold w-20">{res.asn}</span>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-sm font-bold text-white truncate">{res.name}</div>
                                                     <div className="text-xs text-[#888] truncate">{res.description_short}</div>
                                                 </div>
                                                 <span className="text-xs text-[#AAA] bg-[#151515] px-2 py-1 rounded">{res.country_code}</span>
-                                                <ArrowRight size={16} className="text-neutral-600 group-hover:text-red-400" />
+                                                <ArrowRight size={16} className="text-neutral-600 group-hover:text-accent" />
                                             </button>
                                         ))}
                                     </div>
@@ -1501,7 +1501,7 @@ export const NetworkToolsView: React.FC = () => {
                                     {crtResults.map((crt, i) => (
                                         <tr key={i} className="hover:bg-white/5">
                                             <td className="p-3">{new Date(crt.entry_timestamp).toLocaleDateString()}</td>
-                                            <td className="p-3 text-red-500">{crt.common_name}</td>
+                                            <td className="p-3 text-accent">{crt.common_name}</td>
                                             <td className="p-3 text-[#888]">{crt.issuer_name.split(',')[0]}</td>
                                         </tr>
                                     ))}

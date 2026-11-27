@@ -554,8 +554,8 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
                             <Terminal size={14} className="text-cyan-400"/> INTERCEPT LOG
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_#ef4444]"></span>
-                            <span className="text-[10px] text-red-400 font-mono font-bold">LIVE</span>
+                            <span className="w-2 h-2 bg-accent rounded-full animate-pulse shadow-[0_0_8px_var(--theme-accent)]"></span>
+                            <span className="text-[10px] text-accent font-mono font-bold">LIVE</span>
                         </div>
                     </div>
                     

@@ -183,11 +183,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
                 return (
                   <div
                     key={p.id}
-                    className={`rounded-lg border p-4 ${current ? 'border-red-500' : 'border-neutral-800'} bg-neutral-900`}
+                    className={`rounded-lg border p-4 ${current ? 'border-accent' : 'border-neutral-800'} bg-neutral-900`}
                   >
                     <div className="flex justify-between items-center">
                       <strong>{p.label}</strong>
-                      {current && <Check size={14} className="text-red-400" />}
+                      {current && <Check size={14} className="text-accent" />}
                     </div>
                     <div className="text-2xl font-bold my-2">
                       ${p.priceUsdPerMonth}

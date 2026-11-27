@@ -254,7 +254,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
 
       {/* Animated background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse"></div>
         <div
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neutral-500/5 rounded-full blur-3xl animate-pulse"
           style={{ animationDelay: "1s" }}
@@ -265,7 +265,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
       <div className="relative z-10 w-full max-w-md my-auto py-2">
         {/* Logo and branding */}
         <div className="text-center mb-5 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-red-600 rounded-2xl shadow-lg shadow-red-500/25">
+          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-accent rounded-2xl shadow-lg shadow-accent/25">
             <ShieldCheck className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-3xl font-cyber font-bold text-white tracking-wider mb-1">
@@ -399,7 +399,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                   Email Address
                 </label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-red-500 transition-colors" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-accent transition-colors" />
                   <input
                     id="email"
                     type="email"
@@ -407,7 +407,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="w-full bg-[#111]/50 border border-neutral-700 rounded-lg pl-12 pr-4 py-3 text-white font-mono text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#111]/50 border border-neutral-700 rounded-lg pl-12 pr-4 py-3 text-white font-mono text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="admin@example.com"
                     autoComplete="email"
                   />
@@ -430,13 +430,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                       setForgotMessage(null);
                       setShowForgotModal(true);
                     }}
-                    className="text-xs font-mono text-neutral-400 hover:text-red-400 transition-colors"
+                    className="text-xs font-mono text-neutral-400 hover:text-accent transition-colors"
                   >
                     Forgot password?
                   </button>
                 </div>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-red-500 transition-colors" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-accent transition-colors" />
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -444,7 +444,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="w-full bg-[#111]/50 border border-neutral-700 rounded-lg pl-12 pr-12 py-3 text-white font-mono text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#111]/50 border border-neutral-700 rounded-lg pl-12 pr-12 py-3 text-white font-mono text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="••••••••"
                     autoComplete="current-password"
                   />
@@ -467,7 +467,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
               <button
                 type="submit"
                 disabled={isLoading || !email || !password}
-                className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 hover:shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-red-500/20"
+                className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-accent/20 hover:shadow-accent/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-accent/20"
               >
                 {isLoading ? (
                   <>
@@ -554,7 +554,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                   One-Time Passcode
                 </label>
                 <div className="relative group">
-                  <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-red-500 transition-colors" />
+                  <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-accent transition-colors" />
                   <input
                     id="otp"
                     type="text"
@@ -569,7 +569,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                     required
                     autoFocus
                     disabled={isLoading}
-                    className="w-full bg-[#111]/50 border border-neutral-700 rounded-lg pl-12 pr-4 py-3 text-white font-mono text-xl tracking-[0.4em] focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#111]/50 border border-neutral-700 rounded-lg pl-12 pr-4 py-3 text-white font-mono text-xl tracking-[0.4em] focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="000000"
                   />
                 </div>
@@ -579,7 +579,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
               <button
                 type="submit"
                 disabled={isLoading || otp.length !== 6 || timeLeft === 0}
-                className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 hover:shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-accent/20 hover:shadow-accent/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -643,7 +643,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
 
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-red-500" />
+                <KeyRound className="w-5 h-5 text-accent" />
                 Reset Password / Unlock
               </h3>
               <p className="text-xs text-neutral-400">
@@ -670,7 +670,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                   onChange={(e) => setForgotEmail(e.target.value)}
                   placeholder="admin@example.com"
                   disabled={isForgotLoading}
-                  className="w-full bg-[#181818] border border-neutral-700 rounded-lg pl-10 pr-3 py-2 text-white text-sm focus:border-red-500 focus:outline-none"
+                  className="w-full bg-[#181818] border border-neutral-700 rounded-lg pl-10 pr-3 py-2 text-white text-sm focus:border-accent focus:outline-none"
                 />
               </div>
             </div>
@@ -680,7 +680,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToSignup }) => {
                 type="button"
                 disabled={isForgotLoading || !forgotEmail.trim()}
                 onClick={() => handleForgotPassword()}
-                className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
               >
                 {isForgotLoading ? (
                   <>

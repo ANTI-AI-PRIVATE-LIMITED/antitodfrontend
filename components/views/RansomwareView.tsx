@@ -167,12 +167,12 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
             <div className="bg-[#111]/40 border-b border-[#222] p-6 flex flex-col gap-4 shrink-0">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="p-3 bg-red-900/20 rounded-lg border border-red-500/30 text-red-500">
+                        <div className="p-3 bg-accent/15 rounded-lg border border-accent/30 text-accent">
                             <Skull size={24}/>
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold text-white font-cyber flex items-center gap-2">
-                                RANSOMWARE <span className="text-red-500">WATCH</span>
+                                RANSOMWARE <span className="text-accent">WATCH</span>
                             </h2>
                             <p className="text-sm text-[#888] font-mono mt-1">Live Double Extortion Monitoring</p>
                         </div>
@@ -189,28 +189,28 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
 
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-red-500/30 transition-all duration-300 group">
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-accent/30 transition-all duration-300 group">
                         <div>
                             <div className="text-[10px] text-[#888] uppercase font-bold">Total Victims</div>
-                            <div className="text-4xl font-mono font-bold text-white group-hover:text-red-400 transition-colors drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">{posts.length}</div>
+                            <div className="text-4xl font-mono font-bold text-white group-hover:text-accent transition-colors drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">{posts.length}</div>
                         </div>
-                        <Target size={32} className="text-neutral-600 group-hover:text-red-500 transition-colors opacity-50"/>
+                        <Target size={32} className="text-neutral-600 group-hover:text-accent transition-colors opacity-50"/>
                     </div>
-                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-red-500/30 transition-all duration-300 group">
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-accent/30 transition-all duration-300 group">
                         <div>
                             <div className="text-[10px] text-[#888] uppercase font-bold">Active Groups</div>
-                            <div className="text-4xl font-mono font-bold text-white group-hover:text-red-400 transition-colors drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">{groups.length || Object.keys(groupVictimCounts).length}</div>
+                            <div className="text-4xl font-mono font-bold text-white group-hover:text-accent transition-colors drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">{groups.length || Object.keys(groupVictimCounts).length}</div>
                         </div>
-                        <Users size={32} className="text-neutral-500 group-hover:text-red-400 transition-colors opacity-50"/>
+                        <Users size={32} className="text-neutral-500 group-hover:text-accent transition-colors opacity-50"/>
                     </div>
-                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-red-500/30 transition-all duration-300 group">
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-accent/30 transition-all duration-300 group">
                         <div>
                             <div className="text-[10px] text-[#888] uppercase font-bold">24h Velocity</div>
-                            <div className="text-4xl font-mono font-bold text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.4)] animate-pulse">{recentVelocity}</div>
+                            <div className="text-4xl font-mono font-bold text-accent drop-shadow-[0_0_12px_var(--theme-accent-glow)] animate-pulse">{recentVelocity}</div>
                         </div>
-                        <Activity size={32} className="text-red-900 group-hover:text-red-500 transition-colors opacity-50"/>
+                        <Activity size={32} className="text-accent/50 group-hover:text-accent transition-colors opacity-70"/>
                     </div>
-                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-red-500/30 transition-all duration-300 group">
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] rounded-xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:border-accent/30 transition-all duration-300 group">
                         <div className="text-[10px] text-[#888] uppercase font-bold mb-1">Top Threat</div>
                         <div className="text-sm font-bold text-white truncate">{topGroups[0]?.[0] || 'N/A'}</div>
                         <div className="text-[10px] text-neutral-600">{topGroups[0]?.[1] || 0} victims</div>
@@ -230,7 +230,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                             <input 
                                 type="text" 
                                 placeholder="Filter victims or country..." 
-                                className="bg-[#111] border border-[#333] rounded-full pl-7 pr-3 py-1 text-xs text-neutral-300 focus:outline-none focus:border-red-500 w-32 transition-all focus:w-48"
+                                className="bg-[#111] border border-[#333] rounded-full pl-7 pr-3 py-1 text-xs text-neutral-300 focus:outline-none focus:border-accent w-32 transition-all focus:w-48"
                                 value={victimSearch}
                                 onChange={(e) => setVictimSearch(e.target.value)}
                             />
@@ -243,7 +243,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                              <div className="p-8 text-center text-[#888] text-xs italic">No victims found matching filter.</div>
                         ) : (
                             filteredPosts.map((post, i) => (
-                                <div key={i} className="p-5 border-b border-[#1a1a1a] hover:bg-gradient-to-r hover:from-red-900/10 hover:to-transparent border-l-2 border-l-transparent hover:border-l-red-500 transition-all duration-300 group relative">
+                                <div key={i} className="p-5 border-b border-[#1a1a1a] hover:bg-gradient-to-r hover:from-accent/10 hover:to-transparent border-l-2 border-l-transparent hover:border-l-accent transition-all duration-300 group relative">
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-[10px] font-mono text-[#888]">{new Date(post.discovered).toLocaleString()}</span>
@@ -297,7 +297,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                                                     <button
                                                         type="button"
                                                         onClick={() => { setCopiedUrl(false); setPendingExternalLink(linkInfo); }}
-                                                        className="p-1.5 rounded bg-[#151515] text-[#AAA] hover:text-red-500 hover:bg-[#1C1C1C] transition-colors"
+                                                        className="p-1.5 rounded bg-[#151515] text-[#AAA] hover:text-accent hover:bg-[#1C1C1C] transition-colors"
                                                         title={linkInfo.isOnion ? 'Inspect Dark Web (.onion) Link Safely' : 'Inspect External Link (OPSEC Warning)'}
                                                         aria-label={`Inspect external URL for ${post.post_title}`}
                                                     >
@@ -339,7 +339,7 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                             <input 
                                 type="text" 
                                 placeholder="Search groups..." 
-                                className="bg-[#111] border border-[#333] rounded-full pl-7 pr-3 py-1 text-xs text-neutral-300 focus:outline-none focus:border-red-500 w-48"
+                                className="bg-[#111] border border-[#333] rounded-full pl-7 pr-3 py-1 text-xs text-neutral-300 focus:outline-none focus:border-accent w-48"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -350,16 +350,16 @@ export const RansomwareView: React.FC<RansomwareViewProps> = ({ posts, groups })
                             <div className="col-span-full text-center text-[#888] text-xs italic mt-10">No group profiles available.</div>
                         ) : (
                             filteredGroups.map((group, i) => (
-                                <div key={i} className="bg-[#111]/40 backdrop-blur-md border border-[#222] rounded-xl p-5 hover:bg-[#111]/60 hover:border-red-500/40 hover:shadow-[0_0_30px_rgba(220,38,38,0.1)] transition-all duration-500 flex flex-col h-full group/card">
+                                <div key={i} className="bg-[#111]/40 backdrop-blur-md border border-[#222] rounded-xl p-5 hover:bg-[#111]/60 hover:border-accent/40 hover:shadow-[0_0_30px_var(--theme-accent-muted)] transition-all duration-500 flex flex-col h-full group/card">
                                     <div className="flex justify-between items-start mb-3">
-                                        <h3 className="text-xl font-bold text-white uppercase tracking-wider group-hover/card:text-red-400 transition-colors flex items-center gap-2"><Globe className="text-neutral-600 group-hover/card:text-red-500 w-4 h-4"/> {group.name}</h3>
-                                        <span className="text-xs font-mono font-bold text-red-400 bg-red-950/30 px-3 py-1 rounded-full border border-red-900/50 shadow-[0_0_10px_rgba(153,27,27,0.2)]">
+                                        <h3 className="text-xl font-bold text-white uppercase tracking-wider group-hover/card:text-accent transition-colors flex items-center gap-2"><Globe className="text-neutral-600 group-hover/card:text-accent w-4 h-4"/> {group.name}</h3>
+                                        <span className="text-xs font-mono font-bold text-accent bg-accent/10 px-3 py-1 rounded-full border border-accent/30">
                                             {groupVictimCounts[group.name] || 0} Victims
                                         </span>
                                     </div>
                                     
                                     {group.meta && (
-                                        <div className="text-sm text-neutral-400 mb-5 leading-relaxed border-l-2 border-neutral-700 group-hover/card:border-red-500/50 pl-3 transition-colors">
+                                        <div className="text-sm text-neutral-400 mb-5 leading-relaxed border-l-2 border-neutral-700 group-hover/card:border-accent/50 pl-3 transition-colors">
                                             {group.meta}
                                         </div>
                                     )}

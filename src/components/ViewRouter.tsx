@@ -409,7 +409,7 @@ export default function ViewRouter({
           {!permissionsLoaded ? (
             <div className="min-h-[500px] flex items-center justify-center p-6 text-neutral-400">
               <div className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+                <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
                 <span className="text-xs font-mono">Verifying permissions…</span>
               </div>
             </div>
@@ -441,7 +441,7 @@ export default function ViewRouter({
           {!demoMode && !permissionsLoaded ? (
             <div className="min-h-[500px] flex items-center justify-center p-6 text-neutral-400">
               <div className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+                <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
                 <span className="text-xs font-mono">Verifying permissions…</span>
               </div>
             </div>

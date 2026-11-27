@@ -101,7 +101,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onNavigate
 
       {/* Ambient lighting */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse"></div>
         <div
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neutral-500/5 rounded-full blur-3xl animate-pulse"
           style={{ animationDelay: '1s' }}
@@ -111,7 +111,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onNavigate
       <div className="relative z-10 w-full max-w-lg my-auto py-2">
         {/* Brand header */}
         <div className="text-center mb-5 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-red-600 rounded-2xl shadow-lg shadow-red-500/25">
+          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-accent rounded-2xl shadow-lg shadow-accent/25">
             <ShieldCheck className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-cyber font-bold text-white tracking-wider mb-1">ANTITODE</h1>
@@ -141,7 +141,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onNavigate
                 <button
                   type="button"
                   onClick={goToLogin}
-                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 hover:shadow-red-500/30 text-xs font-mono"
+                  className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-accent/20 hover:shadow-accent/30 text-xs font-mono"
                 >
                   <span>Go to Login</span>
                   <ArrowRight className="w-4 h-4" />
@@ -151,7 +151,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onNavigate
           ) : (
             <div className="space-y-6">
               <div className="text-center space-y-2">
-                <div className="w-12 h-12 mx-auto bg-red-500/10 border border-red-500/30 rounded-xl flex items-center justify-center text-red-400">
+                <div className="w-12 h-12 mx-auto bg-accent/10 border border-accent/30 rounded-xl flex items-center justify-center text-accent">
                   <KeyRound className="w-6 h-6" />
                 </div>
                 <h2 className="text-xl font-bold text-white font-cyber tracking-wide">
@@ -181,7 +181,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onNavigate
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="At least 12 characters"
                       required
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 outline-none transition-colors pr-10"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-accent focus:ring-1 focus:ring-accent rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 outline-none transition-colors pr-10"
                     />
                     <button
                       type="button"
@@ -204,7 +204,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onNavigate
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Re-enter password"
                       required
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 outline-none transition-colors pr-10"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-accent focus:ring-1 focus:ring-accent rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 outline-none transition-colors pr-10"
                     />
                     <button
                       type="button"
@@ -244,7 +244,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onNavigate
                 <button
                   type="submit"
                   disabled={isLoading || !isPasswordValid || !passwordsMatch || !token}
-                  className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 text-xs font-mono mt-4 cursor-pointer disabled:cursor-not-allowed"
+                  className="w-full bg-accent hover:bg-accent/90 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-accent/20 text-xs font-mono mt-4 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>

@@ -336,7 +336,7 @@ export const PlanNoticeModal: React.FC = () => {
                       className={`at-btn at-btn-full w-full py-2.5 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md ${
                         isDemo
                           ? 'bg-neutral-800 text-neutral-500 border border-neutral-700 cursor-not-allowed opacity-60'
-                          : 'at-btn-primary bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white border border-[#d62828] shadow-[#d62828]/25 hover:shadow-[#d62828]/40 cursor-pointer'
+                          : 'at-btn-primary bg-accent hover:bg-accent-hover text-white border border-accent shadow-accent/25 hover:shadow-accent/40 cursor-pointer'
                       }`}
                       onClick={handleUpgradeToPro}
                     >

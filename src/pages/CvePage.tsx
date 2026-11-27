@@ -801,7 +801,7 @@ export default function CvePage() {
               )}
               
               <input
-                className="w-full bg-[#111] border border-[#333] rounded-lg py-2.5 pl-10 pr-10 text-sm text-white placeholder-[#555] focus:outline-none focus:border-red-500 transition-colors"
+                className="w-full bg-[#111] border border-[#333] rounded-lg py-2.5 pl-10 pr-10 text-sm text-white placeholder-[#555] focus:outline-none focus:border-accent transition-colors"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={
@@ -826,7 +826,7 @@ export default function CvePage() {
             <button
               type="button"
               className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm transition-colors ${
-                advancedMode ? 'bg-red-950/20 border-red-500 text-red-500' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
+                advancedMode ? 'bg-accent/15 border-accent text-accent' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
               }`}
               onClick={() => setAdvancedMode((c) => !c)}
             >
@@ -837,7 +837,7 @@ export default function CvePage() {
             <button
               type="button"
               className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm transition-colors ${
-                showFilters ? 'bg-red-950/20 border-red-500 text-red-500' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
+                showFilters ? 'bg-accent/15 border-accent text-accent' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
               }`}
               onClick={() => setShowFilters((c) => !c)}
             >
@@ -862,7 +862,7 @@ export default function CvePage() {
                 <select
                   value={severityFilter}
                   onChange={(e) => setSeverityFilter(e.target.value as SeverityFilter)}
-                  className="bg-black border border-[#333] text-white text-xs rounded px-2 py-1.5 focus:border-red-500 outline-none cursor-pointer"
+                  className="bg-black border border-[#333] text-white text-xs rounded px-2 py-1.5 focus:border-accent outline-none cursor-pointer"
                 >
                   <option value="ALL">All severities</option>
                   <option value="critical">Critical</option>
@@ -877,7 +877,7 @@ export default function CvePage() {
                 <select
                   value={vendorFilter}
                   onChange={(e) => setVendorFilter(e.target.value)}
-                  className="bg-black border border-[#333] text-white text-xs rounded px-2 py-1.5 focus:border-red-500 outline-none cursor-pointer max-w-[200px]"
+                  className="bg-black border border-[#333] text-white text-xs rounded px-2 py-1.5 focus:border-accent outline-none cursor-pointer max-w-[200px]"
                 >
                   <option value="">All vendors</option>
                   {vendorOptions.map((vendor) => (
@@ -891,7 +891,7 @@ export default function CvePage() {
                   type="checkbox"
                   checked={exploitOnly}
                   onChange={(e) => setExploitOnly(e.target.checked)}
-                  className="accent-red-500 rounded-sm bg-black border-[#333]"
+                  className="accent-accent rounded-sm bg-black border-[#333]"
                 />
                 Exploit available only
               </label>
@@ -899,7 +899,7 @@ export default function CvePage() {
               <button
                 type="button"
                 onClick={clearAllFilters}
-                className="ml-auto text-xs text-red-500 hover:text-red-400 font-medium transition-colors"
+                className="ml-auto text-xs text-accent hover:opacity-80 font-medium transition-opacity"
               >
                 Clear all filters
               </button>

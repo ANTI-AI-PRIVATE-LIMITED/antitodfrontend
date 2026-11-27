@@ -33,8 +33,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
       {/* Glowing Icon Wrapper */}
       <div className="relative mb-6">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-red-950/80 to-neutral-900 border border-red-500/30 flex items-center justify-center text-red-400 shadow-lg shadow-red-500/10">
-          {icon || <Server className="w-8 h-8 text-red-400" />}
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-accent/20 to-neutral-900 border border-accent/30 flex items-center justify-center text-accent shadow-lg shadow-accent/10">
+          {icon || <Server className="w-8 h-8 text-accent" />}
         </div>
         <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center text-neutral-400">
           <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
@@ -57,7 +57,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           <button
             type="button"
             onClick={onAction}
-            className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 flex items-center gap-2 shadow-lg shadow-red-600/25 hover:shadow-red-600/40 cursor-pointer"
+            className="px-5 py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 flex items-center gap-2 shadow-lg shadow-accent/25 hover:shadow-accent/40 cursor-pointer"
           >
             <span>{actionLabel}</span>
             <ArrowRight className="w-4 h-4" />

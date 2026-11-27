@@ -31,7 +31,7 @@ const Rocket = ({ size, className }: { size: number; className?: string }) => (
 const HelpSection = ({ title, icon: Icon, children }: { title: string; icon: any; children?: React.ReactNode }) => (
     <div className="bg-[#111] border border-[#222] rounded-lg p-6 hover:border-[#333] transition-colors">
         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-3 border-b border-[#222] pb-3">
-            <Icon className="text-red-500" size={24}/> {title}
+            <Icon className="text-accent" size={24}/> {title}
         </h3>
         <div className="text-[#AAA] text-sm leading-relaxed space-y-4">
             {children}
@@ -56,12 +56,12 @@ export const HelpView: React.FC = () => {
     return (
         <div className="h-[calc(100vh-70px)] bg-cyber-grid flex flex-col">
             <div className="bg-[#111]/40 border-b border-[#222] p-6 flex items-center gap-4 shrink-0">
-                <div className="p-3 bg-[#111] rounded-lg border border-neutral-500/30 text-red-400">
+                <div className="p-3 bg-[#111] rounded-lg border border-neutral-500/30 text-accent">
                     <HelpCircle size={28}/>
                 </div>
                 <div>
                     <h2 className="text-2xl font-bold text-white font-cyber flex items-center gap-2">
-                        SYSTEM <span className="text-red-500">GUIDE</span>
+                        SYSTEM <span className="text-accent">GUIDE</span>
                     </h2>
                     <p className="text-sm text-[#888] font-mono mt-1">ANTITODE Platform Operations Manual & Architecture Reference</p>
                 </div>
@@ -77,7 +77,7 @@ export const HelpView: React.FC = () => {
                                 <strong>ANTITODE</strong> is a cloud-connected deception operations and threat intelligence platform built around distributed honeypot sensors, real-time log ingestion pipelines, and server-brokered threat enrichment.
                             </p>
                             <div className="bg-[#111] border border-neutral-500/20 p-4 rounded text-white text-xs font-mono mt-2 space-y-1">
-                                <div><strong className="text-red-400">QUICK START:</strong></div>
+                                <div><strong className="text-accent">QUICK START:</strong></div>
                                 <div>1. Register a host server and provision an authenticated Log Shipper in <strong>Infrastructure</strong>.</div>
                                 <div>2. Deploy honeypot sensors to stream attacker sessions, commands, and IOCs to your tenant.</div>
                                 <div>3. Monitor live activity across <strong>Dashboard</strong>, <strong>Honeypot Logs</strong>, <strong>Threat Map</strong>, and <strong>SOC Wall</strong>.</div>
@@ -99,7 +99,7 @@ export const HelpView: React.FC = () => {
                     <div className="h-px bg-[#151515] w-full"></div>
 
                     {/* Platform Workflows */}
-                    <h3 className="text-xl font-bold text-white mb-4 pl-2 border-l-4 border-red-500">Core Platform Modules</h3>
+                    <h3 className="text-xl font-bold text-white mb-4 pl-2 border-l-4 border-accent">Core Platform Modules</h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <HelpSection title="Infrastructure & Sensors" icon={Server}>

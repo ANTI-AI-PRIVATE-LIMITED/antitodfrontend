@@ -1728,7 +1728,7 @@ export const XyberahReconView: React.FC = () => {
             type="button"
             onClick={handleRefresh}
             disabled={loading || workspaceLoading}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 transition-colors text-xs font-mono font-bold disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent hover:bg-accent/20 transition-colors text-xs font-mono font-bold disabled:opacity-50"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             Refresh
@@ -2725,7 +2725,7 @@ export const XyberahReconView: React.FC = () => {
                                       <div className="max-h-56 overflow-y-auto p-1">
                                         {inventoryFacetLoading ? (
                                           <div className="flex justify-center py-6">
-                                            <Loader2 size={20} className="animate-spin text-red-500" />
+                                            <Loader2 size={20} className="animate-spin text-accent" />
                                           </div>
                                         ) : inventoryFacetRows.length === 0 ? (
                                           <div className="px-2 py-4 text-center text-xs text-[#888]">No options</div>
@@ -3105,7 +3105,7 @@ export const XyberahReconView: React.FC = () => {
                             <div className="max-h-56 overflow-y-auto p-1">
                               {assetsFacetLoading ? (
                                 <div className="flex justify-center py-6">
-                                  <Loader2 size={20} className="animate-spin text-red-500" />
+                                  <Loader2 size={20} className="animate-spin text-accent" />
                                 </div>
                               ) : assetsFacetRows.length === 0 ? (
                                 <div className="px-2 py-4 text-center text-xs text-[#888]">No options</div>

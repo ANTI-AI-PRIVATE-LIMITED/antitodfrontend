@@ -104,7 +104,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({ onNavigateToLo
 
       {/* Ambient lighting */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse"></div>
         <div
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neutral-500/5 rounded-full blur-3xl animate-pulse"
           style={{ animationDelay: '1s' }}
@@ -114,7 +114,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({ onNavigateToLo
       <div className="relative z-10 w-full max-w-lg my-auto py-2">
         {/* Brand header */}
         <div className="text-center mb-5 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-red-600 rounded-2xl shadow-lg shadow-red-500/25">
+          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-accent rounded-2xl shadow-lg shadow-accent/25">
             <ShieldCheck className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-cyber font-bold text-white tracking-wider mb-1">ANTITODE</h1>
@@ -127,7 +127,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({ onNavigateToLo
         <div className="bg-[#111]/90 backdrop-blur-md border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl animate-slide-in-up font-mono">
           {status === 'verifying' && (
             <div className="text-center space-y-6 py-6 animate-fade-in">
-              <div className="w-16 h-16 mx-auto bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center text-red-400">
+              <div className="w-16 h-16 mx-auto bg-accent/10 border border-accent/30 rounded-2xl flex items-center justify-center text-accent">
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
               <div className="space-y-2">
@@ -163,7 +163,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({ onNavigateToLo
                 <button
                   type="button"
                   onClick={goToLogin}
-                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 hover:shadow-red-500/30 text-xs font-mono"
+                  className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-accent/20 hover:shadow-accent/30 text-xs font-mono"
                 >
                   <span>Go to Login</span>
                   <ArrowRight className="w-4 h-4" />
@@ -209,7 +209,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({ onNavigateToLo
                       onChange={(e) => setResendEmail(e.target.value)}
                       placeholder="admin@company.com"
                       required
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 rounded-lg px-3.5 py-2 text-xs text-white placeholder-neutral-600 outline-none transition-colors"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-accent focus:ring-1 focus:ring-accent rounded-lg px-3.5 py-2 text-xs text-white placeholder-neutral-600 outline-none transition-colors"
                     />
                   </div>
 

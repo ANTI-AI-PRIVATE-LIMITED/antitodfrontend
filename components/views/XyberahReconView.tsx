@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
-  ArrowUpDown,
   BarChart2,
   Briefcase,
   Bug,
@@ -65,7 +64,8 @@ import {
 } from '../../api/services/openasmClient';
 import { DashboardAssetLocationsMap } from '../recon/DashboardAssetLocationsMap';
 import { InventoryAllServicesTable, InventoryGroupedTable } from '../recon/InventoryServiceTables';
-import { VulnerabilityDetailModal, vulnSeverityBadgeClass } from '../recon/VulnerabilityDetailModal';
+import { VulnerabilityDetailModal } from '../recon/VulnerabilityDetailModal';
+import { ReconVulnerabilityList } from '../recon/ReconVulnerabilityList';
 import { TargetRiskModal } from '../recon/TargetRiskModal';
 import { IntegrationsView } from './IntegrationsView';
 import { useAuth } from '../../contexts/AuthContext';
@@ -498,6 +498,7 @@ export const XyberahReconView: React.FC = () => {
 
   const [targetsRefreshing, setTargetsRefreshing] = useState(false);
   const [targetSettingsOpen, setTargetSettingsOpen] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState(false);
   const [workers, setWorkers] = useState<AsmWorker[]>([]);
   const [workersMeta, setWorkersMeta] = useState<{ total?: number; page?: number; limit?: number; pageCount?: number; hasNextPage?: boolean }>({});
   const [workersRefreshing, setWorkersRefreshing] = useState(false);
@@ -1453,16 +1454,18 @@ export const XyberahReconView: React.FC = () => {
 
   const handleDeleteTarget = async () => {
     if (!selectedWorkspaceId || !targetDetail?.id) return;
-    if (!window.confirm(`Delete target "${targetDetail.value}" from workspace?`)) return;
     setSubmitting(true);
     try {
       const result = await openasm.deleteTargetFromWorkspace(targetDetail.id, selectedWorkspaceId);
+      setConfirmDeleteTarget(false);
+      setTargetSettingsOpen(false);
       setNotice(result.message ?? 'Target deleted from workspace.');
       setSelectedTargetId(null);
       setTargetDetail(null);
       setTargetRoute(null);
       await loadTargets(selectedWorkspaceId);
     } catch (e) {
+      setConfirmDeleteTarget(false);
       setError(formatApiError(e));
     } finally {
       setSubmitting(false);
@@ -1688,7 +1691,7 @@ export const XyberahReconView: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-cyber-grid relative">
+    <div className="h-full min-w-0 flex flex-col bg-cyber-grid relative overflow-x-hidden">
       <div className="p-4 border-b border-[#222] bg-[#111]/40 backdrop-blur-sm flex flex-col md:flex-row gap-4 justify-between items-center shrink-0">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-neutral-900/20 rounded-lg border border-neutral-500/30 text-white">
@@ -1725,7 +1728,7 @@ export const XyberahReconView: React.FC = () => {
             type="button"
             onClick={handleRefresh}
             disabled={loading || workspaceLoading}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 transition-colors text-xs font-mono font-bold disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent hover:bg-accent/20 transition-colors text-xs font-mono font-bold disabled:opacity-50"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             Refresh
@@ -1864,8 +1867,15 @@ export const XyberahReconView: React.FC = () => {
                   </div>
                   <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                     <h3 className="text-sm font-bold text-red-400 font-mono mb-2">Timeline</h3>
-                    <div className="h-72">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-72 w-full min-w-0">
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                        minWidth={1}
+                        minHeight={240}
+                        initialDimension={{ width: 520, height: 288 }}
+                        debounce={50}
+                      >
                         <AreaChart data={timelineChartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                           <XAxis dataKey="x" tick={{ fill: '#9ca3af', fontSize: 11 }} />
@@ -1880,10 +1890,17 @@ export const XyberahReconView: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
+                  <div className="p-4 rounded-xl bg-[#111] border border-[#222] min-w-0">
                     <h3 className="text-sm font-bold text-red-400 font-mono mb-2">Issues Timeline</h3>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-64 w-full min-w-0">
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                        minWidth={1}
+                        minHeight={220}
+                        initialDimension={{ width: 520, height: 256 }}
+                        debounce={50}
+                      >
                         <AreaChart data={issuesChartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                           <XAxis dataKey="x" tick={{ fill: '#9ca3af', fontSize: 11 }} />
@@ -2368,6 +2385,7 @@ export const XyberahReconView: React.FC = () => {
                             setSelectedTargetId(null);
                             setTargetDetail(null);
                             setTargetRoute(null);
+                            setConfirmDeleteTarget(false);
                             setTargetSettingsOpen(false);
                           }}
                           className="rounded bg-[#151515] px-2 py-1 text-xs font-mono text-white hover:bg-[#1C1C1C]"
@@ -2401,6 +2419,7 @@ export const XyberahReconView: React.FC = () => {
                               setSelectedTargetId(null);
                               setTargetDetail(null);
                               setTargetRoute(null);
+                              setConfirmDeleteTarget(false);
                               setTargetSettingsOpen(false);
                             }}
                             className="rounded-lg p-2 text-[#AAA] hover:bg-[#151515] hover:text-white"
@@ -2480,7 +2499,10 @@ export const XyberahReconView: React.FC = () => {
                     {targetSettingsOpen && targetDetail ? (
                       <div
                         className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111]/70 p-4 backdrop-blur-sm"
-                        onClick={() => setTargetSettingsOpen(false)}
+                        onClick={() => {
+                          setConfirmDeleteTarget(false);
+                          setTargetSettingsOpen(false);
+                        }}
                       >
                         <div
                           className="w-full max-w-md rounded-2xl border border-[#222] bg-[#0c1220] p-6 shadow-2xl"
@@ -2490,7 +2512,10 @@ export const XyberahReconView: React.FC = () => {
                             <h2 className="text-lg font-semibold text-white">{targetDetail.value}</h2>
                             <button
                               type="button"
-                              onClick={() => setTargetSettingsOpen(false)}
+                              onClick={() => {
+                                setConfirmDeleteTarget(false);
+                                setTargetSettingsOpen(false);
+                              }}
                               className="rounded-lg p-1 text-[#AAA] hover:bg-[#151515] hover:text-white"
                             >
                               <X size={20} />
@@ -2549,16 +2574,47 @@ export const XyberahReconView: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          <div className="flex justify-center border-t border-[#222] pt-6">
-                            <button
-                              type="button"
-                              onClick={handleDeleteTarget}
-                              disabled={submitting}
-                              className="inline-flex items-center gap-2 rounded-xl border border-neutral-600 bg-[#111]/30 px-5 py-2.5 text-sm font-medium text-red-400 hover:border-red-500/40 hover:bg-red-950/20 disabled:opacity-50"
-                            >
-                              <Trash2 size={16} />
-                              Delete target
-                            </button>
+                          <div className="flex flex-col items-center gap-3 border-t border-[#222] pt-6">
+                            {confirmDeleteTarget ? (
+                              <div
+                                role="alertdialog"
+                                aria-label="Confirm target deletion"
+                                className="w-full rounded-xl border border-red-500/35 bg-red-950/25 p-3.5 text-center space-y-3"
+                              >
+                                <p className="text-xs text-red-200">
+                                  Delete target <span className="font-mono font-semibold text-white">{targetDetail.value}</span> from workspace?
+                                </p>
+                                <div className="flex items-center justify-center gap-2.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteTarget(false)}
+                                    disabled={submitting}
+                                    className="rounded-lg border border-neutral-700 bg-[#151515] px-3.5 py-1.5 text-xs font-medium text-neutral-300 hover:text-white disabled:opacity-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleDeleteTarget()}
+                                    disabled={submitting}
+                                    className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                                  >
+                                    <Trash2 size={14} />
+                                    Confirm Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteTarget(true)}
+                                disabled={submitting}
+                                className="inline-flex items-center gap-2 rounded-xl border border-neutral-600 bg-[#111]/30 px-5 py-2.5 text-sm font-medium text-red-400 hover:border-red-500/40 hover:bg-red-950/20 disabled:opacity-50"
+                              >
+                                <Trash2 size={16} />
+                                Delete target
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2669,7 +2725,7 @@ export const XyberahReconView: React.FC = () => {
                                       <div className="max-h-56 overflow-y-auto p-1">
                                         {inventoryFacetLoading ? (
                                           <div className="flex justify-center py-6">
-                                            <Loader2 size={20} className="animate-spin text-red-500" />
+                                            <Loader2 size={20} className="animate-spin text-accent" />
                                           </div>
                                         ) : inventoryFacetRows.length === 0 ? (
                                           <div className="px-2 py-4 text-center text-xs text-[#888]">No options</div>
@@ -2871,142 +2927,19 @@ export const XyberahReconView: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="overflow-x-auto rounded-xl border border-[#222]">
-                            <table className="w-full min-w-[960px] text-left text-xs">
-                              <thead className="border-b border-[#222] bg-[#111]/40 text-[11px] font-semibold uppercase tracking-wide text-[#888]">
-                                <tr>
-                                  <th className="p-3 pl-4">
-                                    <button
-                                      type="button"
-                                      className="inline-flex items-center gap-1 text-[#AAA] hover:text-white"
-                                      onClick={() =>
-                                        setTargetVulnParams((p) => ({
-                                          ...p,
-                                          sortBy: 'severity',
-                                          sortOrder: p.sortOrder === 'DESC' ? 'ASC' : 'DESC',
-                                          page: 1,
-                                        }))
-                                      }
-                                    >
-                                      Severity
-                                      <ArrowUpDown size={12} />
-                                    </button>
-                                  </th>
-                                  <th className="p-3">Details</th>
-                                  <th className="p-3">Affected URL</th>
-                                  <th className="p-3">CVSS</th>
-                                  <th className="p-3">Tags</th>
-                                  <th className="p-3">Created</th>
-                                  <th className="p-3">Scanned by</th>
-                                  <th className="p-3 pr-4">Status</th>
-                                  <th className="p-3 pr-4 text-right"> </th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-neutral-200">
-                                {targetVulnerabilities.map((v) => {
-                                  const row = v as Record<string, unknown>;
-                                  const id = String(v.id);
-                                  const name = String(row.name ?? row.title ?? '—');
-                                  const sev = String(v.severity ?? 'unknown');
-                                  const url = String(row.affectedUrl ?? '');
-                                  const cv = row.cvssScore;
-                                  const cvssLabel = cv != null && String(cv) !== '' ? String(cv) : 'Not matched';
-                                  const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
-                                  const tool = row.tool as Record<string, unknown> | undefined;
-                                  const tname = tool ? String(tool.name ?? '') : '';
-                                  const tlogo = tool && typeof tool.logoUrl === 'string' ? tool.logoUrl : '';
-                                  const logoSrc = resolveAssetMediaUrl(tlogo || null);
-                                  const created = row.createdAt ? new Date(String(row.createdAt)).toLocaleDateString() : '—';
-                                  const st = String(v.status ?? 'open');
-                                  return (
-                                    <tr key={id} className="border-t border-[#222]/80 hover:bg-white/[0.03]">
-                                      <td className="p-3 pl-4 align-middle">
-                                        <span
-                                          className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold capitalize ${vulnSeverityBadgeClass(sev)}`}
-                                        >
-                                          {sev}
-                                        </span>
-                                      </td>
-                                      <td className="max-w-[220px] p-3 align-middle">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="font-semibold text-white">{name}</span>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleOpenVulnerabilityDetail(id)}
-                                            className="shrink-0 text-[#888] hover:text-red-400"
-                                            title="Details"
-                                          >
-                                            <Info size={14} />
-                                          </button>
-                                        </div>
-                                      </td>
-                                      <td className="max-w-[200px] p-3 align-middle">
-                                        {url ? (
-                                          <a
-                                            href={url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 break-all text-sky-400 hover:text-sky-300"
-                                          >
-                                            {url}
-                                            <ExternalLink size={12} className="shrink-0" />
-                                          </a>
-                                        ) : (
-                                          '—'
-                                        )}
-                                      </td>
-                                      <td className="p-3 align-middle font-mono text-[#AAA]">{cvssLabel}</td>
-                                      <td className="p-3 align-middle">
-                                        <div className="flex flex-wrap gap-1">
-                                          {tags.slice(0, 3).map((t) => (
-                                            <span
-                                              key={t}
-                                              className="rounded-md border border-[#333] bg-[#111]/40 px-2 py-0.5 text-[10px] text-neutral-300"
-                                            >
-                                              {t}
-                                            </span>
-                                          ))}
-                                          {tags.length > 3 ? (
-                                            <span className="rounded-md border border-[#333] px-2 py-0.5 text-[10px] text-[#888]">
-                                              +{tags.length - 3}
-                                            </span>
-                                          ) : null}
-                                        </div>
-                                      </td>
-                                      <td className="p-3 align-middle text-neutral-300">{created}</td>
-                                      <td className="p-3 align-middle">
-                                        <div className="flex items-center gap-2">
-                                          {logoSrc ? (
-                                            <img src={logoSrc} alt="" className="h-8 w-8 rounded-lg border border-[#333] bg-white/5 object-contain p-0.5" />
-                                          ) : (
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#333] bg-[#111] text-[10px] text-neutral-600">
-                                              ?
-                                            </div>
-                                          )}
-                                          <span className="text-neutral-200">{tname || '—'}</span>
-                                        </div>
-                                      </td>
-                                      <td className="p-3 align-middle">
-                                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-950/25 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
-                                          <CheckCircle2 size={12} />
-                                          {st}
-                                        </span>
-                                      </td>
-                                      <td className="p-3 pr-4 text-right align-middle">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleOpenVulnerabilityDetail(id)}
-                                          className="rounded-lg border border-neutral-600 bg-[#151515] px-3 py-1.5 text-xs text-white hover:bg-[#1C1C1C]"
-                                        >
-                                          Details
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
+                          <ReconVulnerabilityList
+                            vulnerabilities={targetVulnerabilities}
+                            onToggleSeveritySort={() =>
+                              setTargetVulnParams((p) => ({
+                                ...p,
+                                sortBy: 'severity',
+                                sortOrder: p.sortOrder === 'DESC' ? 'ASC' : 'DESC',
+                                page: 1,
+                              }))
+                            }
+                            onInspect={(id) => handleOpenVulnerabilityDetail(id)}
+                            resolveAssetMediaUrl={resolveAssetMediaUrl}
+                          />
                           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[#888] font-mono">
                             <span>
                               total={targetVulnMeta.total ?? 0} page={targetVulnMeta.page ?? 1}/{targetVulnMeta.pageCount ?? 1}
@@ -3172,7 +3105,7 @@ export const XyberahReconView: React.FC = () => {
                             <div className="max-h-56 overflow-y-auto p-1">
                               {assetsFacetLoading ? (
                                 <div className="flex justify-center py-6">
-                                  <Loader2 size={20} className="animate-spin text-red-500" />
+                                  <Loader2 size={20} className="animate-spin text-accent" />
                                 </div>
                               ) : assetsFacetRows.length === 0 ? (
                                 <div className="px-2 py-4 text-center text-xs text-[#888]">No options</div>
@@ -3442,147 +3375,19 @@ export const XyberahReconView: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                {vulnerabilities.length === 0 ? (
-                  <div className="rounded-xl border border-[#222] bg-[#111] p-8 text-center text-sm text-[#888]">
-                    No vulnerabilities found.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-xl border border-[#222]">
-                    <table className="w-full min-w-[960px] text-left text-xs">
-                      <thead className="border-b border-[#222] bg-[#111]/40 text-[11px] font-semibold uppercase tracking-wide text-[#888]">
-                        <tr>
-                          <th className="p-3 pl-4">
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 text-[#AAA] hover:text-white"
-                              onClick={() =>
-                                setVulnParams((p) => ({
-                                  ...p,
-                                  sortBy: 'severity',
-                                  sortOrder: p.sortOrder === 'DESC' ? 'ASC' : 'DESC',
-                                  page: 1,
-                                }))
-                              }
-                            >
-                              Severity
-                              <ArrowUpDown size={12} />
-                            </button>
-                          </th>
-                          <th className="p-3">Details</th>
-                          <th className="p-3">Affected URL</th>
-                          <th className="p-3">CVSS</th>
-                          <th className="p-3">Tags</th>
-                          <th className="p-3">Created</th>
-                          <th className="p-3">Scanned by</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3 pr-4 text-right"> </th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-neutral-200">
-                        {vulnerabilities.map((v) => {
-                          const row = v as Record<string, unknown>;
-                          const id = String(v.id);
-                          const name = String(row.name ?? row.title ?? '—');
-                          const sev = String(v.severity ?? 'unknown');
-                          const url = String(row.affectedUrl ?? '');
-                          const cv = row.cvssScore;
-                          const cvssLabel = cv != null && String(cv) !== '' ? String(cv) : 'Not matched';
-                          const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
-                          const tool = row.tool as Record<string, unknown> | undefined;
-                          const tname = tool ? String(tool.name ?? '') : '';
-                          const tlogo = tool && typeof tool.logoUrl === 'string' ? tool.logoUrl : '';
-                          const logoSrc = resolveAssetMediaUrl(tlogo || null);
-                          const created = row.createdAt ? new Date(String(row.createdAt)).toLocaleDateString() : '—';
-                          const st = String(v.status ?? 'open');
-                          return (
-                            <tr key={id} className="border-t border-[#222]/80 hover:bg-white/[0.03]">
-                              <td className="p-3 pl-4 align-middle">
-                                <span
-                                  className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold capitalize ${vulnSeverityBadgeClass(sev)}`}
-                                >
-                                  {sev}
-                                </span>
-                              </td>
-                              <td className="max-w-[220px] p-3 align-middle">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-white">{name}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenVulnerabilityDetail(id)}
-                                    className="shrink-0 text-[#888] hover:text-red-400"
-                                  >
-                                    <Info size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="max-w-[200px] p-3 align-middle">
-                                {url ? (
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 break-all text-sky-400 hover:text-sky-300"
-                                  >
-                                    {url}
-                                    <ExternalLink size={12} className="shrink-0" />
-                                  </a>
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                              <td className="p-3 align-middle font-mono text-[#AAA]">{cvssLabel}</td>
-                              <td className="p-3 align-middle">
-                                <div className="flex flex-wrap gap-1">
-                                  {tags.slice(0, 3).map((t) => (
-                                    <span
-                                      key={t}
-                                      className="rounded-md border border-[#333] bg-[#111]/40 px-2 py-0.5 text-[10px] text-neutral-300"
-                                    >
-                                      {t}
-                                    </span>
-                                  ))}
-                                  {tags.length > 3 ? (
-                                    <span className="rounded-md border border-[#333] px-2 py-0.5 text-[10px] text-[#888]">
-                                      +{tags.length - 3}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </td>
-                              <td className="p-3 align-middle text-neutral-300">{created}</td>
-                              <td className="p-3 align-middle">
-                                <div className="flex items-center gap-2">
-                                  {logoSrc ? (
-                                    <img src={logoSrc} alt="" className="h-8 w-8 rounded-lg border border-[#333] bg-white/5 object-contain p-0.5" />
-                                  ) : (
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#333] bg-[#111] text-[10px] text-neutral-600">
-                                      ?
-                                    </div>
-                                  )}
-                                  <span className="text-neutral-200">{tname || '—'}</span>
-                                </div>
-                              </td>
-                              <td className="p-3 align-middle">
-                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-950/25 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
-                                  <CheckCircle2 size={12} />
-                                  {st}
-                                </span>
-                              </td>
-                              <td className="p-3 pr-4 text-right align-middle">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenVulnerabilityDetail(id)}
-                                  className="rounded-lg border border-neutral-600 bg-[#151515] px-3 py-1.5 text-xs text-white hover:bg-[#1C1C1C]"
-                                >
-                                  Details
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <ReconVulnerabilityList
+                  vulnerabilities={vulnerabilities}
+                  onToggleSeveritySort={() =>
+                    setVulnParams((p) => ({
+                      ...p,
+                      sortBy: 'severity',
+                      sortOrder: p.sortOrder === 'DESC' ? 'ASC' : 'DESC',
+                      page: 1,
+                    }))
+                  }
+                  onInspect={(id) => handleOpenVulnerabilityDetail(id)}
+                  resolveAssetMediaUrl={resolveAssetMediaUrl}
+                />
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#888] font-mono">
                   <span>
                     {`total=${vulnMeta.total ?? 0} page=${vulnMeta.page ?? 1}/${vulnMeta.pageCount ?? 1}`}

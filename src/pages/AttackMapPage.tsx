@@ -26,7 +26,8 @@ import type { LogEventV2, ThreatMapV3Response } from '../../api/services';
 import { dataProvider } from '../services/dataProvider';
 import { useAppData } from '../contexts/AppDataContext';
 import { isPublicDemo } from '../utils/demoMode';
-import { DEFAULT_HQ, COUNTRY_COORDS } from '../../components/views/AttackMapView';
+import { DEFAULT_HQ } from '../../components/views/AttackMapView';
+import { COUNTRY_COORDS, resolveCountryPlotPosition } from '../utils/geoCountries';
 import type { ThreeGlobeArc, ThreeGlobeRing, ThreeGlobePoint, ThreeGlobeLabel } from '../../components/views/ThreeGlobeView';
 
 const ThreeGlobeView = React.lazy(() =>
@@ -37,7 +38,6 @@ const ThreeGlobeView = React.lazy(() =>
         );
     })
 );
-import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 
 interface AttackMapPageProps {
@@ -48,6 +48,7 @@ interface CountryPlot {
     country: string;
     countryCode: string;
     count: number;
+    coords: [number, number];
     layout: {
         left: number;
         top: number;
@@ -56,26 +57,6 @@ interface CountryPlot {
 }
 
 type Severity = NonNullable<LogEventV2['severity']>;
-
-const COUNTRY_LAYOUT: Record<
-    string,
-    { left: number; top: number }
-> = {
-    CN: { left: 70, top: 42 },
-    RU: { left: 61, top: 26 },
-    US: { left: 19, top: 43 },
-    DE: { left: 50, top: 39 },
-    NL: { left: 49, top: 36 },
-    BR: { left: 30, top: 68 },
-    IN: { left: 63, top: 54 },
-    VN: { left: 74, top: 55 },
-    KR: { left: 79, top: 44 },
-    IR: { left: 58, top: 51 },
-    KP: { left: 78, top: 41 },
-    UA: { left: 54, top: 36 },
-    FR: { left: 47, top: 43 },
-    JP: { left: 84, top: 43 },
-};
 
 const SEVERITY_WEIGHT: Record<Severity, number> = {
     critical: 4,
@@ -176,7 +157,9 @@ export default function AttackMapPage({
                 let nm = code;
                 try { nm = code ? (names?.of(code) || code) : undefined; } catch { /* keep code */ }
                 const score = e?.threat_score ?? e?.threat?.threat_score ?? hp?.threat_score ?? 0;
-                return { ...e, country: e?.country || nm, countryCode: e?.countryCode || code, severity: e?.severity || sev(score) };
+                const geoLat = e?.geo_lat ?? e?.latitude ?? hp?.geo_lat;
+                const geoLon = e?.geo_lon ?? e?.longitude ?? hp?.geo_lon;
+                return { ...e, country: e?.country || nm, countryCode: e?.countryCode || code, severity: e?.severity || sev(score), geoLat, geoLon };
             });
             set_MOCK_EVENTS(filled);
             setThreatMapData(tMap || null);
@@ -314,13 +297,13 @@ export default function AttackMapPage({
                                 return null;
                             }
 
-                            const layout =
-                                COUNTRY_LAYOUT[
-                                event
-                                    .countryCode
-                                ];
+                            const resolved = resolveCountryPlotPosition(
+                                event.countryCode,
+                                (event as any).geoLat,
+                                (event as any).geoLon,
+                            );
 
-                            if (!layout) {
+                            if (!resolved) {
                                 return null;
                             }
 
@@ -329,7 +312,8 @@ export default function AttackMapPage({
                                 countryCode:
                                     event.countryCode,
                                 count,
-                                layout,
+                                coords: resolved.coords,
+                                layout: resolved.layout,
                                 severity:
                                     event.severity,
                             };
@@ -402,7 +386,7 @@ export default function AttackMapPage({
         ];
 
         plottedCountries.forEach((c, idx) => {
-            const coords = COUNTRY_COORDS[c.countryCode?.toUpperCase()];
+            const coords = c.coords || COUNTRY_COORDS[c.countryCode?.toUpperCase()];
             if (coords) {
                 const color = severityColor(c.severity || 'low');
                 const sevUpper = (c.severity?.toUpperCase() || 'MEDIUM') as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
@@ -495,7 +479,7 @@ export default function AttackMapPage({
         ];
 
         return { arcs, points, rings, labels };
-    }, [plottedCountries]);
+    }, [plottedCountries, threatMapData]);
 
     const severityTotal = Math.max(
         eventCount,
@@ -536,41 +520,7 @@ export default function AttackMapPage({
 
     const hasData = MOCK_EVENTS.length > 0 || (threatMapData?.points && threatMapData.points.length > 0);
 
-    if (!isLoading && !hasData && !isPublicDemo()) {
-        return (
-            <div className="at-attack-map-page-v2">
-                <PageHeader
-                    breadcrumbs={[
-                        { label: 'Operations' },
-                        { label: 'Attack Map' },
-                    ]}
-                    title="Live Threat Map"
-                    description="Geospatial distribution of honeypot sensor alerts and active attack vectors."
-                    actions={
-                        <button
-                            type="button"
-                            className="at-btn at-btn-secondary at-btn-sm"
-                            onClick={() => void fetchEvents()}
-                            disabled={isLoading}
-                        >
-                            <RefreshCw size={13} className={isLoading ? 'at-spin' : ''} />
-                            Refresh
-                        </button>
-                    }
-                />
-                <div style={{ padding: '24px' }}>
-                    <EmptyState
-                        title="No Inbound Attacks Detected"
-                        description="Global attack paths and originating ASNs will plot dynamically once malicious connections hit your honeypot nodes."
-                        actionLabel="Connect Your First Honeypot"
-                        onAction={() => onNavigate('infrastructure')}
-                        secondaryLabel="Explore SOC Documentation"
-                        onSecondaryAction={() => onNavigate('help')}
-                    />
-                </div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="at-attack-map-page-v2">

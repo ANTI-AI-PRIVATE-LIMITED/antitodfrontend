@@ -25,6 +25,13 @@ import {
 } from 'lucide-react';
 
 import { dataProvider } from '../services/dataProvider';
+import {
+  extractTargetSectors,
+  inferActorMotivation,
+  inferActorOrigin,
+  sanitizeExternalUrl,
+} from '../services/actorEnrichment';
+import type { ActorCampaign } from '../../types';
 import { exportAsJson } from '../utils/exportHelpers';
 import { useAppData } from '../contexts/AppDataContext';
 import PageHeader from '../components/layout/PageHeader';
@@ -96,30 +103,70 @@ export interface ActorProfile {
   motivation: string;
   aliases: string[];
   targets: string[];
+  tools: string[];
   ttps: string[];
+  ttpDetails: { id: string; name: string; tactic: string; description?: string }[];
+  campaigns: ActorCampaign[];
+  mitreUrl?: string;
+  refs: string[];
   firstSeen: string;
   lastSeen: string;
 }
 
 export default function ActorsPage() {
   const [MOCK_ACTORS, set_MOCK_ACTORS] = React.useState<ActorProfile[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [expandedTtpId, setExpandedTtpId] = React.useState<string | null>(null);
   const [visibleCount, setVisibleCount] = React.useState(50);
     React.useEffect(() => {
+        let mounted = true;
+        setLoading(true);
         dataProvider.getActors().then((malpediaActors) => {
-            const mappedActors: ActorProfile[] = malpediaActors.map((ma: any) => ({
-                id: ma.uuid || `actor-${Math.random()}`,
-                name: ma.value || 'Unknown Actor',
-                description: ma.description || '',
-                country: ma.meta?.country || 'Unknown',
-                motivation: ma.sophistication === 'Critical' ? 'Financial / Espionage' : 'Unknown',
-                aliases: ma.meta?.synonyms || [],
-                targets: ma.malwareFamilies || [],
-                ttps: ma.mitreIds || [],
-                firstSeen: 'Unknown',
-                lastSeen: 'Unknown',
-            }));
+            if (!mounted) return;
+            const mappedActors: ActorProfile[] = malpediaActors.map((ma: any, index: number) => {
+                const name = ma.value || 'Unknown Actor';
+                const description = ma.description || '';
+                const aliases = Array.from(
+                  new Set([...(ma.meta?.synonyms || []), ...(ma.synonyms || [])].filter(Boolean)),
+                );
+                const tools = Array.from(
+                  new Set([...(ma.tools || []), ...(ma.malwareFamilies || [])].filter(Boolean)),
+                );
+                const targetSectors = (ma.targetSectors && ma.targetSectors.length > 0)
+                  ? ma.targetSectors
+                  : extractTargetSectors(description);
+                const refs: string[] = Array.isArray(ma.meta?.refs) ? ma.meta.refs : [];
+                const mitreUrl = sanitizeExternalUrl(ma.mitre_url || refs[0]) ?? undefined;
+                const ttpDetails = Array.isArray(ma.ttpDetails) ? ma.ttpDetails : [];
+                const ttps = (ma.mitreIds && ma.mitreIds.length > 0)
+                  ? ma.mitreIds
+                  : ttpDetails.map((t: { id: string }) => t.id);
+
+                return {
+                    id: ma.mitreAttackId || ma.mitre_id || ma.uuid || `actor-${index + 1}`,
+                    name,
+                    description,
+                    country: inferActorOrigin(name, description, aliases, ma.meta?.country),
+                    motivation: inferActorMotivation(name, description, aliases, ma.sophistication, ma.motivation),
+                    aliases,
+                    targets: targetSectors,
+                    tools,
+                    ttps,
+                    ttpDetails,
+                    campaigns: Array.isArray(ma.campaigns) ? ma.campaigns : [],
+                    mitreUrl,
+                    refs,
+                    firstSeen: ma.firstSeen || 'Unknown',
+                    lastSeen: ma.lastSeen || 'Unknown',
+                };
+            });
             set_MOCK_ACTORS(mappedActors);
+        }).catch(() => {
+            if (mounted) set_MOCK_ACTORS([]);
+        }).finally(() => {
+            if (mounted) setLoading(false);
         });
+        return () => { mounted = false; };
     }, []);
 
   /* ------------------------------------------------------------------------ */
@@ -210,6 +257,7 @@ export default function ActorsPage() {
         const matchesText =
           actor.name.toLowerCase().includes(query) ||
           actor.id.toLowerCase().includes(query) ||
+          actor.description.toLowerCase().includes(query) ||
           actor.country.toLowerCase().includes(query) ||
           actor.motivation.toLowerCase().includes(query) ||
           actor.aliases.some((alias) =>
@@ -217,6 +265,9 @@ export default function ActorsPage() {
           ) ||
           actor.targets.some((target) =>
             target.toLowerCase().includes(query),
+          ) ||
+          actor.tools.some((tool) =>
+            tool.toLowerCase().includes(query),
           ) ||
           actor.ttps.some((ttp) =>
             ttp.toLowerCase().includes(query),
@@ -324,6 +375,7 @@ export default function ActorsPage() {
   /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
+    setExpandedTtpId(null);
     if (!selectedActorId) {
       return;
     }
@@ -769,7 +821,22 @@ export default function ActorsPage() {
               </thead>
 
               <tbody>
-                {filtered.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="at-actors-empty"
+                    >
+                      <Activity size={21} className="animate-pulse" />
+
+                      <strong>Loading threat actor profiles...</strong>
+
+                      <span>
+                        Fetching and correlating MITRE ATT&amp;CK and Malpedia intelligence feeds.
+                      </span>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
@@ -1073,6 +1140,20 @@ export default function ActorsPage() {
             <div className="at-actors-inspector-scroll">
               {inspectorTab === 'Profile' && (
                 <div className="at-actors-inspector-content">
+                  {/* Narrative Overview */}
+
+                  <section className="at-actors-inspector-block">
+                    <div className="at-actors-block-title">
+                      <span>THREAT OVERVIEW</span>
+                      <FileText size={12} />
+                    </div>
+
+                    <p className="at-actors-data-note">
+                      {selectedActor.description ||
+                        'No narrative summary recorded in upstream MITRE or Malpedia datasets.'}
+                    </p>
+                  </section>
+
                   {/* Observation */}
 
                   <section className="at-actors-inspector-block">
@@ -1136,29 +1217,26 @@ export default function ActorsPage() {
 
                   <section className="at-actors-inspector-block">
                     <div className="at-actors-block-title">
-                      <span>KNOWN TOOLING</span>
+                      <span>KNOWN TOOLING &amp; MALWARE</span>
                       <Activity size={12} />
                     </div>
 
-                    <div className="at-actors-tool-list">
-                      {[
-                        'Cobalt Strike',
-                        'Mimikatz',
-                        'Custom Dropper',
-                        'Powershell Empire',
-                      ].map((tool) => (
-                        <span key={tool}>
-                          {tool}
+                    {(selectedActor.tools?.length || 0) >
+                      0 ? (
+                      <div className="at-actors-tool-list">
+                        {(selectedActor.tools || []).map((tool) => (
+                          <span key={tool}>
+                            {tool}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="at-actors-inline-empty">
+                        <span>
+                          No tooling or malware families recorded.
                         </span>
-                      ))}
-                    </div>
-
-                    <p className="at-actors-data-note">
-                      Tooling shown here reflects the
-                      current actor-profile presentation
-                      and is not inferred from additional
-                      external telemetry.
-                    </p>
+                      </div>
+                    )}
                   </section>
 
                   {/* Aliases */}
@@ -1199,28 +1277,50 @@ export default function ActorsPage() {
                     </span>
 
                     <p>
-                      Mapped techniques associated
-                      with this actor profile.
+                      Mapped techniques associated with this actor profile. Select a technique to inspect operational usage.
                     </p>
                   </div>
 
-                  {(selectedActor.ttps?.length || 0) >
-                    0 ? (
+                  {((selectedActor.ttpDetails?.length || 0) > 0 ||
+                    (selectedActor.ttps?.length || 0) > 0) ? (
                     <div className="at-actors-ttp-list">
-                      {(selectedActor.ttps || []).map(
-                        (ttp) => (
+                      {(selectedActor.ttpDetails?.length
+                        ? selectedActor.ttpDetails
+                        : selectedActor.ttps.map((id): ActorProfile['ttpDetails'][number] => ({
+                            id,
+                            name: id,
+                            tactic: 'Technique',
+                            description: undefined,
+                          }))
+                      ).map((ttp) => {
+                        const isExpanded = expandedTtpId === ttp.id;
+                        return (
                           <button
                             type="button"
-                            key={ttp}
+                            key={ttp.id}
                             className="at-actors-ttp"
+                            aria-expanded={isExpanded}
+                            onClick={() =>
+                              setExpandedTtpId(isExpanded ? null : ttp.id)
+                            }
                           >
-                            <span>{ttp}</span>
-                            <ChevronRight
-                              size={12}
-                            />
+                            <div className="at-actors-ttp-head">
+                              <span>
+                                <strong>{ttp.id}</strong>
+                                {ttp.name !== ttp.id ? ` — ${ttp.name}` : ''}
+                              </span>
+                              <span className="at-actors-ttp-tactic">
+                                {ttp.tactic}
+                              </span>
+                            </div>
+                            {isExpanded && ttp.description && (
+                              <p className="at-actors-data-note mt-2 text-left">
+                                {ttp.description}
+                              </p>
+                            )}
                           </button>
-                        ),
-                      )}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="at-actors-empty-state">
@@ -1240,19 +1340,79 @@ export default function ActorsPage() {
               )}
 
               {inspectorTab === 'Campaigns' && (
-                <div className="at-actors-empty-state">
-                  <Activity size={22} />
+                (selectedActor.campaigns?.length || 0) > 0 ||
+                (selectedActor.refs?.length || 0) > 0 ? (
+                  <div className="at-actors-inspector-content space-y-3">
+                    {(selectedActor.campaigns?.length || 0) > 0 && (
+                      <section className="at-actors-inspector-block">
+                        <div className="at-actors-block-title">
+                          <span>ATTRIBUTED CAMPAIGNS</span>
+                          <Activity size={12} />
+                        </div>
+                        <div className="space-y-2">
+                          {selectedActor.campaigns.map((campaign) => (
+                            <div
+                              key={campaign.id || campaign.name}
+                              className="at-actors-campaign-card"
+                            >
+                              <div className="font-semibold text-white">
+                                {campaign.name}
+                              </div>
+                              {(campaign.firstSeen || campaign.lastSeen) && (
+                                <div className="text-[10px] text-neutral-400 mt-0.5">
+                                  {formatDate(campaign.firstSeen)} → {formatDate(campaign.lastSeen)}
+                                </div>
+                              )}
+                              {campaign.description && (
+                                <p className="at-actors-data-note mt-1">
+                                  {campaign.description}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
 
-                  <strong>
-                    No campaign data
-                  </strong>
+                    {(selectedActor.refs?.length || 0) > 0 && (
+                      <section className="at-actors-inspector-block">
+                        <div className="at-actors-block-title">
+                          <span>INTELLIGENCE REFERENCES</span>
+                          <ArrowUpRight size={12} />
+                        </div>
+                        <div className="space-y-1.5">
+                          {selectedActor.refs
+                            .map((r) => sanitizeExternalUrl(r))
+                            .filter((r): r is string => Boolean(r))
+                            .slice(0, 6)
+                            .map((refUrl) => (
+                              <a
+                                key={refUrl}
+                                href={refUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block truncate text-[11px] font-mono text-accent hover:underline"
+                              >
+                                {refUrl}
+                              </a>
+                            ))}
+                        </div>
+                      </section>
+                    )}
+                  </div>
+                ) : (
+                  <div className="at-actors-empty-state">
+                    <Activity size={22} />
 
-                  <span>
-                    Campaign records are not
-                    included in the current actor
-                    dataset.
-                  </span>
-                </div>
+                    <strong>
+                      No campaign data
+                    </strong>
+
+                    <span>
+                      No attributed campaigns or external advisories are recorded for this group.
+                    </span>
+                  </div>
+                )
               )}
             </div>
 
@@ -1262,13 +1422,16 @@ export default function ActorsPage() {
               <button
                 type="button"
                 className="at-btn at-btn-secondary"
+                disabled={!selectedActor.mitreUrl}
+                title={
+                  selectedActor.mitreUrl
+                    ? `Open external intelligence dossier: ${selectedActor.mitreUrl}`
+                    : 'No external dossier URL available'
+                }
                 onClick={() => {
-                  /*
-                   * Full dossier routing can be connected once a dedicated
-                   * actor-dossier route exists. Keeping this control
-                   * intentionally non-destructive avoids inventing a route
-                   * that is not present in the current application.
-                   */
+                  if (selectedActor.mitreUrl) {
+                    window.open(selectedActor.mitreUrl, '_blank', 'noopener,noreferrer');
+                  }
                 }}
               >
                 <FileText size={12} />
@@ -1278,18 +1441,16 @@ export default function ActorsPage() {
               <button
                 type="button"
                 className="at-btn at-btn-primary"
-                onClick={() => {
-                  /*
-                   * Enrichment is intentionally not fabricated here.
-                   * The current page does not receive an actor enrichment
-                   * callback from AppDataContext. The control remains
-                   * available for the dedicated enrichment workflow once
-                   * that API contract is wired.
-                   */
-                }}
+                onClick={() =>
+                  exportAsJson(
+                    `antitode-actor-${selectedActor.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                    'Threat Actor Dossier',
+                    selectedActor,
+                  )
+                }
               >
                 <ArrowUpRight size={12} />
-                Enrich
+                Export Dossier
               </button>
             </div>
           </aside>

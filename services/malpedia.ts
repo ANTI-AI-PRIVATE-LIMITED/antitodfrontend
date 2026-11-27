@@ -1,6 +1,7 @@
 
 import { MalpediaEntry, MalpediaActor } from '../types';
 import { toProxyUrl } from './proxy';
+import { extractTargetSectors, inferActorMotivation, inferActorOrigin } from '../src/services/actorEnrichment';
 
 // Helper to calculate score based on description analysis
 const calculateThreatScore = (description: string, refs: string[], synonyms: string[]) => {
@@ -173,6 +174,10 @@ export const processMalpediaMispJson = (json: any): MalpediaActor[] => {
             const foundMitre = (description.match(mitreRegex) || []) as string[];
             const uniqueMitre = Array.from(new Set(foundMitre)).sort();
 
+            const origin = inferActorOrigin(data.value, description, synonyms, data.meta?.country);
+            const motivation = inferActorMotivation(data.value, description, synonyms, sophistication);
+            const targetSectors = extractTargetSectors(description);
+
             actors.push({
                 value: data.value,
                 description: description,
@@ -184,9 +189,12 @@ export const processMalpediaMispJson = (json: any): MalpediaActor[] => {
                     capabilityScore: scores.capabilityScore,
                     impactScore: scores.impactScore
                 },
-                meta: { country: 'Unknown', refs: refs, synonyms: synonyms },
+                meta: { country: origin, refs: refs, synonyms: synonyms },
+                synonyms: synonyms,
                 mitreIds: uniqueMitre,
                 malwareFamilies: [],
+                targetSectors,
+                motivation,
                 source: 'Malpedia'
             });
         }

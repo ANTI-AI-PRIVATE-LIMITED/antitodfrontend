@@ -3,6 +3,9 @@ import { WebCheckResult, CrtShEntry, DnsBlockResult } from '../types';
 import { queryDoH, enrichIP, checkRBL, checkDnsBlocking } from './dns';
 import { performCrtLookup, checkWaybackAvailability } from './netTools';
 import { fetchOtxIndicator } from './otx';
+import { inspectWebTargetViaProxy } from './proxy';
+import { isPublicDemo } from '../src/utils/demoMode';
+import { evaluateSecurityHeaders } from '../src/utils/httpSecurityHeaders';
 
 // Task 101: Removed public relays (ThingProxy, AllOrigins, CORSProxy, VercelProxy).
 // Feeds run through backend allowlisted proxy or direct APIs.
@@ -61,10 +64,9 @@ export const performWebCheck = async (input: string, onUpdate?: (result: WebChec
         if (onUpdate) onUpdate({ ...result });
     };
 
-    // 2. Parallel Tasks: DNS, HTTP, Robots, DNS Blocking
+    // 2. Parallel Tasks: DNS, HTTP + HTML + robots/sitemap, DNS Blocking
     const pDns = fetchDnsRecords(domain, result).then(notify);
     const pHttp = fetchHttpInfo(url, result).then(notify);
-    const pRobots = fetchRobotsAndSitemap(domain, result).then(notify);
     const pDnsSec = checkDnsFirewall(domain, result).then(notify);
 
     // 3. Post-Processing for IP info
@@ -99,7 +101,7 @@ export const performWebCheck = async (input: string, onUpdate?: (result: WebChec
         notify();
     });
 
-    await Promise.allSettled([pDns, pHttp, pRobots, pDnsSec, pIpChain, pCt, pArchive, pOtx]);
+    await Promise.allSettled([pDns, pHttp, pDnsSec, pIpChain, pCt, pArchive, pOtx]);
 
     return result;
 };
@@ -126,55 +128,82 @@ const fetchDnsRecords = async (domain: string, result: WebCheckResult) => {
     await Promise.all(promises);
 };
 
-const fetchHttpInfo = async (_targetUrl: string, result: WebCheckResult) => {
-    // Task 101: Tools that fetch a URL the user types cannot work through an allowlist.
-    // Labeled 'coming soon' in v1.1. Do not fall back to a direct browser fetch.
-    result.http.status = 200;
-    result.http.statusText = 'Inspection Coming Soon (v1.1)';
+const fetchHttpInfo = async (targetUrl: string, result: WebCheckResult) => {
+    if (isPublicDemo()) {
+        result.http.status = 0;
+        result.http.statusText = 'Authenticated session required for live HTTP header & HTML inspection';
+        result.http.securityHeaders = [];
+        return;
+    }
+
+    const inspection = await inspectWebTargetViaProxy(targetUrl);
+    if (!inspection.ok) {
+        result.http.status = inspection.status;
+        result.http.statusText = inspection.message;
+        result.http.securityHeaders = [];
+        return;
+    }
+
+    const { data } = inspection;
+    result.http.status = data.status;
+    result.http.statusText = data.statusText || (data.status >= 200 && data.status < 400 ? 'OK' : `HTTP ${data.status}`);
+    result.http.headers = data.headers || {};
+    result.http.redirects = Array.isArray(data.redirects) ? data.redirects : [];
+    result.page.hasRobotsTxt = Boolean(data.hasRobotsTxt);
+    result.page.hasSitemap = Boolean(data.hasSitemap);
+
+    if (data.htmlSample) {
+        analyzeHtml(data.htmlSample, result, data.finalUrl || targetUrl);
+    } else {
+        // Still detect server / X-Powered-By tech signals from headers even on non-HTML responses
+        analyzeHtml('', result, data.finalUrl || targetUrl);
+    }
+
     analyzeSecurityHeaders(result);
+
+    if (typeof data.bodyBytes === 'number' && data.bodyBytes > 0) {
+        calculateCarbon(data.bodyBytes, result);
+    }
 };
 
-const analyzeSecurityHeaders = (result: WebCheckResult) => {
-    const h = result.http.headers;
-    const metaTags = result.page.metaTags; 
-
-    const checks = [
-        { name: 'Strict-Transport-Security', key: 'strict-transport-security' },
-        { name: 'Content-Security-Policy', key: 'content-security-policy', meta: 'Content-Security-Policy' },
-        { name: 'X-Frame-Options', key: 'x-frame-options' },
-        { name: 'X-Content-Type-Options', key: 'x-content-type-options' },
-        { name: 'Referrer-Policy', key: 'referrer-policy', meta: 'referrer' },
-        { name: 'Permissions-Policy', key: 'permissions-policy' }
-    ];
-
-    result.http.securityHeaders = checks.map(c => {
-        let val = h[c.key];
-        if (!val && c.meta) {
-            const metaKey = Object.keys(metaTags).find(k => k.toLowerCase() === c.meta?.toLowerCase());
-            if (metaKey) val = metaTags[metaKey];
-        }
-
-        return {
-            name: c.name,
-            value: val || 'Missing',
-            valid: !!val && val !== 'Missing'
-        };
-    });
+export const analyzeSecurityHeaders = (result: WebCheckResult) => {
+    result.http.securityHeaders = evaluateSecurityHeaders(result.http.headers, result.page.metaTags);
 };
 
-const analyzeHtml = (html: string, result: WebCheckResult) => {
+export const analyzeHtml = (html: string, result: WebCheckResult, baseUrl?: string) => {
     const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
+    const doc = parser.parseFromString(html || '', 'text/html');
     const metas = doc.querySelectorAll('meta');
-    
+
     metas.forEach(meta => {
         const name = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('http-equiv');
         const content = meta.getAttribute('content');
         if (name && content) {
-            result.page.metaTags[name] = content;
+            result.page.metaTags[name] = content.slice(0, 500);
         }
     });
-    result.page.title = doc.title;
+    if (doc.title) {
+        result.page.title = doc.title.trim();
+    }
+
+    // Safely resolve declared favicon from inspected HTML when same/public HTTP(S) origin
+    if (baseUrl && !result.visuals?.favicon) {
+        const iconEl = doc.querySelector('link[rel*="icon"]');
+        const href = iconEl?.getAttribute('href')?.trim();
+        if (href) {
+            try {
+                const resolved = new URL(href, baseUrl);
+                if (resolved.protocol === 'http:' || resolved.protocol === 'https:') {
+                    result.visuals = {
+                        screenshot: result.visuals?.screenshot || '',
+                        favicon: resolved.toString(),
+                    };
+                }
+            } catch {
+                // Ignore malformed icon URL
+            }
+        }
+    }
 
     const techSignatures = [
         { name: 'WordPress', regex: /wp-content|wp-includes/i },
@@ -227,11 +256,6 @@ const calculateCarbon = (bytes: number, result: WebCheckResult) => {
     if (g > 1.5) rating = 'E';
     if (g > 3.0) rating = 'F';
     result.carbon = { g: parseFloat(g.toFixed(3)), rating };
-};
-
-const fetchRobotsAndSitemap = async (_domain: string, _result: WebCheckResult) => {
-    // Task 101: Arbitrary target URL fetch disabled for v1 allowlist compliance (coming soon in v1.1)
-    return;
 };
 
 const checkDnsFirewall = async (domain: string, result: WebCheckResult) => {

@@ -9,6 +9,7 @@ import {
 } from '../../api/services/billingService';
 import { AccessControlView } from './AccessControlView';
 import type { AppSettings, AppTheme } from '../../types';
+import { formatInr, planPriceInr } from '../../src/data/planTiering';
 
 type Tab = 'account' | 'team' | 'plan' | 'appearance';
 
@@ -53,6 +54,32 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
       on = false;
     };
   }, [tab, usage]);
+
+  const [pwCurrent, setPwCurrent] = useState('');
+  const [pwNew, setPwNew] = useState('');
+  const [pwConfirm, setPwConfirm] = useState('');
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pwSaving, setPwSaving] = useState(false);
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwNew !== pwConfirm) {
+      setPwMsg({ ok: false, text: 'New passwords do not match.' });
+      return;
+    }
+    setPwSaving(true);
+    setPwMsg(null);
+    try {
+      const r = await authService.changePassword(pwCurrent, pwNew);
+      setPwMsg({ ok: true, text: r.message || 'Password changed.' });
+      setPwCurrent('');
+      setPwNew('');
+      setPwConfirm('');
+    } catch (err: any) {
+      setPwMsg({ ok: false, text: err?.response?.data?.message || 'Could not change the password.' });
+    } finally {
+      setPwSaving(false);
+    }
+  };
 
   const sendReset = async () => {
     if (!admin?.AdminEmail) return;
@@ -132,8 +159,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
               <Shield size={13} /> Security
             </div>
             <p className="text-sm text-neutral-400 mb-3">
-              Sign-in uses your password plus an emailed one-time code. To change your password, we email you a reset link.
+              Sign-in uses your password plus an emailed one-time code.
             </p>
+            <form onSubmit={changePassword} className="grid gap-2 mb-4 max-w-sm">
+              <input type="password" autoComplete="current-password" required placeholder="Current password"
+                aria-label="Current password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)}
+                className="at-input" />
+              <input type="password" autoComplete="new-password" required placeholder="New password"
+                aria-label="New password" value={pwNew} onChange={(e) => setPwNew(e.target.value)}
+                className="at-input" />
+              <input type="password" autoComplete="new-password" required placeholder="Confirm new password"
+                aria-label="Confirm new password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)}
+                className="at-input" />
+              <button type="submit" disabled={pwSaving} className="at-btn at-btn-primary at-btn-sm justify-self-start">
+                {pwSaving ? <Loader2 size={13} className="animate-spin" /> : null} Change password
+              </button>
+              {pwMsg && <p className={`text-xs ${pwMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{pwMsg.text}</p>}
+            </form>
+            <p className="text-sm text-neutral-400 mb-3">Forgot your current password? We can email you a reset link.</p>
             <button
               type="button"
               disabled={resetState === 'sending' || resetState === 'sent'}
@@ -183,21 +226,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdateSe
                 return (
                   <div
                     key={p.id}
-                    className={`rounded-lg border p-4 ${current ? 'border-red-500' : 'border-neutral-800'} bg-neutral-900`}
+                    className={`rounded-lg border p-4 ${current ? 'border-accent' : 'border-neutral-800'} bg-neutral-900`}
                   >
                     <div className="flex justify-between items-center">
                       <strong>{p.label}</strong>
-                      {current && <Check size={14} className="text-red-400" />}
+                      {current && <Check size={14} className="text-accent" />}
                     </div>
                     <div className="text-2xl font-bold my-2">
-                      ${p.priceUsdPerMonth}
-                      <span className="text-xs text-neutral-500">/mo</span>
+                      {planPriceInr(p) === null ? (
+                        'Contact Sales'
+                      ) : (
+                        <>
+                          {formatInr(planPriceInr(p)!)}
+                          <span className="text-xs text-neutral-500">/mo</span>
+                        </>
+                      )}
                     </div>
                     <ul className="text-xs text-neutral-400 space-y-1">
-                      <li>{p.maxServers >= 9999 ? 'Unlimited' : p.maxServers} honeypots</li>
-                      <li>{p.maxUsers >= 9999 ? 'Unlimited' : p.maxUsers} users</li>
-                      <li>{p.retentionDays}-day retention</li>
-                      <li>Exports: {p.exportFormats.join(', ')}</li>
+                      {p.contactSales ? (
+                        <li>Custom limits, STIX / PDF / TAXII, SOC connectors</li>
+                      ) : (
+                        <>
+                          <li>{(p.maxServers ?? 0) >= 9999 ? 'Unlimited' : p.maxServers} honeypots</li>
+                          <li>{(p.maxUsers ?? 0) >= 9999 ? 'Unlimited' : p.maxUsers} users</li>
+                          <li>{p.retentionDays}-day retention</li>
+                          <li>Exports: {(p.exportFormats ?? []).join(', ')}</li>
+                        </>
+                      )}
                     </ul>
                   </div>
                 );

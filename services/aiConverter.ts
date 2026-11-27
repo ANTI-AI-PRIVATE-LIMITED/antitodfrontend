@@ -1,4 +1,10 @@
-import { generateGeminiContent, createThreatChat, ThreatChatSession } from "./geminiService";
+import {
+  generateGeminiContent,
+  generateGeminiGroundedContent,
+  createThreatChat,
+  GeminiProxyError,
+  ThreatChatSession,
+} from "./geminiService";
 import { RuleType, Playbook, CaseFile, OtxSandboxReport, ThreatRecord } from "../types";
 
 export { createThreatChat, type ThreatChatSession };
@@ -78,9 +84,8 @@ export const analyzeArchitecture = async (graphJson: string, framework: 'STRIDE'
 };
 
 export const searchThreatIntelligence = async (query: string) => {
-    try {
-        const text = await generateGeminiContent({
-            contents: `Research the following cybersecurity topic and provide a detailed technical briefing. 
+    const res = await generateGeminiGroundedContent({
+        contents: `Research the following cybersecurity topic and provide a detailed technical briefing. 
             Include malware signatures, IOCs, and MITRE ATT&CK techniques where relevant.
             
             FORMATTING RULES:
@@ -90,16 +95,21 @@ export const searchThreatIntelligence = async (query: string) => {
             4. Ensure clear hierarchical numbering for lists.
             
             Query: ${query}`,
-            generationConfig: {
-                temperature: 0.2
-            },
-        });
+        generationConfig: {
+            temperature: 0.2
+        },
+        tools: [{ google_search: {} }],
+    });
 
-        return { text: text || "No intelligence returned.", sources: [] };
-    } catch (error: any) {
-        console.warn("[AI] Grounding Search via proxy failed", error);
-        return { text: `Threat intelligence query for "${query}" completed locally. Connect to backend to enable cloud reasoning.`, sources: [] };
+    if (!res.text || !res.text.trim()) {
+        throw new GeminiProxyError(
+            'PROVIDER_ERROR',
+            'Cloud AI proxy returned an empty intelligence briefing.',
+            502,
+        );
     }
+
+    return { text: res.text, sources: res.sources };
 };
 
 export const convertRule = async (content: string, fromType: RuleType, toFormat: string): Promise<string> => {

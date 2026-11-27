@@ -28,7 +28,6 @@ export class MmdbService {
                     const dbReader = new Reader(buffer);
                     
                     const type = dbReader.metadata.databaseType || 'Unknown';
-                    console.log(`Loaded MMDB: ${type}`);
 
                     if (type.includes('City') || type.includes('Country')) {
                         this.cityReader = dbReader;

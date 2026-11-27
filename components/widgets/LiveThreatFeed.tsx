@@ -127,7 +127,7 @@ export const LiveThreatFeed: React.FC<LiveThreatFeedProps> = ({
     const getIcon = (type: string) => {
         switch(type) {
             case 'RANSOMWARE': return <Skull size={16} className="text-red-500" />;
-            case 'IOC': return <Wifi size={16} className="text-red-500" />;
+            case 'IOC': return <Wifi size={16} className="text-accent" />;
             case 'CVE': return <ShieldAlert size={16} className="text-white" />;
             default: return <Activity size={16} className="text-neutral-500" />;
         }
@@ -207,7 +207,7 @@ export const LiveThreatFeed: React.FC<LiveThreatFeedProps> = ({
                                         href={item.link} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-neutral-800 text-neutral-300 rounded hover:bg-red-500 hover:text-black"
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-neutral-800 text-neutral-300 rounded hover:bg-accent hover:text-black"
                                     >
                                         <ExternalLink size={12}/>
                                     </a>

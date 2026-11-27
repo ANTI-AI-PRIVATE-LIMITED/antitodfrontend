@@ -241,17 +241,16 @@ export default function Sidebar({ activeView, collapsed, onToggle, onNavigate, o
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      const modifier = event.metaKey || event.ctrlKey;
-      if (modifier && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        onOpenSearch();
-        return;
-      }
-      if (modifier && event.key.toLowerCase() === 'b') {
-        event.preventDefault();
-        onToggle();
-      }
-      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isEditable =
+        activeEl?.tagName === 'INPUT' ||
+        activeEl?.tagName === 'TEXTAREA' ||
+        activeEl?.tagName === 'SELECT' ||
+        Boolean(activeEl?.isContentEditable);
+      const hasOpenOverlay = Boolean(document.querySelector('[role="dialog"], .at-command-overlay'));
+
+      if (event.key === '/' && !isEditable && !hasOpenOverlay) {
         event.preventDefault();
         if (visuallyExpanded) searchRef.current?.focus();
         else onOpenSearch();
@@ -259,7 +258,7 @@ export default function Sidebar({ activeView, collapsed, onToggle, onNavigate, o
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onOpenSearch, onToggle, visuallyExpanded]);
+  }, [onOpenSearch, visuallyExpanded]);
 
   const toggleGroup = (title: string) => {
     setCollapsedGroups((current) => current.includes(title)

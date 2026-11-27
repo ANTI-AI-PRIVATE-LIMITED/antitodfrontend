@@ -32,7 +32,6 @@ import { dataProvider } from '../services/dataProvider';
 import { useAppData } from '../contexts/AppDataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { isPublicDemo } from '../utils/demoMode';
-import EmptyState from '../components/common/EmptyState';
 import PageHeader from '../components/layout/PageHeader';
 
 /* -------------------------------------------------------------------------- */
@@ -906,6 +905,13 @@ export default function IocPage() {
     setSearch(value);
   };
 
+  const hasActiveFilters = Boolean(
+    search.trim() ||
+    typeFilter !== 'ALL' ||
+    severityFilter !== 'ALL' ||
+    sourceFilter
+  );
+
 
   /* ------------------------------------------------------------------------ */
   /*                                Export                                   */
@@ -1044,41 +1050,7 @@ export default function IocPage() {
   /*                                  Render                                  */
   /* ------------------------------------------------------------------------ */
 
-  if (!isLoading && liveIocs.length === 0 && !isPublicDemo()) {
-    return (
-      <div className="flex flex-col h-full overflow-hidden bg-[#0a0a0a]">
-        <PageHeader
-          breadcrumbs={[
-            { label: 'Intelligence' },
-            { label: 'IOC' },
-          ]}
-          title="Indicators of Compromise"
-          description="Manage and analyze IPs, domains, hashes, and URLs."
-          actions={
-            <button
-              type="button"
-              className="at-btn at-btn-secondary at-btn-sm"
-              onClick={() => void fetchIocData(currentPage, true)}
-              disabled={isRefreshing}
-            >
-              <RefreshCw size={13} className={isRefreshing ? 'at-spin' : ''} />
-              {isRefreshing ? 'Refreshing' : 'Refresh'}
-            </button>
-          }
-        />
-        <div style={{ padding: '24px' }}>
-          <EmptyState
-            title="No Threat Indicators Found"
-            description="Indicators of Compromise (IPs, hashes, domains, and URLs) extracted from attacker traffic will populate here automatically."
-            actionLabel="Connect Your First Honeypot"
-            onAction={() => onNavigate('infrastructure')}
-            secondaryLabel="Explore SOC Documentation"
-            onSecondaryAction={() => onNavigate('help')}
-          />
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[#0a0a0a]">
@@ -1216,7 +1188,7 @@ export default function IocPage() {
 
             <input
               type="text"
-              className="w-full bg-[#111] border border-[#333] rounded-md py-1.5 pl-8 pr-8 text-xs text-white placeholder-[#555] focus:outline-none focus:border-red-500 transition-colors"
+              className="w-full bg-[#111] border border-[#333] rounded-md py-1.5 pl-8 pr-8 text-xs text-white placeholder-[#555] focus:outline-none focus:border-accent transition-colors"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={
@@ -1243,7 +1215,7 @@ export default function IocPage() {
           <button
             type="button"
             className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs transition-colors ${
-              advancedMode ? 'bg-red-950/20 border-red-500 text-red-500' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
+              advancedMode ? 'bg-accent/15 border-accent text-accent' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
             }`}
             onClick={() => setAdvancedMode((value) => !value)}
             aria-pressed={advancedMode}
@@ -1255,7 +1227,7 @@ export default function IocPage() {
           <button
             type="button"
             className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs transition-colors ${
-              showFilters ? 'bg-red-950/20 border-red-500 text-red-500' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
+              showFilters ? 'bg-accent/15 border-accent text-accent' : 'bg-[#111] border-[#333] text-[#888] hover:text-white hover:border-[#444]'
             }`}
             onClick={() => setShowFilters((value) => !value)}
             aria-expanded={showFilters}
@@ -1276,7 +1248,7 @@ export default function IocPage() {
               <select
                 value={typeFilter}
                 onChange={(event) => setTypeFilter(event.target.value as 'ALL' | IocType)}
-                className="bg-black border border-[#333] text-white text-[10px] rounded px-1.5 py-1 focus:border-red-500 outline-none cursor-pointer"
+                className="bg-black border border-[#333] text-white text-[10px] rounded px-1.5 py-1 focus:border-accent outline-none cursor-pointer"
               >
                 <option value="ALL">All types</option>
                 <option value="ip">IP</option>
@@ -1291,7 +1263,7 @@ export default function IocPage() {
               <select
                 value={severityFilter}
                 onChange={(event) => setSeverityFilter(event.target.value as 'ALL' | 'critical' | 'high' | 'medium' | 'low')}
-                className="bg-black border border-[#333] text-white text-[10px] rounded px-1.5 py-1 focus:border-red-500 outline-none cursor-pointer"
+                className="bg-black border border-[#333] text-white text-[10px] rounded px-1.5 py-1 focus:border-accent outline-none cursor-pointer"
               >
                 <option value="ALL">All severities</option>
                 <option value="critical">Critical</option>
@@ -1396,18 +1368,24 @@ export default function IocPage() {
                           <ShieldAlert size={20} />
                         </div>
                         <strong className="text-white text-sm block mb-1">
-                          No indicators found
+                          {hasActiveFilters
+                            ? 'No indicators found'
+                            : 'Sensor active — Awaiting inbound threat indicators'}
                         </strong>
-                        <span className="text-[#888] text-xs max-w-[300px] block mb-5">
-                          No IOC values match the current query and filters. Try adjusting your search criteria.
+                        <span className="text-[#888] text-xs max-w-[320px] block mb-5">
+                          {hasActiveFilters
+                            ? 'No IOC values match the current query and filters. Try adjusting your search criteria.'
+                            : 'Indicators of Compromise (IPs, hashes, domains, and URLs) extracted from attacker sessions will stream here automatically.'}
                         </span>
-                        <button
-                          type="button"
-                          className="px-4 py-2 bg-[#111] border border-[#333] text-white rounded hover:bg-[#222] transition-colors text-xs"
-                          onClick={clearAllFilters}
-                        >
-                          Clear filters
-                        </button>
+                        {hasActiveFilters && (
+                          <button
+                            type="button"
+                            className="px-4 py-2 bg-[#111] border border-[#333] text-white rounded hover:bg-[#222] transition-colors text-xs"
+                            onClick={clearAllFilters}
+                          >
+                            Clear filters
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1956,7 +1934,7 @@ export default function IocPage() {
                             className="at-ioc-action"
                             onClick={() =>
                               onNavigate(
-                                'investigate',
+                                'nettools',
                               )
                             }
                           >
@@ -1968,13 +1946,13 @@ export default function IocPage() {
 
                             <span>
                               <strong>
-                                Pivot to investigation
+                                Pivot to Network Tools
                               </strong>
 
                               <small>
-                                Continue investigation
-                                in the relationship
-                                workspace.
+                                Run DNS, WHOIS, ping,
+                                or port diagnostics on
+                                this indicator.
                               </small>
                             </span>
 
@@ -2047,14 +2025,14 @@ export default function IocPage() {
                   className="at-btn at-btn-primary"
                   onClick={() =>
                     onNavigate(
-                      'investigate',
+                      'honeypot_logs',
                     )
                   }
                 >
                   <ArrowUpRight
                     size={12}
                   />
-                  Investigate
+                  View Honeypot Logs
                 </button>
               </div>
             </>

@@ -150,14 +150,14 @@ export const ApiEventToast: React.FC<ApiEventToastProps> = ({ onNavigate }) => {
             ? 'rgba(239, 68, 68, 0.45)'
             : toast.severity === 'warning'
             ? 'rgba(245, 158, 11, 0.45)'
-            : 'rgba(59, 130, 246, 0.45)';
+            : 'rgba(161, 161, 170, 0.35)';
 
         const bgGlow =
           toast.severity === 'error'
             ? 'rgba(239, 68, 68, 0.08)'
             : toast.severity === 'warning'
             ? 'rgba(245, 158, 11, 0.08)'
-            : 'rgba(59, 130, 246, 0.08)';
+            : 'rgba(161, 161, 170, 0.08)';
 
         return (
           <div
@@ -179,13 +179,13 @@ export const ApiEventToast: React.FC<ApiEventToastProps> = ({ onNavigate }) => {
                       ? 'rgba(239, 68, 68, 0.15)'
                       : toast.severity === 'warning'
                       ? 'rgba(245, 158, 11, 0.15)'
-                      : 'rgba(59, 130, 246, 0.15)',
+                      : 'rgba(255, 255, 255, 0.08)',
                   color:
                     toast.severity === 'error'
                       ? '#ef4444'
                       : toast.severity === 'warning'
                       ? '#f59e0b'
-                      : '#3b82f6',
+                      : '#e4e4e7',
                 }}
               >
                 {toast.type === 'permission' ? (

@@ -1,10 +1,11 @@
-import { DEMO_INVESTIGATIONS } from './investigations';
 import { DEMO_HOSTS } from './hosts';
 import { DEMO_EVENTS } from './attackMap';
 
 export const DEMO_DASHBOARD = {
   metrics: {
-    activeIncidents: DEMO_INVESTIGATIONS.length,
+    activeIncidents: DEMO_HOSTS.filter(
+      (host) => host.riskLevel === 'HIGH' || host.riskLevel === 'CRITICAL',
+    ).length,
     criticalAlerts: DEMO_EVENTS.filter(e => e.severity === 'critical').length,
     monitoredAssets: DEMO_HOSTS.length,
     threatLevel: 'Elevated'

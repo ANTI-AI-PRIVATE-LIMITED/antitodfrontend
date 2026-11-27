@@ -1,6 +1,7 @@
 
-import { MalpediaActor, GraphData, NodeType, GraphNode, GraphLink } from '../types';
+import { MalpediaActor, GraphData, NodeType, GraphNode, GraphLink, ActorCampaign } from '../types';
 import { toProxyUrl } from './proxy';
+import { extractTargetSectors, inferActorMotivation, inferActorOrigin } from '../src/services/actorEnrichment';
 
 export interface MitreTechnique {
     id: string; // T1234
@@ -107,6 +108,12 @@ interface StixObject {
     name?: string;
     description?: string;
     aliases?: string[];
+    created?: string;
+    modified?: string;
+    first_seen?: string;
+    last_seen?: string;
+    revoked?: boolean;
+    x_mitre_deprecated?: boolean;
     external_references?: {
         source_name: string;
         external_id?: string;
@@ -137,17 +144,17 @@ export const processMitreBundle = (bundle: any): MalpediaActor[] => {
     if (!cachedRawBundle) cachedRawBundle = bundle;
 
     const objects = bundle.objects as StixObject[];
-    
-    const groups = objects.filter(o => o.type === 'intrusion-set');
-    
-    const techniqueMap = new Map<string, string>(); 
-    const techniqueInfo = new Map<string, { name: string, tactic: string, description: string }>(); 
 
-    objects.filter(o => o.type === 'attack-pattern').forEach(ap => {
+    const groups = objects.filter(o => o.type === 'intrusion-set' && !o.revoked && !o.x_mitre_deprecated);
+
+    const techniqueMap = new Map<string, string>();
+    const techniqueInfo = new Map<string, { name: string, tactic: string, description: string }>();
+
+    objects.filter(o => o.type === 'attack-pattern' && !o.revoked && !o.x_mitre_deprecated).forEach(ap => {
         const mitreRef = ap.external_references?.find(r => r.source_name === 'mitre-attack');
         if (mitreRef?.external_id) {
             techniqueMap.set(ap.id, mitreRef.external_id);
-            
+
             let tactic = 'General';
             if (ap.kill_chain_phases && ap.kill_chain_phases.length > 0) {
                 const phase = ap.kill_chain_phases.find(p => p.kill_chain_name === 'mitre-attack') || ap.kill_chain_phases[0];
@@ -162,16 +169,52 @@ export const processMitreBundle = (bundle: any): MalpediaActor[] => {
         }
     });
 
-    const groupTTPs = new Map<string, Set<string>>(); 
-    
-    objects.filter(o => o.type === 'relationship' && o.relationship_type === 'uses').forEach(rel => {
-        if (rel.source_ref && rel.target_ref) {
+    const softwareMap = new Map<string, string>();
+    objects.filter(o => (o.type === 'malware' || o.type === 'tool') && !o.revoked && !o.x_mitre_deprecated).forEach(sw => {
+        if (sw.id && sw.name) {
+            softwareMap.set(sw.id, sw.name);
+        }
+    });
+
+    const campaignMap = new Map<string, ActorCampaign>();
+    objects.filter(o => o.type === 'campaign' && !o.revoked && !o.x_mitre_deprecated).forEach(c => {
+        if (c.id && c.name) {
+            campaignMap.set(c.id, {
+                id: c.id,
+                name: c.name,
+                firstSeen: c.first_seen || c.created,
+                lastSeen: c.last_seen || c.modified,
+                description: c.description || '',
+            });
+        }
+    });
+
+    const groupTTPs = new Map<string, Set<string>>();
+    const groupSoftware = new Map<string, Set<string>>();
+    const groupCampaigns = new Map<string, ActorCampaign[]>();
+
+    objects.filter(o => o.type === 'relationship').forEach(rel => {
+        if (!rel.source_ref || !rel.target_ref) return;
+
+        if (rel.relationship_type === 'uses') {
             const techId = techniqueMap.get(rel.target_ref);
             if (techId) {
-                if (!groupTTPs.has(rel.source_ref)) {
-                    groupTTPs.set(rel.source_ref, new Set());
-                }
+                if (!groupTTPs.has(rel.source_ref)) groupTTPs.set(rel.source_ref, new Set());
                 groupTTPs.get(rel.source_ref)?.add(techId);
+            }
+            const swName = softwareMap.get(rel.target_ref);
+            if (swName) {
+                if (!groupSoftware.has(rel.source_ref)) groupSoftware.set(rel.source_ref, new Set());
+                groupSoftware.get(rel.source_ref)?.add(swName);
+            }
+        } else if (rel.relationship_type === 'attributed-to') {
+            const camp = campaignMap.get(rel.source_ref);
+            if (camp) {
+                const list = groupCampaigns.get(rel.target_ref) ?? [];
+                if (!list.some(item => item.name === camp.name)) {
+                    list.push(camp);
+                    groupCampaigns.set(rel.target_ref, list);
+                }
             }
         }
     });
@@ -181,9 +224,11 @@ export const processMitreBundle = (bundle: any): MalpediaActor[] => {
     groups.forEach((g: StixObject) => {
         const name = g.name || 'Unknown Group';
         const description = g.description || '';
-        const aliases = g.aliases || [];
-        const refs = g.external_references?.map(r => r.url).filter(u => !!u) as string[] || [];
-        const mitreId = g.external_references?.find(r => r.source_name === 'mitre-attack')?.external_id;
+        const aliases = (g.aliases || []).filter(a => a && a.toLowerCase() !== name.toLowerCase());
+        const refs = g.external_references?.map(r => r.url).filter((u): u is string => Boolean(u)) || [];
+        const mitreRef = g.external_references?.find(r => r.source_name === 'mitre-attack');
+        const mitreId = mitreRef?.external_id;
+        const mitreUrl = mitreRef?.url || (mitreId ? `https://attack.mitre.org/groups/${mitreId}/` : undefined);
 
         const relatedTTPs = groupTTPs.get(g.id);
         const techniqueIds = relatedTTPs ? Array.from(relatedTTPs).sort() : [];
@@ -208,7 +253,7 @@ export const processMitreBundle = (bundle: any): MalpediaActor[] => {
         const lowerDesc = description.toLowerCase();
 
         let activityScore = Math.min((refs.length * 1.5) + (aliases.length * 3), 30);
-        if (refs.length > 15) activityScore = 30; 
+        if (refs.length > 15) activityScore = 30;
 
         let capabilityScore = 0;
         capabilityScore += Math.min(uniqueMitre.length * 0.5, 20);
@@ -224,9 +269,9 @@ export const processMitreBundle = (bundle: any): MalpediaActor[] => {
         const highKeywords = ['government', 'finance', 'banking', 'telecom', 'healthcare', 'elections', 'espionage', 'exfiltration'];
         const destructiveKeywords = ['ransomware', 'wiper', 'destruction', 'sabotage'];
 
-        critKeywords.forEach(k => { if(lowerDesc.includes(k)) impactScore += 10; });
-        highKeywords.forEach(k => { if(lowerDesc.includes(k)) impactScore += 5; });
-        destructiveKeywords.forEach(k => { if(lowerDesc.includes(k)) impactScore += 5; });
+        critKeywords.forEach(k => { if (lowerDesc.includes(k)) impactScore += 10; });
+        highKeywords.forEach(k => { if (lowerDesc.includes(k)) impactScore += 5; });
+        destructiveKeywords.forEach(k => { if (lowerDesc.includes(k)) impactScore += 5; });
         impactScore = Math.min(impactScore, 30);
 
         const totalScore = Math.min(activityScore + capabilityScore + impactScore, 100);
@@ -236,15 +281,20 @@ export const processMitreBundle = (bundle: any): MalpediaActor[] => {
         else if (totalScore >= 60) sophistication = 'High';
         else if (totalScore >= 40) sophistication = 'Medium';
 
+        const foundFamilies = new Set<string>(groupSoftware.get(g.id) ?? []);
         const familyRegex = /(?:malware|trojan|backdoor|ransomware|loader|stealer)(?:\s+(?:known\s+as|called|named))?\s+([A-Z][a-zA-Z0-9\-\_]{2,})/g;
-        const foundFamilies = new Set<string>();
         let match;
         const stopWords = ['The', 'A', 'An', 'This', 'Unknown', 'Custom', 'Malicious', 'Generic', 'Multiple', 'Target', 'Recent'];
         while ((match = familyRegex.exec(description)) !== null) {
-             if (!stopWords.includes(match[1]) && isNaN(Number(match[1]))) {
-                 foundFamilies.add(match[1]);
-             }
+            if (!stopWords.includes(match[1]) && isNaN(Number(match[1]))) {
+                foundFamilies.add(match[1]);
+            }
         }
+        const tools = Array.from(foundFamilies).sort();
+        const origin = inferActorOrigin(name, description, aliases);
+        const motivation = inferActorMotivation(name, description, aliases, sophistication);
+        const targetSectors = extractTargetSectors(description);
+        const campaigns = groupCampaigns.get(g.id) ?? [];
 
         actors.push({
             value: name,
@@ -258,14 +308,23 @@ export const processMitreBundle = (bundle: any): MalpediaActor[] => {
                 impactScore
             },
             meta: {
-                country: 'Unknown', 
+                country: origin,
                 refs: refs,
                 synonyms: aliases
             },
+            synonyms: aliases,
             mitreIds: uniqueMitre,
-            malwareFamilies: Array.from(foundFamilies).sort(),
+            malwareFamilies: tools,
+            tools,
+            targetSectors,
+            motivation,
+            firstSeen: g.created,
+            lastSeen: g.modified,
+            campaigns,
             source: 'MITRE',
             mitreAttackId: mitreId,
+            mitre_id: mitreId,
+            mitre_url: mitreUrl,
             ttpDetails: ttpDetails
         });
     });

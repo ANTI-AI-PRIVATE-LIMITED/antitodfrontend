@@ -20,7 +20,6 @@ import type {
   Ja3FingerprintEntry,
 } from '../../types';
 
-import { PLAYBOOKS } from '../../services/playbooks';
 import { DEMO_IOCS } from '../data/demo/iocs';
 import { isPublicDemo } from '../utils/demoMode';
 
@@ -37,7 +36,6 @@ export interface AppDataContextType {
   sslBlItems: SslBlEntry[];
   ja3Items: Ja3FingerprintEntry[];
   threatFoxItems: ThreatFoxEntry[];
-  playbooks: typeof PLAYBOOKS;
   onNavigate: (viewId: string) => void;
 
   /* Backwards-compatible aliases used by migrated/legacy views. */
@@ -45,21 +43,16 @@ export interface AppDataContextType {
   MOCK_CVES: CveEntry[];
   MOCK_NEWS: ThreatNewsItem[];
   MOCK_ACTORS: MalpediaActor[];
-  MOCK_PLAYBOOKS: typeof PLAYBOOKS;
   MOCK_IOCS: CombinedIoc[];
-  MOCK_EVENTS: any[];
 }
 
 type AppDataProviderValue = Omit<
   AppDataContextType,
-  | 'playbooks'
   | 'MOCK_HOSTS'
   | 'MOCK_CVES'
   | 'MOCK_NEWS'
   | 'MOCK_ACTORS'
-  | 'MOCK_PLAYBOOKS'
   | 'MOCK_IOCS'
-  | 'MOCK_EVENTS'
 >;
 
 interface CombinedIoc {
@@ -182,14 +175,11 @@ export function AppDataProvider({
   const fullValue = useMemo<AppDataContextType>(
     () => ({
       ...value,
-      playbooks: PLAYBOOKS,
       MOCK_HOSTS: value.results,
       MOCK_CVES: value.cveData,
       MOCK_NEWS: value.newsItems,
       MOCK_ACTORS: value.malpediaActors,
-      MOCK_PLAYBOOKS: PLAYBOOKS,
       MOCK_IOCS: combinedIocs,
-      MOCK_EVENTS: [],
     }),
     [
       value.results,

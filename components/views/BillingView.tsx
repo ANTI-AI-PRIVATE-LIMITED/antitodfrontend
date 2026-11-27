@@ -25,10 +25,20 @@ import {
 } from '../../api/services/billingService';
 import { handleApiError } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+import { isPublicDemo } from '../../src/utils/demoMode';
+import {
+  DEMO_BILLING_HISTORY,
+  DEMO_BILLING_PLANS,
+  DEMO_BILLING_USAGE,
+  DEMO_SUBSCRIPTION,
+} from '../../src/data/demo/governanceAndBilling';
+import { PLAN_TIERS, formatInr, planPriceInr } from '../../src/data/planTiering';
+import { salesMailto } from '../../src/data/salesContact';
 
 export const BillingView: React.FC = () => {
   const { can } = useAuth();
-  const canManageBilling = can('rbac.users.manage');
+  const demoMode = isPublicDemo();
+  const canManageBilling = !demoMode && can('rbac.users.manage');
 
   const [usage, setUsage] = useState<BillingUsage | null>(null);
   const [plans, setPlans] = useState<BillingPlansResponse | null>(null);
@@ -56,6 +66,15 @@ export const BillingView: React.FC = () => {
   };
 
   const load = useCallback(async () => {
+    if (isPublicDemo()) {
+      setError(null);
+      setUsage(DEMO_BILLING_USAGE);
+      setPlans(DEMO_BILLING_PLANS);
+      setHistory(DEMO_BILLING_HISTORY);
+      setSubscription(DEMO_SUBSCRIPTION);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -81,6 +100,7 @@ export const BillingView: React.FC = () => {
   }, [load]);
 
   const run = async (fn: () => Promise<void>) => {
+    if (isPublicDemo()) return;
     setBusy(true);
     setError(null);
     try {
@@ -196,7 +216,7 @@ export const BillingView: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px] text-neutral-400 gap-3">
-        <Loader2 className="animate-spin text-red-500" size={20} />
+        <Loader2 className="animate-spin text-accent" size={20} />
         <span className="font-mono text-xs">Loading billing & subscription status…</span>
       </div>
     );
@@ -206,7 +226,7 @@ export const BillingView: React.FC = () => {
     return (
       <div className="p-8 max-w-2xl space-y-4">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
-          <CreditCard className="text-red-500" size={24} /> Billing &amp; Subscriptions
+          <CreditCard className="text-accent" size={24} /> Billing &amp; Subscriptions
         </h1>
         <div className="p-5 rounded-2xl bg-[#0c0d10] border border-neutral-800 text-neutral-300 text-sm leading-relaxed">
           <p className="font-medium text-white mb-2">Platform Account Active</p>
@@ -228,11 +248,18 @@ export const BillingView: React.FC = () => {
       <div className="flex items-start justify-between gap-4 flex-wrap pb-4 border-b border-neutral-800/80">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center">
               <CreditCard size={18} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Billing &amp; Subscriptions</h1>
+              <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2.5 flex-wrap">
+                <span>Billing &amp; Subscriptions</span>
+                {demoMode && (
+                  <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-sky-500/40 bg-sky-500/10 text-sky-300">
+                    DEMO SANDBOX
+                  </span>
+                )}
+              </h1>
               <p className="text-neutral-400 text-xs mt-0.5">
                 {usage?.customer?.Name || 'Customer Account'} · Self-service Razorpay subscription gateway
               </p>
@@ -244,14 +271,27 @@ export const BillingView: React.FC = () => {
           type="button"
           onClick={() => void load()}
           disabled={busy}
-          className="flex items-center gap-2 px-3.5 py-2 text-xs font-mono font-medium border border-neutral-800 bg-[#121316] text-neutral-300 hover:border-red-500/40 hover:text-white rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3.5 py-2 text-xs font-mono font-medium border border-neutral-800 bg-[#121316] text-neutral-300 hover:border-accent/40 hover:text-white rounded-lg transition-colors disabled:opacity-50"
         >
-          <RefreshCw size={13} className={busy ? 'animate-spin text-red-500' : ''} /> Refresh
+          <RefreshCw size={13} className={busy ? 'animate-spin text-accent' : ''} /> Refresh
         </button>
       </div>
 
-      {/* Role Permission Notice for Non-Admins */}
-      {!canManageBilling && (
+      {/* Demo Sandbox or Non-Admin Notice */}
+      {demoMode ? (
+        <div
+          data-testid="billing-demo-banner"
+          className="flex items-center gap-3 p-4 bg-sky-950/25 border border-sky-800/50 rounded-xl text-sky-200 text-xs font-mono"
+        >
+          <ShieldAlert size={18} className="shrink-0 text-sky-400" />
+          <div>
+            <div className="font-bold text-sky-100">Public Demo Sandbox — Read-Only Plan Preview</div>
+            <div className="text-sky-300/80 text-[11px] mt-0.5">
+              Showing simulated tenant quotas, subscription tiers, and audit history. Checkout and plan changes are disabled without signing in.
+            </div>
+          </div>
+        </div>
+      ) : !canManageBilling && (
         <div className="flex items-center gap-3 p-4 bg-amber-950/20 border border-amber-900/40 rounded-xl text-amber-300 text-xs font-mono">
           <ShieldAlert size={18} className="shrink-0 text-amber-400" />
           <div>
@@ -299,7 +339,7 @@ export const BillingView: React.FC = () => {
         <div className="border border-neutral-800 rounded-2xl p-5 bg-[#0c0d10] relative overflow-hidden">
           <div className="flex items-center justify-between text-neutral-400 mb-2">
             <span className="text-[11px] font-mono uppercase tracking-wider">Current Plan</span>
-            <Layers size={15} className="text-red-500" />
+            <Layers size={15} className="text-accent" />
           </div>
           <div className="text-xl text-white font-bold tracking-tight capitalize">
             {plan?.label || currentId}{' '}
@@ -345,14 +385,14 @@ export const BillingView: React.FC = () => {
       <section className="space-y-4">
         <div>
           <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-            <CreditCard size={16} className="text-red-500" /> Available Subscription Plans
+            <CreditCard size={16} className="text-accent" /> Available Subscription Plans
           </h2>
           <p className="text-neutral-400 text-xs mt-0.5">
             Select a tier to subscribe or switch billing cycles. Charges are processed through Razorpay.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {(plans?.plans || []).map((p) => {
             const isCurrent = p.current || p.id === currentId;
             return (
@@ -360,12 +400,12 @@ export const BillingView: React.FC = () => {
                 key={p.id}
                 className={`border rounded-2xl p-6 bg-[#0c0d10] transition-all relative ${
                   isCurrent
-                    ? 'border-red-500/60 shadow-lg shadow-red-950/20'
+                    ? 'border-accent/60 shadow-lg shadow-accent/10'
                     : 'border-neutral-800 hover:border-neutral-700'
                 }`}
               >
                 {isCurrent && (
-                  <div className="absolute top-4 right-4 text-[10px] font-mono uppercase px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md">
+                  <div className="absolute top-4 right-4 text-[10px] font-mono uppercase px-2 py-0.5 bg-accent/10 text-accent border border-accent/25 rounded-md">
                     Current Active
                   </div>
                 )}
@@ -373,27 +413,53 @@ export const BillingView: React.FC = () => {
                 <div className="mb-4">
                   <h3 className="text-lg font-bold text-white capitalize">{p.label}</h3>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-2xl font-bold font-mono text-white">${p.priceUsdPerMonth}</span>
-                    <span className="text-xs font-mono text-neutral-400">/ month</span>
+                    {planPriceInr(p) === null ? (
+                      <span className="text-2xl font-bold font-mono text-white">Contact Sales</span>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-bold font-mono text-white">{formatInr(planPriceInr(p)!)}</span>
+                        <span className="text-xs font-mono text-neutral-400">/ month</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
+                {p.contactSales ? (
+                  <div className="space-y-4">
+                    <ul className="space-y-2 py-4 border-t border-b border-neutral-800/80 text-xs text-neutral-300 font-mono">
+                      {PLAN_TIERS.enterprise.features.map((f) => (
+                        <li key={f} className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href={salesMailto(p.contact || plans?.contact)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-700 hover:border-neutral-500 text-neutral-200 font-mono text-xs font-semibold transition-colors"
+                    >
+                      <ArrowUpRight size={14} /> Contact Sales
+                    </a>
+                  </div>
+                ) : (
+                <>
+
                 <div className="space-y-2 py-4 border-t border-b border-neutral-800/80 mb-5 text-xs text-neutral-300 font-mono">
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                     <span>Up to {p.maxServers} Honeypot instances</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                     <span>Up to {p.maxUsers} Analyst accounts</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                     <span>{p.retentionDays} days forensic retention</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                    <span>Formats: {p.exportFormats.join(', ').toUpperCase()}</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                    <span>Formats: {(p.exportFormats ?? []).join(', ').toUpperCase()}</span>
                   </div>
                 </div>
 
@@ -407,7 +473,7 @@ export const BillingView: React.FC = () => {
                         type="button"
                         disabled={busy}
                         onClick={() => void onSubscribe(p.id)}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-semibold shadow-md shadow-red-950/40 transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:bg-accent/90 text-white font-mono text-xs font-semibold shadow-md shadow-accent/20 transition-colors disabled:opacity-50"
                       >
                         <ArrowUpRight size={14} /> {isCurrent ? 'Subscribe with Razorpay' : `Start ${p.label}`}
                       </button>
@@ -416,7 +482,7 @@ export const BillingView: React.FC = () => {
                         type="button"
                         disabled={busy}
                         onClick={() => void onChangePlan(p.id)}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-mono text-xs font-semibold transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent font-mono text-xs font-semibold transition-colors disabled:opacity-50"
                       >
                         <ArrowUpRight size={14} /> Switch to {p.label}
                       </button>
@@ -426,8 +492,14 @@ export const BillingView: React.FC = () => {
                   </div>
                 ) : (
                   <span className="text-[11px] text-neutral-500 font-mono">
-                    {isCurrent ? 'Current Plan' : 'Admin privilege required to switch'}
+                    {isCurrent
+                      ? 'Current Plan'
+                      : demoMode
+                        ? 'Read-only preview in Demo Mode'
+                        : 'Admin privilege required to switch'}
                   </span>
+                )}
+                </>
                 )}
               </div>
             );
@@ -440,7 +512,7 @@ export const BillingView: React.FC = () => {
         <section className="border border-neutral-800 rounded-2xl p-6 bg-[#0c0d10] flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-sm font-bold text-white flex items-center gap-2">
-              <Clock size={16} className="text-red-500" /> Active Subscription Gateway
+              <Clock size={16} className="text-accent" /> Active Subscription Gateway
             </div>
             <div className="text-xs text-neutral-400 font-mono mt-1 space-x-2">
               <span>ID: <code className="text-neutral-200">{subscription.razorpaySubscriptionId}</code></span>

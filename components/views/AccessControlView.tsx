@@ -21,6 +21,11 @@ import {
   type RbacUser,
 } from '../../api/services/rbacService';
 import { handleApiError } from '../../api/client';
+import {
+  DEMO_RBAC_GROUPS,
+  DEMO_RBAC_PERMISSIONS,
+  DEMO_RBAC_USERS,
+} from '../../src/data/demo/governanceAndBilling';
 
 type Tab = 'users' | 'groups' | 'permissions' | 'audit';
 
@@ -75,11 +80,14 @@ const ModalShell: React.FC<{
 
 export const AccessControlView: React.FC = () => {
   const { can, refreshPermissions, admin } = useAuth();
-  const isPlatform = !admin?.CustomerID;
-  const canUsers = can('rbac.users.manage');
-  const canGroups = can('rbac.groups.manage');
+  const demoMode = isPublicDemo();
+  const isPlatform = !demoMode && !admin?.CustomerID;
+  const canViewUsers = demoMode || can('rbac.users.manage');
+  const canViewGroups = demoMode || can('rbac.groups.manage');
+  const canManageUsers = !demoMode && can('rbac.users.manage');
+  const canManageGroups = !demoMode && can('rbac.groups.manage');
 
-  const [tab, setTab] = useState<Tab>(canUsers ? 'users' : canGroups ? 'groups' : 'permissions');
+  const [tab, setTab] = useState<Tab>(canViewUsers ? 'users' : canViewGroups ? 'groups' : 'permissions');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -112,6 +120,12 @@ export const AccessControlView: React.FC = () => {
 
   const load = useCallback(async () => {
     if (isPublicDemo()) {
+      setError(null);
+      setPermissions(DEMO_RBAC_PERMISSIONS);
+      setGroups(DEMO_RBAC_GROUPS);
+      setUsers(DEMO_RBAC_USERS);
+      setAuditLogs([]);
+      setAuditTotal(0);
       setLoading(false);
       return;
     }
@@ -124,7 +138,7 @@ export const AccessControlView: React.FC = () => {
         // The audit trail is platform-only on the backend; customer admins skip it
         isPlatform ? rbacService.listAuditLogs({ limit: 100 }) : Promise.resolve({ total: 0, logs: [] as RbacAuditLog[] }),
       ];
-      if (canUsers) tasks.push(rbacService.listUsers());
+      if (canViewUsers) tasks.push(rbacService.listUsers());
       const [perms, grps, audit, usrs] = (await Promise.all(tasks)) as [
         RbacPermission[],
         RbacGroup[],
@@ -141,7 +155,7 @@ export const AccessControlView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [canUsers, isPlatform]);
+  }, [canViewUsers, isPlatform]);
 
   useEffect(() => {
     void load();
@@ -253,6 +267,23 @@ export const AccessControlView: React.FC = () => {
     }
   };
 
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const removeUser = async (u: RbacUser) => {
+    if (!canManageUsers) return;
+    if (confirmRemoveId !== u.AdminID) {
+      setConfirmRemoveId(u.AdminID);
+      return;
+    }
+    setConfirmRemoveId(null);
+    try {
+      const r = await rbacService.deleteUser(u.AdminID);
+      flash(r.removed ? 'User removed' : 'User deactivated');
+      await load();
+    } catch (e) {
+      setError(handleApiError(e));
+    }
+  };
+
   const toggleActive = async (u: RbacUser) => {
     try {
       await rbacService.updateUser(u.AdminID, { IsActive: !u.IsActive });
@@ -319,7 +350,7 @@ export const AccessControlView: React.FC = () => {
     setGroupPerms((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  if (!canUsers && !canGroups) {
+  if (!canViewUsers && !canViewGroups) {
     return (
       <div className="h-[calc(100vh-70px)] flex items-center justify-center text-gray-500 text-sm">
         You don’t have permission to manage access.
@@ -359,8 +390,15 @@ export const AccessControlView: React.FC = () => {
             <KeyRound size={22} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white font-cyber">
-              ACCESS <span className="text-cyber-cyan">CONTROL</span>
+            <h2 className="text-xl font-bold text-white font-cyber flex items-center gap-2.5 flex-wrap">
+              <span>
+                ACCESS <span className="text-cyber-cyan">CONTROL</span>
+              </span>
+              {demoMode && (
+                <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-sky-500/40 bg-sky-500/10 text-sky-300 font-sans">
+                  DEMO SANDBOX
+                </span>
+              )}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">Manage who can sign in, what they can do, and review every access change</p>
           </div>
@@ -377,7 +415,7 @@ export const AccessControlView: React.FC = () => {
       {/* Tabs + primary actions */}
       <div className="px-6 border-b border-gray-800 bg-gray-900/30 flex items-center justify-between gap-4 shrink-0">
         <div className="flex gap-1">
-          {canUsers && (
+          {canViewUsers && (
             <button
               type="button"
               onClick={() => setTab('users')}
@@ -388,7 +426,7 @@ export const AccessControlView: React.FC = () => {
               <Users size={13} /> Users
             </button>
           )}
-          {canGroups && (
+          {canViewGroups && (
             <button
               type="button"
               onClick={() => setTab('groups')}
@@ -422,26 +460,47 @@ export const AccessControlView: React.FC = () => {
         </div>
 
         <div className="flex gap-2 py-2">
-          {tab === 'users' && canUsers && (
+          {tab === 'users' && (canManageUsers || demoMode) && (
             <button
               type="button"
-              onClick={openAddUser}
-              className="px-3 py-1.5 rounded-lg bg-cyber-cyan/15 border border-cyber-cyan/40 text-cyber-cyan text-xs font-bold flex items-center gap-1.5 hover:bg-cyber-cyan/25"
+              onClick={() => { if (canManageUsers) openAddUser(); }}
+              disabled={!canManageUsers}
+              title={!canManageUsers ? 'Read-only in Demo Mode: sign in to create or edit users' : undefined}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border ${
+                canManageUsers
+                  ? 'bg-cyber-cyan/15 border-cyber-cyan/40 text-cyber-cyan hover:bg-cyber-cyan/25'
+                  : 'bg-gray-800/60 border-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
             >
               <Plus size={14} /> Add user
             </button>
           )}
-          {tab === 'groups' && canGroups && (
+          {tab === 'groups' && (canManageGroups || demoMode) && (
             <button
               type="button"
-              onClick={openAddGroup}
-              className="px-3 py-1.5 rounded-lg bg-cyber-cyan/15 border border-cyber-cyan/40 text-cyber-cyan text-xs font-bold flex items-center gap-1.5 hover:bg-cyber-cyan/25"
+              onClick={() => { if (canManageGroups) openAddGroup(); }}
+              disabled={!canManageGroups}
+              title={!canManageGroups ? 'Read-only in Demo Mode: sign in to create or edit groups' : undefined}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border ${
+                canManageGroups
+                  ? 'bg-cyber-cyan/15 border-cyber-cyan/40 text-cyber-cyan hover:bg-cyber-cyan/25'
+                  : 'bg-gray-800/60 border-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
             >
               <Plus size={14} /> Add group
             </button>
           )}
         </div>
       </div>
+
+      {demoMode && (
+        <div
+          data-testid="access-control-demo-banner"
+          className="mx-6 mt-3 px-4 py-2.5 rounded-lg text-xs border border-sky-800/50 bg-sky-950/25 text-sky-200 font-mono"
+        >
+          Public Demo Sandbox — showing sample RBAC users, role groups, and built-in platform permissions in read-only mode.
+        </div>
+      )}
 
       {(error || success) && (
         <div
@@ -460,7 +519,7 @@ export const AccessControlView: React.FC = () => {
           <div className="flex items-center justify-center py-24 text-gray-500 gap-2 text-sm">
             <Loader2 className="animate-spin" size={18} /> Loading…
           </div>
-        ) : tab === 'users' && canUsers ? (
+        ) : tab === 'users' && canViewUsers ? (
           <div className="border border-gray-800 rounded-lg overflow-hidden bg-black/30">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-900/80 text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
@@ -499,17 +558,37 @@ export const AccessControlView: React.FC = () => {
                     <td className="px-4 py-3 text-right space-x-2">
                       <button
                         type="button"
-                        onClick={() => openEditUser(u)}
-                        className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-cyber-cyan"
+                        onClick={() => { if (canManageUsers) openEditUser(u); }}
+                        disabled={!canManageUsers}
+                        title={!canManageUsers ? 'Read-only in Demo Mode' : undefined}
+                        className={`inline-flex items-center gap-1 text-xs ${
+                          canManageUsers ? 'text-gray-400 hover:text-cyber-cyan' : 'text-gray-600 cursor-not-allowed'
+                        }`}
                       >
                         <Pencil size={12} /> Edit
                       </button>
                       <button
                         type="button"
-                        onClick={() => void toggleActive(u)}
-                        className="text-xs text-gray-500 hover:text-white"
+                        onClick={() => { if (canManageUsers) void toggleActive(u); }}
+                        disabled={!canManageUsers}
+                        title={!canManageUsers ? 'Read-only in Demo Mode' : undefined}
+                        className={`text-xs ${
+                          canManageUsers ? 'text-gray-500 hover:text-white' : 'text-gray-600 cursor-not-allowed'
+                        }`}
                       >
                         {u.IsActive ? 'Disable' : 'Enable'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { if (canManageUsers) void removeUser(u); }}
+                        onBlur={() => setConfirmRemoveId((id) => (id === u.AdminID ? null : id))}
+                        disabled={!canManageUsers}
+                        title={!canManageUsers ? 'Read-only in Demo Mode' : undefined}
+                        className={`text-xs ${
+                          canManageUsers ? 'text-red-400 hover:text-red-300' : 'text-gray-600 cursor-not-allowed'
+                        }`}
+                      >
+                        {confirmRemoveId === u.AdminID ? 'Click again to remove' : 'Remove'}
                       </button>
                     </td>
                   </tr>
@@ -517,7 +596,7 @@ export const AccessControlView: React.FC = () => {
               </tbody>
             </table>
           </div>
-        ) : tab === 'groups' && canGroups ? (
+        ) : tab === 'groups' && canViewGroups ? (
           <div className="border border-gray-800 rounded-lg overflow-hidden bg-black/30">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-900/80 text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
@@ -537,8 +616,12 @@ export const AccessControlView: React.FC = () => {
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        onClick={() => openEditGroup(g)}
-                        className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-cyber-cyan"
+                        onClick={() => { if (canManageGroups) openEditGroup(g); }}
+                        disabled={!canManageGroups}
+                        title={!canManageGroups ? 'Read-only in Demo Mode' : undefined}
+                        className={`inline-flex items-center gap-1 text-xs ${
+                          canManageGroups ? 'text-gray-400 hover:text-cyber-cyan' : 'text-gray-600 cursor-not-allowed'
+                        }`}
                       >
                         <Pencil size={12} /> Edit
                       </button>
@@ -552,7 +635,7 @@ export const AccessControlView: React.FC = () => {
           <div className="space-y-6 max-w-3xl">
             <p className="text-xs text-gray-500">
               These are the built-in access rights used by the platform. You assign them through{' '}
-              <button type="button" className="text-cyber-cyan hover:underline" onClick={() => canGroups && setTab('groups')}>
+              <button type="button" className="text-cyber-cyan hover:underline" onClick={() => canViewGroups && setTab('groups')}>
                 Groups
               </button>
               — they aren’t created one-by-one.

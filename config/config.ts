@@ -3,16 +3,21 @@ export const BACKEND_URL = (import.meta as any).env?.VITE_BACKEND_URL ?? '';
 
 export const API_ENDPOINTS = {
     // Third-party provider proxies (server-side key injection; keys are not bundled in browser)
+    PROXY_CAPABILITIES: '/AdminRoutes/proxy/capabilities',
     PROXY_IPDATA: '/AdminRoutes/proxy/ipdata',
     PROXY_RANSOMWARE_LIVE: '/AdminRoutes/proxy/ransomware-live',
     PROXY_GEMINI: '/AdminRoutes/proxy/gemini',
     PROXY_FETCH: '/AdminRoutes/proxy/fetch',
+    PROXY_WEBCHECK: '/AdminRoutes/proxy/webcheck',
+    PROXY_PING: '/AdminRoutes/proxy/ping',
+    PROXY_PORTSCAN: '/AdminRoutes/proxy/portscan',
 
     // Admin endpoints
     ADMIN_LOGIN: '/AdminRoutes/adminLogin',
     ADMIN_VERIFY_OTP: '/AdminRoutes/adminVerifyOtp',
     VERIFY_ADMIN_TOKEN: '/AdminRoutes/verifyAdminAuthToken',
     ADMIN_ME: '/AdminRoutes/me',
+    ADMIN_CHANGE_PASSWORD: '/AdminRoutes/me/password',
     REGISTER_SERVER: '/AdminRoutes/registerServer',
     REGISTER_SHIPPER: '/AdminRoutes/registerShipper',
     LIST_SERVERS: '/AdminRoutes/listServers',

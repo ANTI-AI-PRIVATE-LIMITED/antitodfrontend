@@ -5,6 +5,9 @@ import { AnalyzedHost } from '../../types';
 import { Map as MapIcon, Target, Maximize2, Minimize2, Play, Pause, Globe, Activity, Terminal, MousePointer2, Plus, Minus, Loader2 } from 'lucide-react';
 import { ThreeGlobeArc, ThreeGlobeRing, ThreeGlobePoint, ThreeGlobeLabel, ThreeGlobeViewHandle } from './ThreeGlobeView';
 import { isPublicDemo } from '../../src/utils/demoMode';
+import { COUNTRY_COORDS } from '../../src/utils/geoCountries';
+
+export { COUNTRY_COORDS };
 
 const ThreeGlobeView = React.lazy(() => import('./ThreeGlobeView'));
 
@@ -18,6 +21,21 @@ export interface AttackTarget {
     label: string;
     subLabel?: string;
     risk: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+/** Maps attack severity to ANTITODE dark cyber palette colors (no corporate blue). */
+export function getAttackRiskColor(risk?: string): string {
+    switch (risk) {
+        case 'CRITICAL':
+            return '#ef4444';
+        case 'HIGH':
+            return '#f97316';
+        case 'MEDIUM':
+            return '#eab308';
+        case 'LOW':
+        default:
+            return '#4d8760';
+    }
 }
 
 interface AttackMapViewProps {
@@ -80,20 +98,7 @@ interface AttackLabel {
 }
 
 // Fixed HQ location (Default to US East / N. Virginia)
-export const DEFAULT_HQ: [number, number] = [-77.48, 39.04]; 
-
-// Approximate Country Centers for mapping codes to coordinates
-export const COUNTRY_COORDS: Record<string, [number, number]> = {
-    'CN': [104.1, 35.8], 'RU': [105.3, 61.5], 'US': [-95.7, 37.0],
-    'BR': [-51.9, -14.2], 'IN': [78.9, 20.5], 'DE': [10.4, 51.1],
-    'IR': [53.6, 32.4], 'KP': [127.5, 40.3], 'KR': [127.7, 35.9],
-    'GB': [-3.4, 55.3], 'FR': [2.2, 46.2], 'JP': [138.2, 36.2],
-    'UA': [31.1, 48.3], 'BY': [27.9, 53.7], 'VN': [108.2, 14.0],
-    'TR': [35.2, 38.9], 'RO': [24.9, 45.9], 'NL': [5.2, 52.1],
-    'CA': [-106.3, 56.1], 'AU': [133.7, -25.2], 'IT': [12.5, 41.8],
-    'ES': [-3.7, 40.4], 'PL': [19.1, 51.9], 'ID': [113.9, -0.7],
-    'MX': [-102.5, 23.6], 'SA': [45.0, 23.8], 'ZA': [22.9, -30.5]
-};
+export const DEFAULT_HQ: [number, number] = [-77.48, 39.04];
 
 export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThreats = [], cinematic = false, allowInteraction = false }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -194,10 +199,7 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
                 return;
             }
 
-            let color = '#3b82f6';
-            if (target.risk === 'CRITICAL') color = '#ef4444';
-            else if (target.risk === 'HIGH') color = '#f97316';
-            else if (target.risk === 'MEDIUM') color = '#eab308';
+            const color = getAttackRiskColor(target.risk);
 
             const newArc: ThreeGlobeArc = {
                 id: Math.random(),
@@ -384,10 +386,7 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
 
                 if (!start) start = [(Math.random() * 360) - 180, (Math.random() * 120) - 60];
 
-                let color = '#3b82f6';
-                if (target.risk === 'CRITICAL') color = '#ef4444';
-                else if (target.risk === 'HIGH') color = '#f97316';
-                else if (target.risk === 'MEDIUM') color = '#eab308';
+                const color = getAttackRiskColor(target.risk);
 
                 projectilesRef.current.push({
                     id: Math.random(),
@@ -480,7 +479,7 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
     const toggleFullscreen = () => {
         if (!containerRef.current) return;
         if (!document.fullscreenElement) {
-            containerRef.current.requestFullscreen().catch(err => console.log(err));
+            containerRef.current.requestFullscreen().catch((err: any) => console.warn('Fullscreen request blocked:', err?.message || 'Unavailable'));
             setIsFullscreen(true);
         } else {
             document.exitFullscreen();
@@ -555,8 +554,8 @@ export const AttackMapView: React.FC<AttackMapViewProps> = ({ results, globalThr
                             <Terminal size={14} className="text-cyan-400"/> INTERCEPT LOG
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_#ef4444]"></span>
-                            <span className="text-[10px] text-red-400 font-mono font-bold">LIVE</span>
+                            <span className="w-2 h-2 bg-accent rounded-full animate-pulse shadow-[0_0_8px_var(--theme-accent)]"></span>
+                            <span className="text-[10px] text-accent font-mono font-bold">LIVE</span>
                         </div>
                     </div>
                     

@@ -1,3 +1,4 @@
+import { LegalLinks } from './LegalView';
 import React, { useState } from 'react';
 import {
   ShieldCheck,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { authService } from '../../api/services';
 import { handleApiError } from '../../api/client';
+import { PLAN_TIERS, formatInr } from '../../src/data/planTiering';
 
 interface SignupViewProps {
   onNavigateToLogin?: () => void;
@@ -117,7 +119,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
 
       {/* Ambient lighting */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse"></div>
         <div
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neutral-500/5 rounded-full blur-3xl animate-pulse"
           style={{ animationDelay: '1s' }}
@@ -127,7 +129,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
       <div className="relative z-10 w-full max-w-lg my-auto py-2">
         {/* Brand header */}
         <div className="text-center mb-5 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-red-600 rounded-2xl shadow-lg shadow-red-500/25">
+          <div className="inline-flex items-center justify-center w-14 h-14 mb-2.5 bg-accent rounded-2xl shadow-lg shadow-accent/25">
             <ShieldCheck className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-cyber font-bold text-white tracking-wider mb-1">ANTITODE</h1>
@@ -197,7 +199,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                 <button
                   type="button"
                   onClick={goToLogin}
-                  className="w-full bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 cursor-pointer"
+                  className="w-full bg-accent hover:bg-accent/90 text-white text-xs font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-accent/20 cursor-pointer"
                 >
                   <span>Proceed to Sign In →</span>
                 </button>
@@ -208,7 +210,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
                 <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 font-cyber tracking-wide">
-                  <ShieldCheck className="w-5 h-5 text-red-500 shrink-0" />
+                  <ShieldCheck className="w-5 h-5 text-accent shrink-0" />
                   <span>Create Platform Account</span>
                 </h2>
                 <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider bg-neutral-900/90 px-2 py-0.5 rounded border border-neutral-800">
@@ -229,7 +231,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                   Organization / Team Name
                 </label>
                 <div className="relative group">
-                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within:text-red-500 transition-colors pointer-events-none" />
+                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within:text-accent transition-colors pointer-events-none" />
                   <input
                     type="text"
                     required
@@ -237,7 +239,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                     onChange={(e) => setAccountName(e.target.value)}
                     placeholder="e.g. Acme Corp Cyber SOC"
                     disabled={isLoading}
-                    className="w-full bg-neutral-950/80 border border-neutral-700/80 hover:border-neutral-600 focus:border-red-500 focus:ring-1 focus:ring-red-500/30 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-neutral-500 font-mono text-xs focus:outline-none transition-all disabled:opacity-50"
+                    className="w-full bg-neutral-950/80 border border-neutral-700/80 hover:border-neutral-600 focus:border-accent focus:ring-1 focus:ring-accent/30 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-neutral-500 font-mono text-xs focus:outline-none transition-all disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -248,7 +250,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                   Administrator Email
                 </label>
                 <div className="relative group">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within:text-red-500 transition-colors pointer-events-none" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within:text-accent transition-colors pointer-events-none" />
                   <input
                     type="email"
                     required
@@ -256,7 +258,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="admin@company.com"
                     disabled={isLoading}
-                    className="w-full bg-neutral-950/80 border border-neutral-700/80 hover:border-neutral-600 focus:border-red-500 focus:ring-1 focus:ring-red-500/30 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-neutral-500 font-mono text-xs focus:outline-none transition-all disabled:opacity-50"
+                    className="w-full bg-neutral-950/80 border border-neutral-700/80 hover:border-neutral-600 focus:border-accent focus:ring-1 focus:ring-accent/30 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-neutral-500 font-mono text-xs focus:outline-none transition-all disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -267,7 +269,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                   Master Password
                 </label>
                 <div className="relative group">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within:text-red-500 transition-colors pointer-events-none" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within:text-accent transition-colors pointer-events-none" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
@@ -275,7 +277,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
                     disabled={isLoading}
-                    className="w-full bg-neutral-950/80 border border-neutral-700/80 hover:border-neutral-600 focus:border-red-500 focus:ring-1 focus:ring-red-500/30 rounded-lg pl-10 pr-10 py-2.5 text-white placeholder-neutral-500 font-mono text-xs focus:outline-none transition-all disabled:opacity-50"
+                    className="w-full bg-neutral-950/80 border border-neutral-700/80 hover:border-neutral-600 focus:border-accent focus:ring-1 focus:ring-accent/30 rounded-lg pl-10 pr-10 py-2.5 text-white placeholder-neutral-500 font-mono text-xs focus:outline-none transition-all disabled:opacity-50"
                   />
                   <button
                     type="button"
@@ -351,13 +353,13 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                     onClick={() => setPlan('basic')}
                     className={`p-3 rounded-lg border text-left transition-all font-mono cursor-pointer ${
                       plan === 'basic'
-                        ? 'border-red-500/80 bg-red-950/30 text-white shadow-[0_0_15px_rgba(239,68,68,0.15)] ring-1 ring-red-500/40'
+                        ? 'border-accent/80 bg-accent/15 text-white shadow-[0_0_15px_var(--theme-accent-muted)] ring-1 ring-accent/40'
                         : 'border-neutral-800 bg-neutral-900/40 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300'
                     }`}
                   >
                     <div className="text-xs font-bold text-white flex items-center justify-between">
                       <span>Basic Plan</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">$69/mo</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">{formatInr(PLAN_TIERS.basic.priceMonthly)}/mo</span>
                     </div>
                     <div className="text-[10px] text-neutral-400 mt-1 leading-snug">
                       15 Honeypots • 1 seat • CSV export
@@ -377,7 +379,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                       <span className="flex items-center gap-1 text-amber-400">
                         <Sparkles size={12} /> Pro Tier
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">$155/mo</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">{formatInr(PLAN_TIERS.pro.priceMonthly)}/mo</span>
                     </div>
                     <div className="text-[10px] text-neutral-400 mt-1 leading-snug">
                       35 Honeypots • 3 Team seats • JSON export
@@ -390,7 +392,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
               <button
                 type="submit"
                 disabled={isLoading || !isPasswordValid || !email || !accountName}
-                className="w-full mt-2 bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600 font-mono text-xs cursor-pointer active:scale-[0.99]"
+                className="w-full mt-2 bg-accent hover:bg-accent/90 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-accent/25 hover:shadow-accent/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent font-mono text-xs cursor-pointer active:scale-[0.99]"
               >
                 {isLoading ? (
                   <>
@@ -404,6 +406,14 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                   </>
                 )}
               </button>
+
+              <p className="text-center text-xs text-neutral-500">
+                By creating an account you agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener" className="underline hover:text-neutral-300">Terms of Service</a>{' '}
+                and{' '}
+                <a href="/privacy" target="_blank" rel="noopener" className="underline hover:text-neutral-300">Privacy Policy</a>.
+              </p>
+              <LegalLinks />
 
               {/* Already have an account link */}
               <div className="pt-2 text-center border-t border-neutral-800/80 font-mono text-xs text-neutral-400">

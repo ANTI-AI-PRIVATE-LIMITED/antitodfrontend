@@ -3,7 +3,9 @@ import { queryDoH, enrichIP } from './dns';
 import { fetchShodanInternetDb } from './dns'; 
 import { CrtShEntry, WaybackResult } from '../types';
 import { fetchJsonWithCors } from './http';
-import { toProxyUrl } from './proxy';
+import { toProxyUrl, pingTargetViaProxy, inspectWebTargetViaProxy, scanPortsViaProxy } from './proxy';
+import { isPublicDemo } from '../src/utils/demoMode';
+import { evaluateSecurityHeaders } from '../src/utils/httpSecurityHeaders';
 
 // --- IpApiIs Result Interface ---
 export interface IpApiIsResult {
@@ -648,12 +650,66 @@ export interface HttpHeaderResult {
     serverInfo: { server?: string; poweredBy?: string; aspNet?: string; via?: string };
     status: number;
     statusText: string;
+    redirects?: string[];
+    error?: string;
 }
 
-export const analyzeHttpHeaders = async (_target: string): Promise<HttpHeaderResult | null> => {
-    // Task 101: Tools that fetch a URL the user types cannot work through an allowlist.
-    // Labeled 'coming soon' in v1.1. Do not fall back to direct browser fetch.
-    return null;
+export const analyzeHttpHeaders = async (target: string): Promise<HttpHeaderResult> => {
+    const clean = target.trim();
+    if (!clean) {
+        return {
+            headers: {},
+            security: [],
+            cookies: [],
+            serverInfo: {},
+            status: 0,
+            statusText: 'Invalid target',
+            error: 'A target domain or URL is required for HTTP header inspection.',
+        };
+    }
+
+    if (isPublicDemo()) {
+        return {
+            headers: {},
+            security: [],
+            cookies: [],
+            serverInfo: {},
+            status: 0,
+            statusText: 'Unavailable in demo',
+            error: 'Authenticated session required for live HTTP header inspection.',
+        };
+    }
+
+    const targetUrl = /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+    const inspection = await inspectWebTargetViaProxy(targetUrl);
+    if (!inspection.ok) {
+        return {
+            headers: {},
+            security: [],
+            cookies: [],
+            serverInfo: {},
+            status: inspection.status,
+            statusText: inspection.message,
+            error: inspection.message,
+        };
+    }
+
+    const { data } = inspection;
+    const headers = data.headers || {};
+    return {
+        headers,
+        security: evaluateSecurityHeaders(headers),
+        cookies: [],
+        serverInfo: {
+            server: headers['server'],
+            poweredBy: headers['x-powered-by'],
+            aspNet: headers['x-aspnet-version'],
+            via: headers['via'],
+        },
+        status: data.status,
+        statusText: data.statusText || (data.status >= 200 && data.status < 400 ? 'OK' : `HTTP ${data.status}`),
+        redirects: Array.isArray(data.redirects) ? data.redirects : [],
+    };
 };
 
 // --- Email Header Analysis ---
@@ -793,40 +849,61 @@ export interface PingResult {
     time: number;
     status: 'OK' | 'TIMEOUT' | 'ERROR';
     ip: string;
+    port?: number;
+    message?: string;
+    fatal?: boolean;
 }
 
 export const performPing = async (target: string, seq: number): Promise<PingResult> => {
-    const startTime = performance.now();
-    let url = target.startsWith('http') ? target : `http://${target}`;
-    
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const proxyEndpoint = toProxyUrl(url);
-        
-        await fetch(proxyEndpoint, { 
-            method: 'HEAD', 
-            cache: 'no-store', 
-            signal: controller.signal 
-        });
-        
-        clearTimeout(timeoutId);
-        const endTime = performance.now();
-        
-        return {
-            seq,
-            time: Math.round(endTime - startTime),
-            status: 'OK',
-            ip: target
-        };
-    } catch (e: any) {
+    const cleanTarget = target.trim();
+    if (!cleanTarget) {
         return {
             seq,
             time: 0,
-            status: e.name === 'AbortError' ? 'TIMEOUT' : 'ERROR',
-            ip: target
+            status: 'ERROR',
+            ip: target,
+            message: 'A target IP or domain is required',
+            fatal: true,
         };
     }
+
+    if (isPublicDemo()) {
+        return {
+            seq,
+            time: 0,
+            status: 'ERROR',
+            ip: cleanTarget,
+            message: 'Authenticated session required for live network ping',
+            fatal: true,
+        };
+    }
+
+    const res = await pingTargetViaProxy(cleanTarget);
+    if (!res.ok) {
+        const isValidationOrPolicyError =
+            res.status === 400 ||
+            res.status === 401 ||
+            res.status === 403 ||
+            res.code === 'BAD_TARGET' ||
+            res.code === 'HOST_NOT_ALLOWED';
+        return {
+            seq,
+            time: 0,
+            status: 'ERROR',
+            ip: cleanTarget,
+            message: res.message,
+            fatal: isValidationOrPolicyError,
+        };
+    }
+
+    return {
+        seq,
+        time: res.data.rttMs,
+        status: res.data.status,
+        ip: res.data.resolvedIp || cleanTarget,
+        port: res.data.port,
+        message: res.data.message,
+    };
 };
 
 export interface TraceHop {
@@ -838,57 +915,180 @@ export interface TraceHop {
 }
 
 export const performTrace = async (target: string): Promise<TraceHop[]> => {
-    const hops: TraceHop[] = [];
-    const maxHops = 8 + Math.floor(Math.random() * 5);
-    
-    for (let i = 1; i < maxHops; i++) {
-        const latency = i * (5 + Math.random() * 10);
-        hops.push({
-            hop: i,
-            ip: `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-            time: Math.round(latency),
-            status: 'OK',
-            details: i === 1 ? 'Gateway' : 'ISP Backbone'
-        });
-    }
+    const clean = target.trim();
+    let finalIp = clean;
 
-    let finalIp = target;
-    if (!target.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)) {
-        const dns = await queryDoH(target, 'A');
-        if (dns?.Answer?.[0]?.data) {
-            finalIp = dns.Answer[0].data;
+    if (!/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(clean) && !clean.includes(':')) {
+        try {
+            const dns = await queryDoH(clean, 'A');
+            if (dns?.Answer?.[0]?.data) {
+                finalIp = dns.Answer[0].data;
+            }
+        } catch {
+            // Retain original target when DoH resolution fails
         }
     }
 
-    hops.push({
-        hop: maxHops,
-        ip: finalIp,
-        time: Math.round(maxHops * 15),
-        status: 'OK',
-        details: 'Target (Final)'
-    });
-
-    return hops;
+    const ping = await performPing(finalIp, 1);
+    return [
+        {
+            hop: 1,
+            ip: ping.ip || finalIp,
+            time: ping.time,
+            status: ping.status === 'OK' ? 'OK' : 'TIMEOUT',
+            details:
+                ping.status === 'OK'
+                    ? `Direct TCP reachability verified (port ${ping.port ?? 443})`
+                    : ping.message || 'ICMP/multi-hop trace unavailable; destination TCP probe did not succeed',
+        },
+    ];
 };
+
+export type PortScanSource = 'active-tcp' | 'shodan-passive' | 'active+shodan';
 
 export interface PortResult {
     port: number;
     service: string;
     transport: string;
     tags: string[];
+    source: PortScanSource;
+    state: 'OPEN' | 'PASSIVE_RECORD';
+    rttMs?: number;
 }
 
-export const performPortScan = async (target: string): Promise<PortResult[]> => {
-    const data = await fetchShodanInternetDb(target);
-    if (data && data.ports) {
-        return data.ports.map(p => ({
-            port: p,
-            service: 'tcp',
-            transport: 'TCP',
-            tags: data.tags || []
-        }));
+export interface PortScanReport {
+    target: string;
+    resolvedIp: string;
+    ports: PortResult[];
+    scannedCount: number;
+    activeAvailable: boolean;
+    passiveAvailable: boolean;
+    error?: string;
+    probedAt: string;
+}
+
+const KNOWN_TCP_SERVICES: Record<number, string> = {
+    21: 'ftp',
+    22: 'ssh',
+    25: 'smtp',
+    53: 'dns',
+    80: 'http',
+    110: 'pop3',
+    143: 'imap',
+    443: 'https',
+    465: 'smtps',
+    587: 'submission',
+    993: 'imaps',
+    995: 'pop3s',
+    3306: 'mysql',
+    3389: 'rdp',
+    5432: 'postgresql',
+    6379: 'redis',
+    8080: 'http-alt',
+    8443: 'https-alt',
+};
+
+const isIpv4Literal = (val: string) => /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(val);
+
+/**
+ * Runs an SSRF-safe active TCP port probe via `/AdminRoutes/proxy/portscan` correlated with
+ * passive Shodan InternetDB records so unindexed hosts and SSRF blocks are never hidden.
+ */
+export const runPortScanReport = async (target: string): Promise<PortScanReport> => {
+    const clean = target.trim();
+    const probedAt = new Date().toISOString();
+
+    if (!clean) {
+        return {
+            target,
+            resolvedIp: clean,
+            ports: [],
+            scannedCount: 0,
+            activeAvailable: false,
+            passiveAvailable: false,
+            error: 'A target IP or domain is required',
+            probedAt,
+        };
     }
-    return [];
+
+    if (isPublicDemo()) {
+        return {
+            target: clean,
+            resolvedIp: clean,
+            ports: [],
+            scannedCount: 0,
+            activeAvailable: false,
+            passiveAvailable: false,
+            error: 'Authenticated session required for active TCP port scanning',
+            probedAt,
+        };
+    }
+
+    const activePromise = scanPortsViaProxy(clean);
+    const passivePromise = isIpv4Literal(clean) ? fetchShodanInternetDb(clean) : Promise.resolve(undefined);
+    const [activeRes, initialShodan] = await Promise.all([activePromise, passivePromise]);
+
+    const resolvedIp = activeRes.ok ? activeRes.data.resolvedIp : clean;
+    const shodanData =
+        initialShodan ?? (activeRes.ok && isIpv4Literal(resolvedIp) ? await fetchShodanInternetDb(resolvedIp) : undefined);
+
+    const byPort = new Map<number, PortResult>();
+
+    if (activeRes.ok) {
+        for (const entry of activeRes.data.openPorts) {
+            byPort.set(entry.port, {
+                port: entry.port,
+                service: entry.service || KNOWN_TCP_SERVICES[entry.port] || 'tcp',
+                transport: entry.transport || 'TCP',
+                tags: [],
+                source: 'active-tcp',
+                state: 'OPEN',
+                rttMs: entry.rttMs,
+            });
+        }
+    }
+
+    const shodanTags = shodanData?.tags || [];
+    const passivePorts = shodanData?.ports || [];
+    for (const p of passivePorts) {
+        const existing = byPort.get(p);
+        if (existing) {
+            existing.source = 'active+shodan';
+            existing.tags = shodanTags;
+        } else {
+            byPort.set(p, {
+                port: p,
+                service: KNOWN_TCP_SERVICES[p] || 'tcp',
+                transport: 'TCP',
+                tags: shodanTags,
+                source: 'shodan-passive',
+                state: 'PASSIVE_RECORD',
+            });
+        }
+    }
+
+    const merged = Array.from(byPort.values()).sort((a, b) => a.port - b.port);
+    const isBlocked = !activeRes.ok && (activeRes.status === 400 || activeRes.status === 401 || activeRes.status === 403);
+
+    return {
+        target: clean,
+        resolvedIp,
+        ports: merged,
+        scannedCount: activeRes.ok ? activeRes.data.scannedCount : 0,
+        activeAvailable: activeRes.ok,
+        passiveAvailable: Boolean(shodanData),
+        error: isBlocked
+            ? activeRes.message
+            : !activeRes.ok && !shodanData
+              ? activeRes.message
+              : undefined,
+        probedAt: activeRes.ok ? activeRes.data.probedAt : probedAt,
+    };
+};
+
+export const performPortScan = async (target: string): Promise<PortResult[]> => {
+    const report = await runPortScanReport(target);
+    return report.ports;
 };
 
 export const performCrtLookup = async (domain: string): Promise<CrtShEntry[]> => {

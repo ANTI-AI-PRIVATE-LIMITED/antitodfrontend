@@ -9,9 +9,11 @@ import {
 } from 'lucide-react';
 import {
   PLAN_TIERS,
+  formatInr,
   getStoredPlan,
   type PlanTier,
 } from '../../data/planTiering';
+import { salesMailto } from '../../data/salesContact';
 import { billingService } from '../../../api/services/billingService';
 import { isPublicDemo } from '../../utils/demoMode';
 
@@ -157,7 +159,7 @@ export const PlanNoticeModal: React.FC = () => {
   };
 
   const handleContactSales = () => {
-    window.location.href = 'mailto:sales@antitode.ai?subject=ANTITODE%20Enterprise%20Plan%20Inquiry';
+    window.location.href = salesMailto();
   };
 
   return (
@@ -258,7 +260,7 @@ export const PlanNoticeModal: React.FC = () => {
                       <strong className="text-2xl font-bold text-white">Contact Sales</strong>
                     ) : (
                       <>
-                        <strong className="text-2xl font-bold text-white">${tier.priceMonthly}</strong>
+                        <strong className="text-2xl font-bold text-white">{formatInr(tier.priceMonthly)}</strong>
                         <span className="text-[11px] text-neutral-400">/month</span>
                       </>
                     )}
@@ -336,7 +338,7 @@ export const PlanNoticeModal: React.FC = () => {
                       className={`at-btn at-btn-full w-full py-2.5 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md ${
                         isDemo
                           ? 'bg-neutral-800 text-neutral-500 border border-neutral-700 cursor-not-allowed opacity-60'
-                          : 'at-btn-primary bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white border border-[#d62828] shadow-[#d62828]/25 hover:shadow-[#d62828]/40 cursor-pointer'
+                          : 'at-btn-primary bg-accent hover:bg-accent-hover text-white border border-accent shadow-accent/25 hover:shadow-accent/40 cursor-pointer'
                       }`}
                       onClick={handleUpgradeToPro}
                     >

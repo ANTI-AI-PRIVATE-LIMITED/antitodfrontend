@@ -24,6 +24,18 @@ import {
 import { handleApiError } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { isPublicDemo } from '../../src/utils/demoMode';
+import { isValidAllowedIp, isValidIpAddress } from '../../src/utils/networkValidation';
+import { ensureHostNetworkingCompose, inspectComposeNetworking } from '../../src/utils/honeypotCompose';
+import {
+    DEMO_INFRA_TOOLTIP,
+    DEMO_SERVERS_OVERVIEW,
+    DEMO_SHIPPERS,
+    DEMO_TEMPLATES,
+    getDemoAgentMetrics,
+    getDemoContainers,
+    getDemoDeployments,
+    getDemoServerDetail,
+} from '../../src/data/demo/infrastructure';
 
 // ── Utility helpers ────────────────────────────────────────────────────────
 
@@ -159,8 +171,8 @@ const InstallCommandModal: React.FC<{
                     </ol>
                     {/* Script toggle */}
                     <div className="flex items-center gap-3">
-                        <button onClick={() => { setShowFull(false); }} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-mono ${!showFull ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-[#151515] border-[#333] text-[#AAA] hover:text-white'}`}>Agent Only</button>
-                        <button onClick={loadFull} disabled={loadingFull} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-mono flex items-center gap-1 ${showFull ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-[#151515] border-[#333] text-[#AAA] hover:text-white'}`}>
+                        <button onClick={() => { setShowFull(false); }} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-mono ${!showFull ? 'bg-accent/10 border-accent/30 text-accent' : 'bg-[#151515] border-[#333] text-[#AAA] hover:text-white'}`}>Agent Only</button>
+                        <button onClick={loadFull} disabled={loadingFull} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-mono flex items-center gap-1 ${showFull ? 'bg-accent/10 border-accent/30 text-accent' : 'bg-[#151515] border-[#333] text-[#AAA] hover:text-white'}`}>
                             {loadingFull && <Loader2 size={12} className="animate-spin"/>}Full Docker Setup
                         </button>
                     </div>
@@ -172,7 +184,7 @@ const InstallCommandModal: React.FC<{
                     <p className="text-xs text-[#888]">The agent will appear as <strong className="text-white">PENDING → ONLINE</strong> within 60 seconds after running the command.</p>
                 </div>
                 <div className="p-4 border-t border-[#222] flex justify-end">
-                    <button onClick={onClose} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 text-sm font-mono rounded-lg transition-colors">Done</button>
+                    <button onClick={onClose} className="px-4 py-2 bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent text-sm font-mono rounded-lg transition-colors">Done</button>
                 </div>
             </div>
         </div>
@@ -209,7 +221,7 @@ const ContainerLogsModal: React.FC<{
             <div className="bg-[#111] border border-[#333] rounded-xl w-full max-w-4xl shadow-2xl flex flex-col" style={{ height: '80vh' }}>
                 <div className="flex items-center justify-between p-4 border-b border-[#222] shrink-0">
                     <div className="flex items-center gap-3">
-                        <Terminal size={18} className="text-red-500" />
+                        <Terminal size={18} className="text-accent" />
                         <span className="font-mono text-white font-bold">{container.name}</span>
                         <span className="text-[#888] text-xs font-mono">{container.image}</span>
                     </div>
@@ -300,6 +312,20 @@ const DeployModal: React.FC<{
                             ))}
                         </select>
                         {selected && <p className="text-xs text-[#888] mt-1">{selected.Description}</p>}
+                        {selected && selected.Category === 'honeypot' && (() => {
+                            const netReport = inspectComposeNetworking(selected.StackFileContent);
+                            return netReport.usesHostNetworking ? (
+                                <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-mono text-emerald-300">
+                                    <ShieldCheck size={13} className="shrink-0 text-emerald-400" />
+                                    <span>Host Networking (<code>network_mode: host</code>) — preserves real attacker source IPs for GeoIP & ASN profiling.</span>
+                                </div>
+                            ) : (
+                                <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-mono text-amber-300">
+                                    <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-400" />
+                                    <span>Legacy bridge template detected (172.17.0.1 gateway NAT risk) — backend automatically upgrades this stack to <code>network_mode: host</code> on deploy.</span>
+                                </div>
+                            );
+                        })()}
                     </div>
                     {/* Stack name */}
                     <div>
@@ -339,7 +365,7 @@ const DeployModal: React.FC<{
                 </div>
                 <div className="p-4 border-t border-[#222] shrink-0 flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 rounded-lg bg-[#151515] hover:bg-[#1C1C1C] text-neutral-300 text-sm font-mono">Cancel</button>
-                    <button onClick={submit} disabled={loading || !selectedId} className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={submit} disabled={loading || !selectedId} className="px-4 py-2 rounded-lg bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
                         {loading && <Loader2 size={14} className="animate-spin"/>}Deploy
                     </button>
                 </div>
@@ -363,17 +389,23 @@ const TemplateFormModal: React.FC<{
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const composeNetReport = inspectComposeNetworking(stackContent);
+
     const submit = async () => {
         if (!name.trim()) { setError('Name is required.'); return; }
         if (!stackContent.trim()) { setError('Stack file content is required.'); return; }
         let envTemplate: Record<string, any> = {};
         try { envTemplate = JSON.parse(envJson); } catch { setError('Invalid JSON in Environment Template.'); return; }
+        const finalStackContent =
+            category === 'honeypot'
+                ? ensureHostNetworkingCompose(stackContent, { category }).stackFileContent
+                : stackContent;
         setLoading(true); setError('');
         try {
             if (template) {
-                await agentService.updateTemplate(template.TemplateId, { Name: name, Description: description, Category: category, StackFileContent: stackContent, EnvTemplate: envTemplate });
+                await agentService.updateTemplate(template.TemplateId, { Name: name, Description: description, Category: category, StackFileContent: finalStackContent, EnvTemplate: envTemplate });
             } else {
-                await agentService.createTemplate({ Name: name, Description: description, Category: category, StackFileContent: stackContent, EnvTemplate: envTemplate });
+                await agentService.createTemplate({ Name: name, Description: description, Category: category, StackFileContent: finalStackContent, EnvTemplate: envTemplate });
             }
             onSuccess();
         } catch (e: any) {
@@ -409,7 +441,29 @@ const TemplateFormModal: React.FC<{
                     </div>
                     <div>
                         <label className="text-xs text-[#AAA] font-mono block mb-1">Docker Compose / Stack File *</label>
-                        <textarea value={stackContent} onChange={e => setStackContent(e.target.value)} rows={10} className="w-full bg-[#111]/80 border border-[#333] text-white rounded-lg p-3 text-xs font-mono resize-y" placeholder={"version: '3.8'\nservices:\n  ..."} />
+                        {category === 'honeypot' && stackContent.trim() && (
+                            composeNetReport.usesHostNetworking ? (
+                                <div className="mb-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-mono text-emerald-300">
+                                    <ShieldCheck size={13} className="shrink-0 text-emerald-400" />
+                                    <span>HOST NETWORKING ACTIVE (<code>network_mode: host</code>) — real attacker source IPs & GeoIP/ASN preserved.</span>
+                                </div>
+                            ) : (
+                                <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-mono text-amber-300">
+                                    <span className="flex items-center gap-1.5">
+                                        <AlertTriangle size={13} className="shrink-0 text-amber-400" />
+                                        Bridge port mapping masks attacker source IPs behind 172.17.0.1. Honeypot templates enforce <code>network_mode: host</code>.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setStackContent(ensureHostNetworkingCompose(stackContent, { category: 'honeypot' }).stackFileContent)}
+                                        className="px-2.5 py-1 rounded border border-amber-400/40 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-colors"
+                                    >
+                                        Enforce network_mode: host
+                                    </button>
+                                </div>
+                            )
+                        )}
+                        <textarea value={stackContent} onChange={e => setStackContent(e.target.value)} rows={10} className="w-full bg-[#111]/80 border border-[#333] text-white rounded-lg p-3 text-xs font-mono resize-y" placeholder={"version: '3.8'\nservices:\n  cowrie:\n    image: cowrie/cowrie:latest\n    network_mode: host"} />
                     </div>
                     <div>
                         <label className="text-xs text-[#AAA] font-mono block mb-1">Environment Template <span className="text-neutral-600">(JSON)</span></label>
@@ -419,7 +473,7 @@ const TemplateFormModal: React.FC<{
                 </div>
                 <div className="p-4 border-t border-[#222] shrink-0 flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 rounded-lg bg-[#151515] hover:bg-[#1C1C1C] text-neutral-300 text-sm font-mono">Cancel</button>
-                    <button onClick={submit} disabled={loading} className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={submit} disabled={loading} className="px-4 py-2 rounded-lg bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
                         {loading && <Loader2 size={14} className="animate-spin"/>}{template ? 'Save Changes' : 'Create Template'}
                     </button>
                 </div>
@@ -437,14 +491,39 @@ const RegisterServerModal: React.FC<{
     const [form, setForm] = useState({ ServerId: '', Hostname: '', PublicIp: '', Region: '', PrivateIp: '', Provider: 'aws', Os: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<Partial<Record<'PublicIp' | 'PrivateIp', string>>>({});
 
-    const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
+    const set = (k: string, v: string) => {
+        setForm(prev => ({ ...prev, [k]: v }));
+        if (k === 'PublicIp' || k === 'PrivateIp') {
+            setFieldErrors(prev => {
+                if (!prev[k]) return prev;
+                const next = { ...prev };
+                delete next[k];
+                return next;
+            });
+        }
+        if (error) setError('');
+    };
 
     const submit = async () => {
+        const nextFieldErrors: Partial<Record<'PublicIp' | 'PrivateIp', string>> = {};
         if (!form.ServerId.trim() || !form.Hostname.trim() || !form.PublicIp.trim() || !form.Region.trim()) {
             setError('Server ID, Hostname, Public IP and Region are required.');
             return;
         }
+        if (!isValidIpAddress(form.PublicIp)) {
+            nextFieldErrors.PublicIp = 'Enter a valid IPv4 or IPv6 address (e.g. 203.0.113.10).';
+        }
+        if (form.PrivateIp.trim() && !isValidIpAddress(form.PrivateIp)) {
+            nextFieldErrors.PrivateIp = 'Enter a valid IPv4 or IPv6 address (e.g. 10.0.1.50).';
+        }
+        if (nextFieldErrors.PublicIp || nextFieldErrors.PrivateIp) {
+            setFieldErrors(nextFieldErrors);
+            setError(nextFieldErrors.PublicIp || nextFieldErrors.PrivateIp || 'Invalid IP address.');
+            return;
+        }
+        setFieldErrors({});
         setLoading(true); setError('');
         try {
             await adminService.registerServer({
@@ -480,10 +559,10 @@ const RegisterServerModal: React.FC<{
     };
 
     const fields: { key: string; label: string; placeholder: string; required?: boolean }[] = [
-        { key: 'ServerId',  label: 'Server ID',   placeholder: 'deqoy-prod-1',         required: true },
-        { key: 'Hostname',  label: 'Hostname',    placeholder: 'deqoy',                required: true },
-        { key: 'PublicIp',  label: 'Public IP',   placeholder: '13.233.163.244',       required: true },
-        { key: 'Region',    label: 'Region',      placeholder: 'ap-south-1',           required: true },
+        { key: 'ServerId',  label: 'Server ID',   placeholder: 'edge-sensor-01',       required: true },
+        { key: 'Hostname',  label: 'Hostname',    placeholder: 'honeypot-node-01',     required: true },
+        { key: 'PublicIp',  label: 'Public IP',   placeholder: '203.0.113.10',         required: true },
+        { key: 'Region',    label: 'Region',      placeholder: 'us-west-2',            required: true },
         { key: 'PrivateIp', label: 'Private IP',  placeholder: '10.0.1.50 (optional)' },
         { key: 'Provider',  label: 'Provider',    placeholder: 'aws' },
         { key: 'Os',        label: 'OS',          placeholder: 'Ubuntu 24.04 (optional)' },
@@ -500,19 +579,26 @@ const RegisterServerModal: React.FC<{
                     <button onClick={onClose} className="p-2 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><X size={18}/></button>
                 </div>
                 <div className="p-5 space-y-3">
-                    {fields.map(f => (
-                        <div key={f.key}>
-                            <label className="text-xs text-[#AAA] font-mono block mb-1">
-                                {f.label}{f.required && <span className="text-red-400"> *</span>}
-                            </label>
-                            <input
-                                value={(form as any)[f.key]}
-                                onChange={e => set(f.key, e.target.value)}
-                                placeholder={f.placeholder}
-                                className="w-full bg-[#151515] border border-[#333] text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500"
-                            />
-                        </div>
-                    ))}
+                    {fields.map(f => {
+                        const fieldErr = f.key === 'PublicIp' || f.key === 'PrivateIp' ? fieldErrors[f.key] : undefined;
+                        return (
+                            <div key={f.key}>
+                                <label className="text-xs text-[#AAA] font-mono block mb-1">
+                                    {f.label}{f.required && <span className="text-red-400"> *</span>}
+                                </label>
+                                <input
+                                    value={(form as any)[f.key]}
+                                    onChange={e => set(f.key, e.target.value)}
+                                    placeholder={f.placeholder}
+                                    aria-invalid={fieldErr ? true : undefined}
+                                    className={`w-full bg-[#151515] border ${fieldErr ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-accent`}
+                                />
+                                {fieldErr && (
+                                    <p className="text-[11px] text-red-400 font-mono mt-1">{fieldErr}</p>
+                                )}
+                            </div>
+                        );
+                    })}
                     {error && (
                         <div className="flex flex-col gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded p-3">
                             <div className="flex items-start gap-2">
@@ -542,7 +628,7 @@ const RegisterServerModal: React.FC<{
                 </div>
                 <div className="p-4 border-t border-[#222] flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 rounded-lg bg-[#151515] hover:bg-[#1C1C1C] text-neutral-300 text-sm font-mono">Cancel</button>
-                    <button onClick={submit} disabled={loading} className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={submit} disabled={loading} className="px-4 py-2 rounded-lg bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent text-sm font-mono font-bold disabled:opacity-50 flex items-center gap-2">
                         {loading && <Loader2 size={14} className="animate-spin"/>}Register Server
                     </button>
                 </div>
@@ -635,10 +721,10 @@ const ShipperTokenModal: React.FC<{
                             </div>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-mono">
-                            <a href={result.deployment.installScriptUrl} target="_blank" rel="noopener noreferrer" className="text-red-500/80 hover:text-red-500 underline">
+                            <a href={result.deployment.installScriptUrl} target="_blank" rel="noopener noreferrer" className="text-accent/80 hover:text-accent underline">
                                 install.sh
                             </a>
-                            <a href={result.deployment.shipperBundleUrl} target="_blank" rel="noopener noreferrer" className="text-red-500/80 hover:text-red-500 underline">
+                            <a href={result.deployment.shipperBundleUrl} target="_blank" rel="noopener noreferrer" className="text-accent/80 hover:text-accent underline">
                                 shipper.tar.gz
                             </a>
                             <span className="text-neutral-600">(debug / manual fetch)</span>
@@ -687,6 +773,10 @@ const RegisterShipperModal: React.FC<{
 
     const submit = async () => {
         if (!allowedIp.trim()) { setError('Allowed IP is required.'); return; }
+        if (!isValidAllowedIp(allowedIp)) {
+            setError('Allowed IP must be a valid IPv4/IPv6 address (e.g. 203.0.113.10) or localhost.');
+            return;
+        }
         setLoading(true); setError('');
         try {
             const res = await adminService.registerShipper({
@@ -706,7 +796,7 @@ const RegisterShipperModal: React.FC<{
                 <div className="flex items-center justify-between p-5 border-b border-[#222]">
                     <div>
                         <h3 className="text-lg font-bold text-white font-cyber">Register Log Shipper</h3>
-                        <p className="text-xs text-[#AAA] mt-1">Bind a log shipper to <code className="text-red-500">{serverId}</code>.</p>
+                        <p className="text-xs text-[#AAA] mt-1">Bind a log shipper to <code className="text-accent">{serverId}</code>.</p>
                     </div>
                     <button onClick={onClose} className="p-2 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><X size={18}/></button>
                 </div>
@@ -715,9 +805,10 @@ const RegisterShipperModal: React.FC<{
                         <label className="text-xs text-[#AAA] font-mono block mb-1">Allowed IP <span className="text-red-400">*</span></label>
                         <input
                             value={allowedIp}
-                            onChange={e => setAllowedIp(e.target.value)}
-                            placeholder="13.233.163.244"
-                            className="w-full bg-[#151515] border border-[#333] text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-red-500"
+                            onChange={e => { setAllowedIp(e.target.value); if (error) setError(''); }}
+                            placeholder="203.0.113.10"
+                            aria-invalid={error ? true : undefined}
+                            className={`w-full bg-[#151515] border ${error ? 'border-red-500' : 'border-[#333]'} text-neutral-200 rounded-lg px-3 py-2 text-sm font-mono placeholder-neutral-600 focus:outline-none focus:border-accent`}
                         />
                         <p className="text-[10px] text-neutral-600 mt-1 font-mono">Only requests from this IP will be accepted.</p>
                     </div>
@@ -771,8 +862,13 @@ const ServerDetailPanel: React.FC<{
 
     const agentId = server.agent.isRegistered ? server.agent.agentId : null;
     const isOnline = server.agent.isRegistered && server.agent.status === 'online';
+    const demoMode = isPublicDemo();
 
     const loadDetail = useCallback(async () => {
+        if (isPublicDemo()) {
+            setDetail(getDemoServerDetail(server.ServerId));
+            return;
+        }
         setLoading(true); setError('');
         try {
             const d = await agentService.getServerOverview(server.ServerId);
@@ -784,6 +880,10 @@ const ServerDetailPanel: React.FC<{
 
     const loadContainers = useCallback(async () => {
         if (!agentId) return;
+        if (isPublicDemo()) {
+            setContainers(getDemoContainers(server.ServerId));
+            return;
+        }
         containersListAbortRef.current?.abort();
         const ac = new AbortController();
         containersListAbortRef.current = ac;
@@ -801,10 +901,14 @@ const ServerDetailPanel: React.FC<{
                 setLoading(false);
             }
         }
-    }, [agentId]);
+    }, [agentId, server.ServerId]);
 
     const loadDeployments = useCallback(async () => {
         if (!agentId) return;
+        if (isPublicDemo()) {
+            setDeployments(getDemoDeployments(server.ServerId));
+            return;
+        }
         setLoading(true); setError('');
         try {
             const d = await agentService.listDeployments(agentId);
@@ -812,10 +916,14 @@ const ServerDetailPanel: React.FC<{
         } catch (e: any) {
             setError(e?.response?.data?.message ?? 'Failed to load deployments');
         } finally { setLoading(false); }
-    }, [agentId]);
+    }, [agentId, server.ServerId]);
 
     const loadMetrics = useCallback(async () => {
         if (!agentId) return;
+        if (isPublicDemo()) {
+            setMetrics(getDemoAgentMetrics(server.ServerId));
+            return;
+        }
         setLoading(true); setError('');
         try {
             const m = await agentService.getMetrics(agentId);
@@ -823,7 +931,7 @@ const ServerDetailPanel: React.FC<{
         } catch (e: any) {
             setError(e?.response?.data?.message ?? 'Failed to load metrics');
         } finally { setLoading(false); }
-    }, [agentId]);
+    }, [agentId, server.ServerId]);
 
     useEffect(() => {
         if (tab === 'overview') loadDetail();
@@ -954,12 +1062,19 @@ const ServerDetailPanel: React.FC<{
                 </div>
                 <div className="flex items-center gap-2">
                     {can('infrastructure.deployments.manage') && agentId && isOnline && (
-                        <button onClick={() => setShowDeploy(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-mono hover:bg-red-500/20 transition-colors">
+                        <button onClick={() => setShowDeploy(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-xs font-mono hover:bg-accent/20 transition-colors">
                             <Upload size={12}/> Deploy
                         </button>
                     )}
-                    {can('infrastructure.servers.manage') && !server.agent.isRegistered && (
-                        <button onClick={() => onRegisterAgent(server.ServerId)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-red-400 text-xs font-mono hover:bg-neutral-500/20 transition-colors">
+                    {(demoMode || can('infrastructure.servers.manage')) && !server.agent.isRegistered && (
+                        <button
+                            type="button"
+                            disabled={demoMode}
+                            aria-disabled={demoMode || undefined}
+                            title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register monitoring agent'}
+                            onClick={() => { if (!demoMode) onRegisterAgent(server.ServerId); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-accent text-xs font-mono hover:bg-neutral-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             <Plus size={12}/> Register Agent
                         </button>
                     )}
@@ -973,7 +1088,7 @@ const ServerDetailPanel: React.FC<{
             {/* Tab Bar */}
             <div className="flex border-b border-[#222] shrink-0">
                 {tabs.map(t => (
-                    <button key={t.id} onClick={() => !t.disabled && setTab(t.id)} disabled={t.disabled} className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-mono font-bold transition-colors border-b-2 ${tab === t.id ? 'text-red-500 border-red-500' : 'text-[#888] border-transparent hover:text-neutral-300'} ${t.disabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                    <button key={t.id} onClick={() => !t.disabled && setTab(t.id)} disabled={t.disabled} className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-mono font-bold transition-colors border-b-2 ${tab === t.id ? 'text-accent border-accent' : 'text-[#888] border-transparent hover:text-neutral-300'} ${t.disabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
                         <t.icon size={13}/>{t.label}
                     </button>
                 ))}
@@ -1061,9 +1176,18 @@ const ServerDetailPanel: React.FC<{
                             ) : (
                                 <div className="flex flex-col items-center gap-3 py-4">
                                     <p className="text-xs text-[#888] font-mono">No agent registered for this server.</p>
-                                    {can('infrastructure.servers.manage') && (<button onClick={() => onRegisterAgent(server.ServerId)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-red-400 text-xs font-mono hover:bg-neutral-500/20 transition-colors">
-                                        <Plus size={13}/> Register Agent
-                                    </button>)}
+                                    {(demoMode || can('infrastructure.servers.manage')) && (
+                                        <button
+                                            type="button"
+                                            disabled={demoMode}
+                                            aria-disabled={demoMode || undefined}
+                                            title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register monitoring agent'}
+                                            onClick={() => { if (!demoMode) onRegisterAgent(server.ServerId); }}
+                                            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-500/10 border border-neutral-500/30 text-red-400 text-xs font-mono hover:bg-neutral-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Plus size={13}/> Register Agent
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1072,8 +1196,15 @@ const ServerDetailPanel: React.FC<{
                         <div className="bg-[#111] border border-[#222] rounded-xl p-4 space-y-3">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-bold text-[#AAA] uppercase tracking-widest font-mono">Log Shipper</h4>
-                                {can('infrastructure.shippers.manage') && !detail.shipper.isRegistered && (
-                                    <button onClick={() => setShowRegisterShipper(true)} className="flex items-center gap-1 px-2.5 py-1 rounded bg-neutral-500/10 border border-neutral-500/30 text-white text-[10px] font-mono hover:bg-neutral-500/20 transition-colors">
+                                {(demoMode || can('infrastructure.shippers.manage')) && !detail.shipper.isRegistered && (
+                                    <button
+                                        type="button"
+                                        disabled={demoMode}
+                                        aria-disabled={demoMode || undefined}
+                                        title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register log shipper'}
+                                        onClick={() => { if (!demoMode) setShowRegisterShipper(true); }}
+                                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-neutral-500/10 border border-neutral-500/30 text-white text-[10px] font-mono hover:bg-neutral-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
                                         <Plus size={10}/> Register
                                     </button>
                                 )}
@@ -1191,12 +1322,12 @@ const ServerDetailPanel: React.FC<{
                                 <button onClick={loadContainers} className="p-1.5 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><RefreshCw size={13}/></button>
                             </div>
                             {containers?.containers.map(c => (
-                                <div key={c.id} className={`border rounded-xl p-3 ${c.isXyberah ? 'border-red-500/20 bg-red-500/5' : 'border-[#222] bg-[#111]'}`}>
+                                <div key={c.id} className={`border rounded-xl p-3 ${c.isXyberah ? 'border-accent/25 bg-accent/5' : 'border-[#222] bg-[#111]'}`}>
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="text-xs font-bold text-white font-mono truncate">{c.name}</span>
-                                                {c.isXyberah && <span className="text-[9px] px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 text-red-500 rounded font-mono">ANTI.AI</span>}
+                                                {c.isXyberah && <span className="text-[9px] px-1.5 py-0.5 bg-accent/10 border border-accent/25 text-accent rounded font-mono">ANTI.AI</span>}
                                                 {containerStateBadge(c.state)}
                                             </div>
                                             <div className="text-[11px] text-[#888] font-mono mt-0.5">{c.image}</div>
@@ -1230,7 +1361,7 @@ const ServerDetailPanel: React.FC<{
                         <div className="flex justify-between items-center">
                             <span className="text-xs text-[#888] font-mono">{deployments?.count ?? 0} deployments</span>
                             <div className="flex gap-2">
-                                {can('infrastructure.deployments.manage') && isOnline && <button onClick={() => setShowDeploy(true)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-mono hover:bg-red-500/20"><Plus size={11}/> Deploy</button>}
+                                {can('infrastructure.deployments.manage') && isOnline && <button onClick={() => setShowDeploy(true)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-accent/10 border border-accent/30 text-accent text-xs font-mono hover:bg-accent/20"><Plus size={11}/> Deploy</button>}
                                 <button onClick={loadDeployments} className="p-1.5 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><RefreshCw size={13}/></button>
                             </div>
                         </div>
@@ -1275,7 +1406,7 @@ const ServerDetailPanel: React.FC<{
                                 { icon: Package, label: 'Images', value: String(metrics.storage.images), sub: `${metrics.storage.volumes} volumes` },
                             ].map(m => (
                                 <div key={m.label} className="bg-[#111] border border-[#222] rounded-xl p-3">
-                                    <div className="flex items-center gap-1.5 mb-2"><m.icon size={14} className="text-red-500"/><span className="text-[10px] text-[#AAA] font-mono uppercase tracking-wider">{m.label}</span></div>
+                                    <div className="flex items-center gap-1.5 mb-2"><m.icon size={14} className="text-accent"/><span className="text-[10px] text-[#AAA] font-mono uppercase tracking-wider">{m.label}</span></div>
                                     <div className="text-xl font-bold text-white font-cyber">{m.value}</div>
                                     <div className="text-[10px] text-[#888] font-mono">{m.sub}</div>
                                 </div>
@@ -1343,17 +1474,17 @@ const TemplatesPanel: React.FC<{ templates: DeploymentTemplate[]; loading: boole
 
     const catColors: Record<string, string> = {
         honeypot: 'text-white bg-neutral-500/10 border-neutral-500/30',
-        utility:  'text-red-400   bg-[#151515]/10   border-neutral-500/30',
-        monitoring:'text-red-400 bg-neutral-500/10 border-neutral-500/30',
+        utility:  'text-accent   bg-[#151515]/10   border-neutral-500/30',
+        monitoring:'text-accent bg-neutral-500/10 border-neutral-500/30',
     };
 
     return (
         <div className="flex flex-col h-full">
             <div className="p-4 border-b border-[#222] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#111] rounded-lg border border-neutral-500/30 text-red-400"><Layers size={18}/></div>
+                    <div className="p-2 bg-[#111] rounded-lg border border-neutral-500/30 text-accent"><Layers size={18}/></div>
                     <div>
-                        <h3 className="text-base font-bold text-white font-cyber">DEPLOYMENT <span className="text-red-400">TEMPLATES</span></h3>
+                        <h3 className="text-base font-bold text-white font-cyber">DEPLOYMENT <span className="text-accent">TEMPLATES</span></h3>
                         <p className="text-xs text-[#888] font-mono">{templates.length} templates</p>
                     </div>
                 </div>
@@ -1364,7 +1495,7 @@ const TemplatesPanel: React.FC<{ templates: DeploymentTemplate[]; loading: boole
                         ))}
                     </div>
                     <button onClick={onRefresh} disabled={loading} className="p-1.5 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><RefreshCw size={14} className={loading ? 'animate-spin' : ''}/></button>
-                    {can('infrastructure.templates.manage') && (<button onClick={() => setEditTarget(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-mono hover:bg-red-500/20"><Plus size={13}/> New</button>)}
+                    {can('infrastructure.templates.manage') && (<button onClick={() => setEditTarget(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-xs font-mono hover:bg-accent/20"><Plus size={13}/> New</button>)}
                 </div>
             </div>
 
@@ -1384,12 +1515,24 @@ const TemplatesPanel: React.FC<{ templates: DeploymentTemplate[]; loading: boole
                     </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {displayed.map(t => (
+                    {displayed.map(t => {
+                        const netReport = t.Category === 'honeypot' ? inspectComposeNetworking(t.StackFileContent) : null;
+                        return (
                         <div key={t.TemplateId} className={`bg-[#111] border rounded-xl p-4 flex flex-col gap-3 ${t.IsActive ? 'border-[#333]' : 'border-[#222] opacity-60'}`}>
                             <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
                                     <div className="text-sm font-bold text-white font-mono truncate">{t.Name}</div>
-                                    <span className={`inline-block mt-1 px-2 py-0.5 rounded border text-[10px] font-mono font-bold ${catColors[t.Category] ?? 'text-[#AAA] bg-[#1C1C1C] border-neutral-600'}`}>{t.Category}</span>
+                                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                        <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-mono font-bold ${catColors[t.Category] ?? 'text-[#AAA] bg-[#1C1C1C] border-neutral-600'}`}>{t.Category}</span>
+                                        {netReport && (
+                                            <span
+                                                title={netReport.usesHostNetworking ? 'Uses network_mode: host (preserves real attacker source IP)' : 'Legacy bridge compose — auto-upgraded to network_mode: host on deploy'}
+                                                className={`inline-block px-2 py-0.5 rounded border text-[10px] font-mono font-bold ${netReport.usesHostNetworking ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-300 bg-amber-500/10 border-amber-500/30'}`}
+                                            >
+                                                {netReport.usesHostNetworking ? 'HOST NET' : 'BRIDGE → AUTO-HOST'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 {can('infrastructure.templates.manage') && (<div className="flex items-center gap-1 shrink-0">
                                     <button onClick={() => setEditTarget(t)} title="Edit" className="p-1.5 rounded hover:bg-[#1C1C1C] text-[#AAA] hover:text-white transition-colors"><Edit2 size={13}/></button>
@@ -1405,7 +1548,8 @@ const TemplatesPanel: React.FC<{ templates: DeploymentTemplate[]; loading: boole
                             )}
                             <div className="text-[10px] text-neutral-600 font-mono">Updated {fmtDate(t.UpdatedAt)}</div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
@@ -1579,10 +1723,14 @@ export const InfrastructureView: React.FC = () => {
     const [showRegisterServer, setShowRegisterServer] = useState(false);
     // Portainer health is a platform-staff endpoint (403 for customer accounts), so only query it for staff.
     const { admin, permissionsLoaded } = useAuth();
-    const isPlatformUser = !admin?.CustomerID;
+    const demoMode = isPublicDemo();
+    const isPlatformUser = !demoMode && !admin?.CustomerID;
 
     const loadShippers = useCallback(async () => {
-        if (isPublicDemo()) return;
+        if (isPublicDemo()) {
+            setShippers(DEMO_SHIPPERS);
+            return;
+        }
         setLoadingShippers(true);
         try {
             const res = await adminService.listShippers();
@@ -1592,7 +1740,10 @@ export const InfrastructureView: React.FC = () => {
     }, []);
 
     const loadOverview = useCallback(async () => {
-        if (isPublicDemo()) return;
+        if (isPublicDemo()) {
+            setOverview(DEMO_SERVERS_OVERVIEW);
+            return;
+        }
         setLoadingOverview(true); setOverviewError('');
         try {
             const d = await agentService.getServersOverview();
@@ -1608,7 +1759,10 @@ export const InfrastructureView: React.FC = () => {
     }, [selectedServer]);
 
     const loadTemplates = useCallback(async () => {
-        if (isPublicDemo()) return;
+        if (isPublicDemo()) {
+            setTemplates(DEMO_TEMPLATES);
+            return;
+        }
         setLoadingTemplates(true);
         try {
             const t = await agentService.listTemplates();
@@ -1617,7 +1771,7 @@ export const InfrastructureView: React.FC = () => {
     }, []);
 
     const checkPortainerHealth = useCallback(async () => {
-        if (!permissionsLoaded || !isPlatformUser) return;
+        if (!permissionsLoaded || !isPlatformUser || isPublicDemo()) return;
         try {
             const h = await agentService.getPortainerHealth();
             setPortainerHealth(h.status);
@@ -1635,6 +1789,7 @@ export const InfrastructureView: React.FC = () => {
     }, [checkPortainerHealth]);
 
     const handleRegisterAgent = async (serverId: string) => {
+        if (demoMode) return;
         setRegisterLoading(true); setRegisterError('');
         try {
             const res = await agentService.registerAgent({ ServerId: serverId });
@@ -1655,10 +1810,15 @@ export const InfrastructureView: React.FC = () => {
             {/* Top Header */}
             <div className="p-4 border-b border-[#222] bg-[#111]/40 backdrop-blur-sm flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#111] rounded-lg border border-neutral-500/30 text-red-400"><MonitorCog size={20}/></div>
+                    <div className="p-2 bg-[#111] rounded-lg border border-neutral-500/30 text-accent"><MonitorCog size={20}/></div>
                     <div>
                         <h2 className="text-lg font-bold text-white font-cyber flex items-center gap-2">
-                            INFRASTRUCTURE <span className="text-red-500">MANAGER</span>
+                            INFRASTRUCTURE <span className="text-accent">MANAGER</span>
+                            {demoMode && (
+                                <span className="px-2 py-0.5 rounded border border-amber-500/35 bg-amber-500/10 text-amber-300 text-[10px] font-mono font-bold tracking-wider">
+                                    DEMO SANDBOX
+                                </span>
+                            )}
                         </h2>
                         <p className="text-xs text-[#888] font-mono">Servers · Agents · Shippers · Deployments</p>
                     </div>
@@ -1688,6 +1848,13 @@ export const InfrastructureView: React.FC = () => {
                 </div>
             </div>
 
+            {demoMode && (
+                <div className="mx-4 mt-3 flex items-center gap-2 text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 font-mono">
+                    <ShieldCheck size={14} className="shrink-0 text-amber-400"/>
+                    <span>Read-only preview with sample infrastructure nodes. Sign in with a customer account to register live servers, agents, and shippers.</span>
+                </div>
+            )}
+
             {/* Section Tab Bar */}
             <div className="flex border-b border-[#222] bg-[#111]/30 shrink-0">
                 {([
@@ -1695,7 +1862,7 @@ export const InfrastructureView: React.FC = () => {
                     { id: 'shippers' as InfraTab, label: 'SHIPPERS', icon: Radio },
                     { id: 'templates' as InfraTab, label: 'TEMPLATES', icon: Layers },
                 ] as const).map(t => (
-                    <button key={t.id} onClick={() => setInfraTab(t.id)} className={`flex items-center gap-2 px-5 py-3 text-xs font-mono font-bold border-b-2 transition-colors ${infraTab === t.id ? 'text-red-500 border-red-500 bg-red-500/5' : 'text-[#888] border-transparent hover:text-neutral-300'}`}>
+                    <button key={t.id} onClick={() => setInfraTab(t.id)} className={`flex items-center gap-2 px-5 py-3 text-xs font-mono font-bold border-b-2 transition-colors ${infraTab === t.id ? 'text-accent border-accent bg-accent/5' : 'text-[#888] border-transparent hover:text-neutral-300'}`}>
                         <t.icon size={14}/>{t.label}
                     </button>
                 ))}
@@ -1717,12 +1884,18 @@ export const InfrastructureView: React.FC = () => {
                         <div className="p-3 border-b border-[#222] flex items-center justify-between shrink-0">
                             <span className="text-xs text-[#888] font-mono">{overview?.count ?? 0} servers registered</span>
                             <div className="flex items-center gap-2">
-                                {can('infrastructure.servers.manage') && (<button
-                                    onClick={() => setShowRegisterServer(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-mono font-bold hover:bg-red-500/20 transition-colors"
-                                >
-                                    <Plus size={12}/> Register Server
-                                </button>)}
+                                {(demoMode || can('infrastructure.servers.manage')) && (
+                                    <button
+                                        type="button"
+                                        disabled={demoMode}
+                                        aria-disabled={demoMode || undefined}
+                                        title={demoMode ? DEMO_INFRA_TOOLTIP : 'Register a new server node'}
+                                        onClick={() => { if (!demoMode) setShowRegisterServer(true); }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-[11px] font-mono font-bold hover:bg-accent/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Plus size={12}/> Register Server
+                                    </button>
+                                )}
                                 <button onClick={loadOverview} disabled={loadingOverview} className="p-1.5 rounded hover:bg-[#151515] text-[#AAA] hover:text-white"><RefreshCw size={13} className={loadingOverview ? 'animate-spin' : ''}/></button>
                             </div>
                         </div>
@@ -1743,7 +1916,7 @@ export const InfrastructureView: React.FC = () => {
                                 <span>Deployments</span>
                             </div>
                             {overview?.servers.map(srv => (
-                                <button key={srv.ServerId} onClick={() => setSelectedServer(selectedServer?.ServerId === srv.ServerId ? null : srv)} className={`w-full grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center px-4 py-3 border-b border-[#222] text-left transition-colors hover:bg-white/5 ${selectedServer?.ServerId === srv.ServerId ? 'bg-red-500/5 border-l-2 border-l-red-500' : ''}`}>
+                                <button key={srv.ServerId} onClick={() => setSelectedServer(selectedServer?.ServerId === srv.ServerId ? null : srv)} className={`w-full grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center px-4 py-3 border-b border-[#222] text-left transition-colors hover:bg-white/5 ${selectedServer?.ServerId === srv.ServerId ? 'bg-accent/5 border-l-2 border-l-accent' : ''}`}>
                                     <div className="min-w-0">
                                         <div className="text-sm font-bold text-white font-mono truncate">{srv.Hostname}</div>
                                         <div className="text-[11px] text-[#888] font-mono">{srv.PublicIp} · {srv.Region} · {srv.Provider}</div>

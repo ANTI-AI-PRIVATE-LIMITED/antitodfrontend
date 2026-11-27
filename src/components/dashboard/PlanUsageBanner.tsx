@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import {
   PLAN_TIERS,
+  formatInr,
   getStoredPlan,
   setStoredPlan,
   type PlanTier,
@@ -67,7 +68,12 @@ export default function PlanUsageBanner({
   const plan = PLAN_TIERS[currentPlan];
   const maxHoneypots = serverUsage?.limit ?? plan.maxHoneypots;
   const maxEvents = plan.maxEventsPerMonth;
-  const honeypotUsed = serverUsage?.used ?? honeypotCount;
+  const honeypotUsed =
+    serverUsage && serverUsage.used > 0
+      ? serverUsage.used
+      : honeypotCount > 0
+        ? honeypotCount
+        : (serverUsage?.used ?? 0);
 
   // Usage ratios
   const honeypotRatio = Math.min(100, Math.round((honeypotUsed / maxHoneypots) * 100));
@@ -120,7 +126,7 @@ export default function PlanUsageBanner({
               onClick={openUpgradeModal}
             >
               <Zap size={13} />
-              Upgrade to Pro — ${PLAN_TIERS.pro.priceMonthly}/mo
+              Upgrade to Pro — {formatInr(PLAN_TIERS.pro.priceMonthly)}/mo
             </button>
             <button
               type="button"

@@ -102,6 +102,12 @@ export const rbacService = {
     return res.data.user;
   },
 
+  /** Remove a team member (frees their seat). */
+  async deleteUser(adminId: string): Promise<{ removed: boolean }> {
+    const res = await api.delete<{ removed: boolean }>(path(API_ENDPOINTS.RBAC_USER, { adminId }));
+    return res.data;
+  },
+
   async listAuditLogs(params?: {
     limit?: number;
     offset?: number;

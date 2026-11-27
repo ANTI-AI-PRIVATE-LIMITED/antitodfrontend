@@ -12,7 +12,8 @@ export interface BillingResourceUsage {
 export interface BillingPlanInfo {
   id: BillingPlanId;
   label: string;
-  priceUsdPerMonth?: number;
+  priceInrPerMonth?: number;
+  currency?: 'INR' | string;
   status: 'trial' | 'active' | 'past_due' | 'cancelled' | string;
   active: boolean;
   paidUntil?: string | null;
@@ -27,7 +28,8 @@ export interface BillingWarning {
 export interface BillingUpgradeInfo {
   available: boolean;
   nextPlan?: string;
-  priceUsdPerMonth?: number;
+  priceInrPerMonth?: number;
+  currency?: 'INR' | string;
   message?: string;
   contact?: string | null;
 }
@@ -56,11 +58,16 @@ export type BillingUsageResponse = BillingUsage;
 export interface BillingPlanCard {
   id: BillingPlanId;
   label: string;
-  priceUsdPerMonth: number;
-  maxServers: number;
-  maxUsers: number;
-  retentionDays: number;
-  exportFormats: string[];
+  /** null for Enterprise, which is sold through sales. */
+  priceInrPerMonth?: number | null;
+  currency?: 'INR' | string;
+  contactSales?: boolean;
+  contact?: string | null;
+  // Not sent for Enterprise (limits are agreed with sales).
+  maxServers?: number;
+  maxUsers?: number;
+  retentionDays?: number;
+  exportFormats?: string[];
   current?: boolean;
 }
 

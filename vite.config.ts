@@ -145,6 +145,13 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
+    esbuild:
+      mode === 'production'
+        ? {
+            drop: ['debugger'],
+            pure: ['console.log', 'console.debug', 'console.info'],
+          }
+        : undefined,
     build: {
       sourcemap: false, // Disabling sourcemaps significantly reduces memory usage during build
       rollupOptions: {

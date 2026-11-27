@@ -23,6 +23,8 @@ import {
 } from '../../../api/services/billingService';
 import {
   PLAN_TIERS,
+  formatInr,
+  planPriceInr,
   getStoredPlan,
   type PlanTier,
 } from '../../data/planTiering';
@@ -207,7 +209,10 @@ export default function Header({
             {group?.title ?? 'Workspace'}
           </span>
           <ChevronRight size={13} />
-          <strong>{item?.label ?? 'Dashboard'}</strong>
+          <strong>
+            {item?.label ??
+              (activeView === 'dashboard' ? 'Dashboard' : 'Module Unavailable')}
+          </strong>
           <span className="at-header-route-path">{path}</span>
         </div>
       </div>
@@ -254,7 +259,7 @@ export default function Header({
             <div className="absolute right-0 mt-2 w-80 bg-[#111] border border-neutral-800 rounded-xl shadow-2xl p-4 z-50 animate-fade-in font-sans">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
                 <div className="flex items-center gap-2">
-                  <Bell size={14} className="text-red-500" />
+                  <Bell size={14} className="text-accent" />
                   <span className="text-xs font-bold text-white uppercase tracking-wider">
                     Notifications
                   </span>
@@ -455,10 +460,10 @@ export default function Header({
                           }),
                         );
                       }}
-                      className="w-full py-2.5 px-3 rounded-lg bg-[#d62828] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-center border border-[#d62828] transition-all shadow-md shadow-[#d62828]/25 hover:shadow-[#d62828]/40 cursor-pointer"
+                      className="w-full py-2.5 px-3 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-center border border-accent transition-all shadow-md shadow-accent/25 hover:shadow-accent/40 cursor-pointer"
                     >
                       {usage.plan.id === 'basic'
-                        ? `Upgrade to Pro ($${usage.upgrade?.priceUsdPerMonth ?? 155}/mo)`
+                        ? `Upgrade to Pro (${formatInr(planPriceInr({ id: 'pro', priceInrPerMonth: usage.upgrade?.priceInrPerMonth }) ?? PLAN_TIERS.pro.priceMonthly)}/mo)`
                         : 'Manage Subscription'}
                     </button>
                   </div>
@@ -487,7 +492,7 @@ export default function Header({
         <div className="relative" ref={userMenuRef}>
           <button
             type="button"
-            className="at-header-user hover:ring-2 hover:ring-red-500/50 transition-all cursor-pointer"
+            className="at-header-user hover:ring-2 hover:ring-accent/50 transition-all cursor-pointer"
             aria-label="Account menu"
             title="Account profile & sign out"
             onClick={() => setShowUserMenu((prev) => !prev)}
@@ -500,7 +505,7 @@ export default function Header({
           {showUserMenu && (
             <div className="absolute right-0 top-full mt-2 w-64 bg-[#0e1117] border border-neutral-800 rounded-xl shadow-2xl p-3 z-50 animate-slide-in-up font-mono text-xs space-y-3">
               <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
-                <div className="w-9 h-9 rounded-full bg-red-950/80 border border-red-500/40 flex items-center justify-center text-red-400 font-bold text-sm">
+                <div className="w-9 h-9 rounded-full bg-accent/15 border border-accent/40 flex items-center justify-center text-accent font-bold text-sm">
                   {admin?.AdminEmail ? admin.AdminEmail.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div className="overflow-hidden">

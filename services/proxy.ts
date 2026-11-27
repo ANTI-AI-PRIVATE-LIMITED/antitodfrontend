@@ -1,6 +1,9 @@
 import { BACKEND_URL, AUTH_CONFIG } from '../config/config';
 
 export const PROXY_ROUTE = '/AdminRoutes/proxy/fetch';
+export const WEBCHECK_PROXY_ROUTE = '/AdminRoutes/proxy/webcheck';
+export const PING_PROXY_ROUTE = '/AdminRoutes/proxy/ping';
+export const PORTSCAN_PROXY_ROUTE = '/AdminRoutes/proxy/portscan';
 
 /**
  * Transforms an arbitrary target URL into a proxied URL routed through the backend.
@@ -80,7 +83,12 @@ export function installProxyFetchInterceptor(force: boolean = false): void {
             urlStr = (input as Request).url;
         }
 
-        if (urlStr.includes(PROXY_ROUTE)) {
+        if (
+            urlStr.includes(PROXY_ROUTE) ||
+            urlStr.includes(WEBCHECK_PROXY_ROUTE) ||
+            urlStr.includes(PING_PROXY_ROUTE) ||
+            urlStr.includes(PORTSCAN_PROXY_ROUTE)
+        ) {
             const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
             const headers = new Headers(
                 init?.headers || (typeof input !== 'string' && !(input instanceof URL) ? (input as Request).headers : undefined)
@@ -157,4 +165,114 @@ export async function fetchTextViaProxy(targetUrl: string, init?: RequestInit): 
         console.warn(`[ProxyFetch] Request failed for ${targetUrl}:`, err.message);
         return null;
     }
+}
+
+export interface WebCheckProxyResponse {
+    targetUrl: string;
+    finalUrl: string;
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    redirects: string[];
+    htmlSample: string;
+    bodyBytes: number;
+    hasRobotsTxt: boolean;
+    hasSitemap: boolean;
+}
+
+export type WebCheckProxyResult =
+    | { ok: true; data: WebCheckProxyResponse }
+    | { ok: false; status: number; code?: string; message: string };
+
+export interface PingProxyResponse {
+    target: string;
+    resolvedIp: string;
+    port: number;
+    reachable: boolean;
+    rttMs: number;
+    status: 'OK' | 'TIMEOUT' | 'ERROR';
+    message?: string;
+}
+
+export type ProxyJsonResult<T> =
+    | { ok: true; data: T }
+    | { ok: false; status: number; code?: string; message: string };
+
+async function fetchProxyJsonEndpoint<T>(routeWithQuery: string, failurePrefix: string): Promise<ProxyJsonResult<T>> {
+    const base = (BACKEND_URL || '').replace(/\/+$/, '');
+    const endpoint = `${base}${routeWithQuery}`;
+    try {
+        const response = await fetch(endpoint, { headers: getProxyHeaders() });
+        if (!response.ok) {
+            let errorPayload: ProxyErrorPayload | null = null;
+            try {
+                errorPayload = await response.json();
+            } catch {
+                // Non-JSON error response
+            }
+            return {
+                ok: false,
+                status: response.status,
+                code: errorPayload?.code,
+                message: formatProxyErrorMessage(response.status, errorPayload),
+            };
+        }
+        const data = (await response.json()) as T;
+        return { ok: true, data };
+    } catch (err: any) {
+        return {
+            ok: false,
+            status: 0,
+            code: 'NETWORK_ERROR',
+            message: err?.message ? `${failurePrefix}: ${err.message}` : failurePrefix,
+        };
+    }
+}
+
+/**
+ * Inspects a user-supplied URL via GET /AdminRoutes/proxy/webcheck using SSRF-safe server fetch.
+ */
+export async function inspectWebTargetViaProxy(targetUrl: string): Promise<WebCheckProxyResult> {
+    return fetchProxyJsonEndpoint<WebCheckProxyResponse>(
+        `${WEBCHECK_PROXY_ROUTE}?url=${encodeURIComponent(targetUrl.trim())}`,
+        'Inspection request failed'
+    );
+}
+
+/**
+ * Measures server-side TCP reachability and RTT for a public IP or domain via GET /AdminRoutes/proxy/ping.
+ */
+export async function pingTargetViaProxy(target: string): Promise<ProxyJsonResult<PingProxyResponse>> {
+    return fetchProxyJsonEndpoint<PingProxyResponse>(
+        `${PING_PROXY_ROUTE}?target=${encodeURIComponent(target.trim())}`,
+        'Ping probe failed'
+    );
+}
+
+export interface PortScanProxyEntry {
+    port: number;
+    service: string;
+    transport: 'TCP';
+    state: 'OPEN';
+    rttMs: number;
+}
+
+export interface PortScanProxyResponse {
+    target: string;
+    resolvedIp: string;
+    scannedCount: number;
+    scannedPorts: number[];
+    openPorts: PortScanProxyEntry[];
+    probedAt: string;
+}
+
+/**
+ * Performs SSRF-safe server-side TCP port reachability checks via GET /AdminRoutes/proxy/portscan.
+ */
+export async function scanPortsViaProxy(target: string, ports?: number[]): Promise<ProxyJsonResult<PortScanProxyResponse>> {
+    const portParam = ports && ports.length > 0 ? `&ports=${encodeURIComponent(ports.join(','))}` : '';
+    return fetchProxyJsonEndpoint<PortScanProxyResponse>(
+        `${PORTSCAN_PROXY_ROUTE}?target=${encodeURIComponent(target.trim())}${portParam}`,
+        'Active port scan failed'
+    );
 }

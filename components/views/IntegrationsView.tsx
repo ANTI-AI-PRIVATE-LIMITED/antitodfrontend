@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -45,6 +45,12 @@ import {
   integrationsService,
 } from '../../api/services/integrationsService';
 import { useAuth } from '../../contexts/AuthContext';
+import { isPublicDemo } from '../../src/utils/demoMode';
+import {
+  DEMO_CONNECTORS,
+  DEMO_INTEL_FEED_PREVIEW,
+  DEMO_SOAR_ALERTS,
+} from '../../src/data/demo/governanceAndBilling';
 
 const CONNECTOR_TYPE_LABELS: Record<AsmConnectorType, { label: string; desc: string; defaultHeader?: string }> = {
   webhook: {
@@ -93,14 +99,15 @@ const FORMAT_LABELS: Record<AsmConnectorFormat, string> = {
 
 export const IntegrationsView: React.FC = () => {
   const { permissions, can, permissionsLoaded } = useAuth();
+  const demoMode = isPublicDemo();
 
-  // Permission gates
-  const hasModuleAccess = permissions.some((p) => p.startsWith('integrations.'));
-  const canViewConnectors = can('integrations.connectors.view') || can('integrations.module.access');
-  const canManageConnectors = can('integrations.connectors.manage');
-  const canPushConnectors = can('integrations.connectors.push');
-  const canViewFeed = can('integrations.feed.view');
-  const canViewSoar = can('integrations.soar.view');
+  // Permission gates (demo mode enables read-only connector + feed inspection only)
+  const hasModuleAccess = demoMode || permissions.some((p) => p.startsWith('integrations.'));
+  const canViewConnectors = demoMode || can('integrations.connectors.view') || can('integrations.module.access');
+  const canManageConnectors = !demoMode && can('integrations.connectors.manage');
+  const canPushConnectors = !demoMode && can('integrations.connectors.push');
+  const canViewFeed = demoMode || can('integrations.feed.view');
+  const canViewSoar = demoMode || can('integrations.soar.view');
 
   const [connectors, setConnectors] = useState<AsmConnector[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,11 +115,15 @@ export const IntegrationsView: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modal states
+  // Modal & confirmation states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConnector, setEditingConnector] = useState<AsmConnector | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [pendingDeleteConnector, setPendingDeleteConnector] = useState<AsmConnector | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const notifyTimerRef = useRef<number | null>(null);
 
   // Push state
   const [pushingId, setPushingId] = useState<string | null>(null);
@@ -141,8 +152,77 @@ export const IntegrationsView: React.FC = () => {
   const [formIncludeHoneypot, setFormIncludeHoneypot] = useState(true);
   const [formMinRisk, setFormMinRisk] = useState('low');
 
+  const showNotice = useCallback((type: 'success' | 'error', message: string) => {
+    if (notifyTimerRef.current !== null) {
+      window.clearTimeout(notifyTimerRef.current);
+    }
+    setActionNotice({ type, message });
+    notifyTimerRef.current = window.setTimeout(() => {
+      setActionNotice(null);
+      notifyTimerRef.current = null;
+    }, 6000);
+  }, []);
+
+  /**
+   * Zero-retention secret cleanup: clear all sensitive tokens, passwords,
+   * HMAC secrets, and form fields when the modal closes, cancels, or unmounts.
+   */
+  const resetConnectorFormState = useCallback(() => {
+    setEditingConnector(null);
+    setFormName('');
+    setFormType('webhook');
+    setFormFormat('json');
+    setFormUrl('');
+    setFormAuthHeader('Authorization');
+    setFormAuthToken('');
+    setFormUsername('');
+    setFormPassword('');
+    setFormSecret('');
+    setFormEnabled(true);
+    setFormIncludeAsm(true);
+    setFormIncludeHoneypot(true);
+    setFormMinRisk('low');
+    setFormError(null);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    resetConnectorFormState();
+    setIsModalOpen(false);
+  }, [resetConnectorFormState]);
+
+  useEffect(() => {
+    return () => {
+      resetConnectorFormState();
+      if (notifyTimerRef.current !== null) {
+        window.clearTimeout(notifyTimerRef.current);
+      }
+    };
+  }, [resetConnectorFormState]);
+
+  useEffect(() => {
+    if (!isModalOpen && !pendingDeleteConnector) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (pendingDeleteConnector && !deletingId) {
+        setPendingDeleteConnector(null);
+        return;
+      }
+      if (isModalOpen && !saving) {
+        closeModal();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isModalOpen, pendingDeleteConnector, deletingId, saving, closeModal]);
+
   // Load Connectors
   const loadConnectors = useCallback(async () => {
+    if (isPublicDemo()) {
+      setError(null);
+      setConnectors(DEMO_CONNECTORS);
+      setLoading(false);
+      return;
+    }
     if (!canViewConnectors) {
       setLoading(false);
       return;
@@ -168,28 +248,14 @@ export const IntegrationsView: React.FC = () => {
   }, [canViewConnectors]);
 
   useEffect(() => {
-    if (permissionsLoaded) {
+    if (demoMode || permissionsLoaded) {
       void loadConnectors();
     }
-  }, [permissionsLoaded, loadConnectors]);
+  }, [demoMode, permissionsLoaded, loadConnectors]);
 
   // Open Create Modal
   const openCreateModal = () => {
-    setEditingConnector(null);
-    setFormName('');
-    setFormType('webhook');
-    setFormFormat('json');
-    setFormUrl('');
-    setFormAuthHeader('Authorization');
-    setFormAuthToken('');
-    setFormUsername('');
-    setFormPassword('');
-    setFormSecret('');
-    setFormEnabled(true);
-    setFormIncludeAsm(true);
-    setFormIncludeHoneypot(true);
-    setFormMinRisk('low');
-    setFormError(null);
+    resetConnectorFormState();
     setIsModalOpen(true);
   };
 
@@ -258,13 +324,15 @@ export const IntegrationsView: React.FC = () => {
       if (formPassword.trim()) payload.password = formPassword.trim();
       if (formSecret.trim()) payload.secret = formSecret.trim();
 
+      const wasEditing = Boolean(editingConnector);
       if (editingConnector) {
         await integrationsService.updateConnector(editingConnector.id, payload);
       } else {
         await integrationsService.createConnector(payload);
       }
 
-      setIsModalOpen(false);
+      closeModal();
+      showNotice('success', wasEditing ? `Updated connector "${trimmedName}".` : `Created connector "${trimmedName}".`);
       await loadConnectors();
     } catch (err: any) {
       const data = err?.response?.data;
@@ -292,21 +360,33 @@ export const IntegrationsView: React.FC = () => {
       setConnectors((prev) =>
         prev.map((item) => (item.id === c.id ? { ...item, enabled: !item.enabled } : item))
       );
+      showNotice('success', `Connector "${c.name}" ${!c.enabled ? 'enabled' : 'paused'}.`);
     } catch (err: any) {
-      console.error('Failed to toggle connector status', err);
+      showNotice('error', err?.response?.data?.message || err?.message || `Failed to update connector "${c.name}".`);
     }
   };
 
-  // Delete Connector
-  const handleDelete = async (c: AsmConnector) => {
+  // Request Connector Deletion via In-App Modal
+  const requestDeleteConnector = (c: AsmConnector) => {
     if (!canManageConnectors) return;
-    if (!window.confirm(`Are you sure you want to delete connector "${c.name}"?`)) return;
+    setPendingDeleteConnector(c);
+  };
 
+  // Confirm Connector Deletion
+  const confirmDeleteConnector = async () => {
+    if (!canManageConnectors || !pendingDeleteConnector) return;
+    const target = pendingDeleteConnector;
+    setDeletingId(target.id);
     try {
-      await integrationsService.deleteConnector(c.id);
-      setConnectors((prev) => prev.filter((item) => item.id !== c.id));
+      await integrationsService.deleteConnector(target.id);
+      setConnectors((prev) => prev.filter((item) => item.id !== target.id));
+      setPendingDeleteConnector(null);
+      showNotice('success', `Deleted connector "${target.name}".`);
     } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Failed to delete connector.');
+      setPendingDeleteConnector(null);
+      showNotice('error', err?.response?.data?.message || err?.message || `Failed to delete connector "${target.name}".`);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -352,6 +432,20 @@ export const IntegrationsView: React.FC = () => {
   const loadFeedPreview = async () => {
     setFeedDrawerOpen(true);
     setFeedLoading(true);
+    if (isPublicDemo()) {
+      const contentType =
+        feedFormat === 'stix'
+          ? 'application/stix+json'
+          : feedFormat === 'cef'
+            ? 'text/plain'
+            : feedFormat === 'csv'
+              ? 'text/csv'
+              : 'application/json';
+      setFeedData({ ...DEMO_INTEL_FEED_PREVIEW, contentType });
+      setSoarAlerts(DEMO_SOAR_ALERTS);
+      setFeedLoading(false);
+      return;
+    }
     try {
       if (activeFeedTab === 'feed') {
         const feed = await integrationsService.previewFeed({ format: feedFormat });
@@ -415,11 +509,17 @@ export const IntegrationsView: React.FC = () => {
               <Share2 size={22} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+              <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2 flex-wrap">
                 SIEM & SOAR Connectors
-                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium">
-                  Live Event Pipeline
-                </span>
+                {demoMode ? (
+                  <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-sky-500/40 bg-sky-500/10 text-sky-300">
+                    DEMO SANDBOX
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium">
+                    Live Event Pipeline
+                  </span>
+                )}
               </h1>
               <p className="text-xs text-neutral-400 mt-0.5">
                 Stream scoped attack surface risks and honeypot attacker indicators into Splunk, Elastic, Sentinel, and SOAR pipelines.
@@ -453,11 +553,17 @@ export const IntegrationsView: React.FC = () => {
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
 
-          {canManageConnectors && (
+          {(canManageConnectors || demoMode) && (
             <button
               type="button"
-              onClick={openCreateModal}
-              className="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-colors flex items-center gap-2 shadow-lg shadow-indigo-600/25"
+              onClick={() => { if (!demoMode) openCreateModal(); }}
+              disabled={demoMode}
+              title={demoMode ? 'Read-only in Demo Mode: sign in to configure live SIEM/SOAR connectors' : undefined}
+              className={`px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors ${
+                demoMode
+                  ? 'bg-neutral-800/70 border border-neutral-700 text-neutral-500 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25'
+              }`}
             >
               <Plus size={15} />
               <span>Add Connector</span>
@@ -465,6 +571,21 @@ export const IntegrationsView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {demoMode && (
+        <div
+          data-testid="integrations-demo-banner"
+          className="flex items-center gap-3 p-4 rounded-xl border border-sky-800/50 bg-sky-950/25 text-sky-200 text-xs font-mono"
+        >
+          <ShieldAlert size={18} className="shrink-0 text-sky-400" />
+          <div>
+            <div className="font-bold text-sky-100">Public Demo Sandbox — Read-Only Connector Preview</div>
+            <div className="text-sky-300/80 text-[11px] mt-0.5">
+              Inspect sample SIEM/SOAR pipeline configurations and telemetry feed payloads. Creating, editing, pushing, or deleting connectors is disabled without signing in.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -503,6 +624,35 @@ export const IntegrationsView: React.FC = () => {
         <div className="p-4 rounded-xl border border-rose-800/60 bg-rose-950/40 text-rose-300 text-xs flex items-center gap-3">
           <AlertCircle size={18} className="shrink-0 text-rose-400" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Action Status Toast / Banner */}
+      {actionNotice && (
+        <div
+          role={actionNotice.type === 'error' ? 'alert' : 'status'}
+          className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+            actionNotice.type === 'error'
+              ? 'border-rose-800/60 bg-rose-950/40 text-rose-300'
+              : 'border-emerald-800/60 bg-emerald-950/40 text-emerald-300'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {actionNotice.type === 'error' ? (
+              <AlertCircle size={16} className="shrink-0 text-rose-400" />
+            ) : (
+              <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+            )}
+            <span>{actionNotice.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionNotice(null)}
+            aria-label="Dismiss notification"
+            className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 
@@ -768,7 +918,7 @@ export const IntegrationsView: React.FC = () => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDelete(c)}
+                                onClick={() => requestDeleteConnector(c)}
                                 className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                                 title="Delete connector"
                               >
@@ -812,7 +962,7 @@ export const IntegrationsView: React.FC = () => {
       {isModalOpen && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
-          onClick={() => setIsModalOpen(false)}
+          onClick={closeModal}
         >
           <div
             className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-800 bg-[#0c0d10] p-6 shadow-2xl text-neutral-200"
@@ -820,7 +970,7 @@ export const IntegrationsView: React.FC = () => {
           >
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={closeModal}
               className="absolute top-5 right-5 p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
             >
               <X size={18} />
@@ -984,6 +1134,7 @@ export const IntegrationsView: React.FC = () => {
                     </label>
                     <input
                       type="password"
+                      autoComplete="new-password"
                       placeholder={
                         editingConnector?.hasAuthToken
                           ? '•••••••• (Token is set — leave blank to keep unchanged)'
@@ -1004,6 +1155,7 @@ export const IntegrationsView: React.FC = () => {
                     </label>
                     <input
                       type="text"
+                      autoComplete="off"
                       placeholder="Optional Basic Auth user"
                       value={formUsername}
                       onChange={(e) => setFormUsername(e.target.value)}
@@ -1026,6 +1178,7 @@ export const IntegrationsView: React.FC = () => {
                     </label>
                     <input
                       type="password"
+                      autoComplete="new-password"
                       placeholder={
                         editingConnector?.hasPassword
                           ? '•••••••• (Password is set — leave blank to keep unchanged)'
@@ -1054,6 +1207,7 @@ export const IntegrationsView: React.FC = () => {
                   </label>
                   <input
                     type="password"
+                    autoComplete="new-password"
                     placeholder={
                       editingConnector?.hasSecret
                         ? '•••••••• (Secret is set — leave blank to keep unchanged)'
@@ -1105,7 +1259,7 @@ export const IntegrationsView: React.FC = () => {
                 <div className="flex items-center gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={closeModal}
                     className="px-4 py-2 rounded-xl text-neutral-400 hover:text-white transition-colors"
                   >
                     Cancel
@@ -1298,6 +1452,70 @@ export const IntegrationsView: React.FC = () => {
                 className="px-4 py-2 rounded-xl text-xs font-medium bg-neutral-800 hover:bg-neutral-700 text-white transition-colors"
               >
                 Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Connector Confirmation Modal */}
+      {pendingDeleteConnector && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+          onClick={() => {
+            if (!deletingId) setPendingDeleteConnector(null);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm connector deletion"
+            className="w-full max-w-md rounded-2xl border border-rose-900/50 bg-[#0c0d10] p-6 shadow-2xl text-neutral-200 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400">
+                  <Trash2 size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Delete Connector</h2>
+                  <p className="text-xs text-neutral-400 mt-0.5">This stops automated indicator delivery immediately.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={Boolean(deletingId)}
+                onClick={() => setPendingDeleteConnector(null)}
+                aria-label="Cancel deletion"
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-50"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-neutral-300 leading-relaxed">
+              Are you sure you want to delete connector{' '}
+              <span className="font-mono font-semibold text-white">"{pendingDeleteConnector.name}"</span>?
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-neutral-800">
+              <button
+                type="button"
+                disabled={Boolean(deletingId)}
+                onClick={() => setPendingDeleteConnector(null)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(deletingId)}
+                onClick={() => void confirmDeleteConnector()}
+                className="px-4 py-2 rounded-xl text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white disabled:opacity-50 flex items-center gap-2 transition-colors"
+              >
+                {deletingId && <Loader2 size={14} className="animate-spin" />}
+                <span>Delete Connector</span>
               </button>
             </div>
           </div>

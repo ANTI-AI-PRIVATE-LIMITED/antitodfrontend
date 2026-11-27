@@ -7,8 +7,14 @@ import {
     FileText, List, Bookmark, Layout, CheckCircle, Table
 } from 'lucide-react';
 import { searchThreatIntelligence } from '../../services/aiConverter';
+import {
+    getAiCapabilities,
+    GeminiProxyError,
+    type AiCapabilities,
+} from '../../services/geminiService';
 import { saveToStorage, loadFromStorage, STORES } from '../../services/storage';
 import { dataProvider } from '../../src/services/dataProvider';
+import { isPublicDemo } from '../../src/utils/demoMode';
 
 interface ResearchResult {
     query: string;
@@ -22,6 +28,8 @@ interface IntelSearchViewProps {
     initialQuery?: string | null;
 }
 
+const LEGACY_LOCAL_FALLBACK_MARKER = 'Connect to backend to enable cloud reasoning.';
+
 export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }) => {
     const [query, setQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
@@ -29,26 +37,42 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
     const [history, setHistory] = useState<ResearchResult[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [aiCapabilities, setAiCapabilities] = useState<AiCapabilities | null>(null);
+    const demoMode = isPublicDemo();
     const searchEndRef = useRef<HTMLDivElement>(null);
 
-    // Load History on Mount
+    // Load History & probe non-secret AI capability status on mount
     useEffect(() => {
+        let mounted = true;
         const loadHistory = async () => {
             const saved = await loadFromStorage(STORES.INTEL_RESEARCH, 'history');
-            let loadedHistory = [];
+            let loadedHistory: ResearchResult[] = [];
             if (saved && Array.isArray(saved) && saved.length > 0) {
-                loadedHistory = saved;
-            } else {
-                loadedHistory = await dataProvider.getIntelHistory();
-                await saveToStorage(STORES.INTEL_RESEARCH, loadedHistory, 'history');
+                loadedHistory = saved.filter(
+                    (item: ResearchResult) => !item?.text?.includes(LEGACY_LOCAL_FALLBACK_MARKER),
+                );
             }
+            if (loadedHistory.length === 0) {
+                loadedHistory = await dataProvider.getIntelHistory();
+                if (loadedHistory.length > 0) {
+                    await saveToStorage(STORES.INTEL_RESEARCH, loadedHistory, 'history');
+                }
+            }
+            if (!mounted) return;
             setHistory(loadedHistory);
             if (loadedHistory.length > 0) {
                 setResult(loadedHistory[0]);
             }
         };
         loadHistory();
-    }, []);
+
+        if (!demoMode) {
+            getAiCapabilities().then((caps) => {
+                if (mounted && caps) setAiCapabilities(caps);
+            });
+        }
+        return () => { mounted = false; };
+    }, [demoMode]);
 
     // Handle initial query from navigation
     useEffect(() => {
@@ -79,8 +103,15 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
         // Check Cache
         const existing = history.find(h => h.query.toLowerCase() === targetQuery.toLowerCase());
         if (existing) {
-            await new Promise(r => setTimeout(r, 800));
             setResult({ ...existing, isCached: true });
+            setIsSearching(false);
+            return;
+        }
+
+        if (demoMode) {
+            setError(
+                'Custom live AI research queries are disabled in read-only public demo mode. Select a preloaded entry from Intel History or sign in with an authenticated tenant workspace.',
+            );
             setIsSearching(false);
             return;
         }
@@ -97,7 +128,11 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
             setResult(newResult);
             setHistory(prev => [newResult, ...prev].slice(0, 50));
         } catch (err: any) {
-            setError(err.message || "An error occurred during global intel search.");
+            const message =
+                err instanceof GeminiProxyError
+                    ? err.message
+                    : (err?.message || 'An error occurred during global intel search.');
+            setError(message);
         } finally {
             setIsSearching(false);
             setTimeout(() => {
@@ -261,7 +296,7 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                     <h3 className="text-[10px] font-bold text-at-muted uppercase tracking-widest flex items-center gap-2">
                         <History size={14} className="text-at-muted"/> INTEL HISTORY
                     </h3>
-                    <button onClick={() => setHistory([])} className="text-at-disabled hover:text-[#d62828] transition-colors">
+                    <button onClick={() => setHistory([])} className="text-at-disabled hover:text-accent transition-colors">
                         <Trash2 size={14}/>
                     </button>
                 </div>
@@ -274,11 +309,11 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                         >
                             <div className="flex justify-between items-start relative z-10">
                                 <span className="text-xs font-bold text-at-text truncate pr-4 uppercase tracking-wide">{item.query}</span>
-                                <button onClick={(e) => deleteHistoryItem(e, item.query)} className="opacity-0 group-hover:opacity-100 text-at-disabled hover:text-[#d62828] transition-all"><X size={12}/></button>
+                                <button onClick={(e) => deleteHistoryItem(e, item.query)} className="opacity-0 group-hover:opacity-100 text-at-disabled hover:text-accent transition-all"><X size={12}/></button>
                             </div>
                             <div className="flex justify-between items-center text-[10px] text-at-disabled font-mono mt-2 relative z-10">
                                 <span className="flex items-center gap-1"><Clock size={10}/> {new Date(item.timestamp).toLocaleDateString()}</span>
-                                <span className="text-[#d62828] opacity-0 group-hover:opacity-100 transition-opacity font-bold">RECALL &rarr;</span>
+                                <span className="text-accent opacity-0 group-hover:opacity-100 transition-opacity font-bold">RECALL &rarr;</span>
                             </div>
                         </div>
                     ))}
@@ -299,10 +334,22 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                 <div className="at-intel-hero">
                     <div className="max-w-4xl mx-auto space-y-6">
                         <div className="flex flex-col items-center text-center space-y-3">
-                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#d62828]/10 border border-[#d62828]/30 text-[#d62828] text-[10px] font-bold tracking-widest uppercase mb-4">
-                                <Zap size={12} className="animate-pulse"/>
-                                Grounding Engine Active
-                            </div>
+                            {demoMode ? (
+                                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-neutral-800/80 border border-neutral-700 text-neutral-300 text-[10px] font-bold tracking-widest uppercase mb-4">
+                                    <Database size={12}/>
+                                    Demo Archive Mode (Read Only)
+                                </div>
+                            ) : aiCapabilities?.providers.gemini === false ? (
+                                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-amber-950/50 border border-amber-500/40 text-amber-300 text-[10px] font-bold tracking-widest uppercase mb-4">
+                                    <AlertCircle size={12}/>
+                                    Cloud AI Unconfigured (GEMINI_API_KEY missing)
+                                </div>
+                            ) : (
+                                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-accent/10 border border-accent/30 text-accent text-[10px] font-bold tracking-widest uppercase mb-4">
+                                    <Zap size={12} className="animate-pulse"/>
+                                    Grounding Engine Active
+                                </div>
+                            )}
                             <h1 className="text-3xl font-sans font-bold text-white tracking-tight leading-none">
                                 INTEL BRIEFING
                             </h1>
@@ -323,7 +370,7 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                                 <button 
                                     type="submit"
                                     disabled={isSearching || !query.trim()}
-                                    className="bg-[#d62828] text-white px-8 py-4 font-bold text-xs tracking-wider hover:bg-[#b01e1e] transition-colors border-l border-at-border disabled:opacity-50 flex items-center gap-3 uppercase"
+                                    className="bg-accent text-white px-8 py-4 font-bold text-xs tracking-wider hover:bg-accent-hover transition-colors border-l border-at-border disabled:opacity-50 flex items-center gap-3 uppercase"
                                 >
                                     {isSearching ? <Loader2 className="animate-spin" size={16}/> : <Terminal size={16}/>}
                                     Process
@@ -414,28 +461,48 @@ export const IntelSearchView: React.FC<IntelSearchViewProps> = ({ initialQuery }
                                             <Fingerprint size={16} className="text-at-accent"/> FIDELITY ASSESSMENT
                                         </h3>
                                         <div className="flex-1 space-y-6">
-                                            <div className="p-5 bg-at-bg border border-at-border rounded-xl">
-                                                <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-[10px] text-[#888] font-bold uppercase tracking-widest">Confidence Level</span>
-                                                    <span className="text-[10px] text-white font-mono font-bold">VERIFIED</span>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-[#151515] rounded-full overflow-hidden">
-                                                    <div className="h-full bg-at-accent" style={{ width: '92%' }}></div>
-                                                </div>
-                                            </div>
-                                            <div className="p-5 bg-at-bg border border-at-border rounded-xl">
-                                                <div className="text-[10px] text-[#888] font-bold uppercase tracking-widest mb-3">Research Status</div>
-                                                <div className="flex items-start gap-3">
-                                                    <div className="mt-1">
-                                                        <CheckCircle size={14} className="text-white"/>
-                                                    </div>
-                                                    <p className="text-[11px] text-[#AAA] leading-relaxed font-mono">
-                                                        {result.isCached 
-                                                            ? "Retrieved from local intelligence store. Model verification bypassed to conserve API quota." 
-                                                            : "Grounding model performed real-time data ingestion from authoritative security bulletins and technical whitepapers."}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                            {(() => {
+                                                const sourceCount = result.sources.length;
+                                                const label = sourceCount > 0
+                                                    ? `GROUNDED (${sourceCount} ${sourceCount === 1 ? 'SOURCE' : 'SOURCES'})`
+                                                    : result.isCached
+                                                        ? 'CACHED DOSSIER'
+                                                        : 'UNVERIFIED SYNTHESIS';
+                                                const barWidth = sourceCount > 0
+                                                    ? `${Math.min(100, 55 + sourceCount * 10)}%`
+                                                    : result.isCached
+                                                        ? '70%'
+                                                        : '50%';
+                                                const statusCopy = result.isCached
+                                                    ? 'Retrieved from local intelligence history.'
+                                                    : sourceCount > 0
+                                                        ? 'Grounded against external search citations returned by the AI provider.'
+                                                        : 'Model synthesis returned without external web citations.';
+                                                return (
+                                                    <>
+                                                        <div className="p-5 bg-at-bg border border-at-border rounded-xl">
+                                                            <div className="flex justify-between items-center mb-3">
+                                                                <span className="text-[10px] text-[#888] font-bold uppercase tracking-widest">Attribution Basis</span>
+                                                                <span className="text-[10px] text-white font-mono font-bold">{label}</span>
+                                                            </div>
+                                                            <div className="h-1.5 w-full bg-[#151515] rounded-full overflow-hidden">
+                                                                <div className="h-full bg-at-accent" style={{ width: barWidth }}></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-5 bg-at-bg border border-at-border rounded-xl">
+                                                            <div className="text-[10px] text-[#888] font-bold uppercase tracking-widest mb-3">Research Status</div>
+                                                            <div className="flex items-start gap-3">
+                                                                <div className="mt-1">
+                                                                    <CheckCircle size={14} className="text-white"/>
+                                                                </div>
+                                                                <p className="text-[11px] text-[#AAA] leading-relaxed font-mono">
+                                                                    {statusCopy}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 </div>

@@ -1,3 +1,4 @@
+import { LegalLinks } from './LegalView';
 import React, { useState } from 'react';
 import {
   ShieldCheck,
@@ -405,6 +406,14 @@ export const SignupView: React.FC<SignupViewProps> = ({ onNavigateToLogin }) => 
                   </>
                 )}
               </button>
+
+              <p className="text-center text-xs text-neutral-500">
+                By creating an account you agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener" className="underline hover:text-neutral-300">Terms of Service</a>{' '}
+                and{' '}
+                <a href="/privacy" target="_blank" rel="noopener" className="underline hover:text-neutral-300">Privacy Policy</a>.
+              </p>
+              <LegalLinks />
 
               {/* Already have an account link */}
               <div className="pt-2 text-center border-t border-neutral-800/80 font-mono text-xs text-neutral-400">
